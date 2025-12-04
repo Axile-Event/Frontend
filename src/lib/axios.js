@@ -1,16 +1,17 @@
-import axios from 'axios';
+import axios from "axios";
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api', // Replace with your actual API URL
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api", // We go replace this when dem give us the backend api endpoint
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
 // Add a request interceptor to include the auth token if available
 api.interceptors.request.use(
   (config) => {
-    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    const token =
+      typeof window !== "undefined" ? localStorage.getItem("token") : null;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }

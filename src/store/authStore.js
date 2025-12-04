@@ -1,5 +1,5 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 const useAuthStore = create(
   persist(
@@ -7,11 +7,12 @@ const useAuthStore = create(
       user: null,
       token: null,
       isAuthenticated: false,
-      login: (userData, token) => set({ user: userData, token, isAuthenticated: true }),
+      login: (userData, token) =>
+        set({ user: userData, token, isAuthenticated: true }),
       logout: () => set({ user: null, token: null, isAuthenticated: false }),
     }),
     {
-      name: 'auth-storage', // name of the item in the storage (must be unique)
+      name: "auth-storage", // name of the item in the storage (e need dey unique)
     }
   )
 );
