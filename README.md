@@ -14,46 +14,7 @@ Radar is a modern ticketing platform designed to streamline event management and
 
 ## 🛠️ Getting Started
 
-### Prerequisites
 
-Ensure you have the following installed:
-- Node.js (v18 or later)
-- npm or yarn
-
-### Installation
-
-1.  **Clone the repository:**
-
-    ```bash
-    git clone https://github.com/Radar-OAU/Frontend.git
-    cd Frontend
-    ```
-
-2.  **Install dependencies:**
-
-    ```bash
-    npm install
-    # or
-    yarn install
-    ```
-
-3.  **Set up environment variables:**
-
-    Create a `.env.local` file in the root directory and add your API URL:
-
-    ```env
-    NEXT_PUBLIC_API_URL=http://localhost:5000/api
-    ```
-
-4.  **Run the development server:**
-
-    ```bash
-    npm run dev
-    # or
-    yarn dev
-    ```
-
-    Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
 ## 📂 Project Structure
 
@@ -79,6 +40,12 @@ src/
 - [x] **Protected Routes:** Route guarding for authenticated users.
 - [x] **Axios Instance:** Configured with interceptors for auth tokens.
 - [x] **Project Structure:** Organized folder hierarchy.
+
+## 👥 Contributors
+
+- [Lupoetn](https://github.com/lupoetn)
+- [Abraham123-dev](https://github.com/abraham123-dev)
+- [samkiell](https://github.com/samkiell)
 
 ## 🤝 Contributing
 
