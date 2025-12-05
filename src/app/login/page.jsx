@@ -115,7 +115,7 @@ const LoginPage = () => {
                 </motion.div>
               ) : (
                 <CardDescription className="text-base text-gray-600 dark:text-gray-400">
-                  Sign in to continue your journey
+                  Sign in to get your tickets
                 </CardDescription>
               )}
             </AnimatePresence>
