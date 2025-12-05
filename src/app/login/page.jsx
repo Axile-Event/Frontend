@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Mail, Lock, Loader2, User, Sparkles, Eye, EyeOff, Check, ArrowRight } from 'lucide-react'
+import toast from 'react-hot-toast'
 import api from '@/lib/axios'
 import useAuthStore from '@/store/authStore'
 import { Button } from '@/components/ui/button'
@@ -73,10 +74,13 @@ const LoginPage = () => {
       const response = await api.post('/auth/login', formData)
       const { user, token } = response.data
       login(user, token)
+      toast.success('Login successful! Redirecting...')
       router.push('/dashboard')
     } catch (err) {
       console.error('Login error:', err)
-      setError(err.response?.data?.message || 'Invalid email or password')
+      const message = err.response?.data?.message || 'Invalid email or password'
+      setError(message)
+      toast.error(message)
     } finally {
       setLoading(false)
     }
@@ -191,20 +195,6 @@ const LoginPage = () => {
                 </div>
               </div>
               
-              {/* Error Message */}
-              {error && (
-                <motion.div 
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-sm text-red-600 dark:text-red-400 flex items-center gap-2"
-                >
-                  <div className="h-5 w-5 rounded-full bg-red-100 dark:bg-red-900/50 flex items-center justify-center shrink-0">
-                    <span className="text-red-500 dark:text-red-400 text-xs font-bold">!</span>
-                  </div>
-                  {error}
-                </motion.div>
-              )}
-
               {/* Submit Button */}
               <Button 
                 type="submit" 
