@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion, AnimatePresence, } from 'framer-motion'
 import { Mail, Lock, Loader2, User, Sparkles, Eye, EyeOff, Check, ArrowRight } from 'lucide-react'
 import toast from 'react-hot-toast'
 import api from '../../lib/axios'
@@ -136,11 +136,11 @@ const LoginPage = () => {
                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">
                     <Mail className="h-5 w-5" />
                   </div>
-                  <Input 
-                    id="email" 
-                    name="email" 
-                    type="email" 
-                    placeholder="radar@gmail.com" 
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="radar@gmail.com"
                     className="pl-12 h-12 rounded-xl border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-zinc-950 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all duration-200 text-base dark:text-white dark:placeholder:text-gray-600"
                     value={formData.email}
                     onChange={handleChange}
@@ -160,8 +160,8 @@ const LoginPage = () => {
                   <Label htmlFor="password" className="text-sm font-medium text-gray-700 dark:text-gray-300">
                     Password
                   </Label>
-                  <Link 
-                    href="/forgot-password" 
+                  <Link
+                    href="/forgot-password"
                     className="text-sm font-medium text-rose-600 hover:text-rose-500 dark:text-rose-400 dark:hover:text-rose-300 transition-colors"
                   >
                     Forgot?
@@ -171,10 +171,10 @@ const LoginPage = () => {
                   <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 dark:text-gray-400">
                     <Lock className="h-5 w-5" />
                   </div>
-                  <Input 
-                    id="password" 
-                    name="password" 
-                    type={showPassword ? "text" : "password"} 
+                  <Input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
                     placeholder="••••••••"
                     className="pl-12 pr-12 h-12 rounded-xl border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-zinc-950 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all duration-200 text-base dark:text-white dark:placeholder:text-gray-600"
                     value={formData.password}
