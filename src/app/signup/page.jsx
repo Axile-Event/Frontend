@@ -3,29 +3,25 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { motion, } from 'framer-motion'
+import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
 import api from "../../lib/axios";
 import useAuthStore from "../../store/authStore";
-import { Mail, Lock, User, Briefcase, Hash, Eye, EyeOff, UsersIcon, Loader2, ArrowRight } from "lucide-react";
+import { Mail, Lock, User, Eye, EyeOff, UsersIcon, Loader2, ArrowRight } from "lucide-react";
 
 const SignUp = () => {
   const router = useRouter();
   const loginUser = useAuthStore((state) => state.login);
 
   const [role, setRole] = useState("Student");
-  const [name, setName] = useState("");
-  const [department, setDepartment] = useState("");
-  const [matric, setMatric] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const [organisationName, setOrganisationName] = useState("");
-  const [organisationType, setOrganisationType] = useState("");
   const [organiserEmail, setOrganiserEmail] = useState("");
   const [organiserPassword, setOrganiserPassword] = useState("");
   const [organiserConfirm, setOrganiserConfirm] = useState("");
@@ -39,31 +35,23 @@ const SignUp = () => {
   const invalidOrganiserEmail = organiserEmail.length > 0 && !validateEmail(organiserEmail);
 
   const shortPassword = password.length > 0 && password.length < 6;
-  const passwordMismatch =
-    confirmPassword.length > 0 && confirmPassword !== password;
-
-  const organiserShortPassword =
-    organiserPassword.length > 0 && organiserPassword.length < 6;
+  const organiserShortPassword = organiserPassword.length > 0 && organiserPassword.length < 6;
   const organiserPasswordMismatch =
     organiserConfirm.length > 0 && organiserConfirm !== organiserPassword;
 
   const isFormValid = () => {
     if (role === "Student") {
       return (
-        name.trim() &&
-        department.trim() &&
-        matric.trim() &&
+        firstName.trim() &&
+        lastName.trim() &&
         email.trim() &&
-        password.length >= 6 &&
-        confirmPassword === password
+        password.length >= 6
       );
     } else {
       return (
         organisationName.trim() &&
-        organisationType.trim() &&
         organiserEmail.trim() &&
-        organiserPassword.length >= 6 &&
-        organiserConfirm === organiserPassword
+        organiserPassword.length >= 6 
       );
     }
   };
@@ -76,25 +64,22 @@ const SignUp = () => {
       let payload;
       if (role === "Student") {
         payload = {
-          name,
+          firstName,
+          lastName,
           role,
-          department,
-          matric,
           email,
           password,
         };
       } else {
         payload = {
           organisationName,
-          organisationType,
           email: organiserEmail,
           password: organiserPassword,
           role,
         };
       }
 
-      const res = await api.post("/auth/signup", payload);
-
+      const res = await api.post("/auth/signup", payload); 
       loginUser(res.data.user, res.data.token);
       toast.success('Account Created Successfully')
       router.push("/dashboard");
@@ -104,6 +89,23 @@ const SignUp = () => {
       setLoading(false);
     }
   };
+
+  const handleSocialLogin = async (provider) => {
+    setLoading(true)
+    try {
+      const res = await api.post(`/auth/social-login`, {
+        provider,
+        role,
+      })
+        loginUser(res.data.user, res.data.token);
+      toast.success('Account Created Successfully')
+      router.push("/dashboard");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Signup failed.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <div className="min-h-screen w-full flex bg-[#0A0A14]">
@@ -116,10 +118,10 @@ const SignUp = () => {
             filter: "grayscale(30%)",
           }}
         />
-        <div className="relative z-10 flex items-center justify-center">
+        <div className="relative z-10 w-[40%] flex items-center justify-center">
           <img
             alt="Center Image"
-            src='assets/image 2 (1).png'
+            src='/assets/image 2 (1).png'
           />
         </div>
       </div>
@@ -167,61 +169,42 @@ const SignUp = () => {
             <div className="space-y-3">
               {role === "Student" && (
                 <>
-                  {/* NAME */}
-                  <div>
-                    <label className="block text-white/80 text-xs font-semibold uppercase tracking-wide mb-2">
-                      Name
-                    </label>
-                    <div className="relative">
-                      <User className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" />
-                      <input
-                        type="text"
-                        id="name"
-                        name='name'
-                        placeholder="e.g. John Christopher"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        className="w-full bg-transparent border border-gray-200 dark:border-gray-800 rounded-xl py-3.5 pl-12 pr-4 text-white hover:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all duration-200 dark:placeholder:text-gray-600"
-                      />
+                  {/* FIRST NAME AND LAST NAME */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-white/80 text-xs font-semibold uppercase tracking-wide mb-2">
+                        First Name
+                      </label>
+                      <div className="relative">
+                        <User className={`absolute left-4 top-1/2 -translate-y-1/2 z-10 pointer-events-none ${firstName ? 'text-black' : 'text-white/70'}`} />
+                        <input
+                          type="text"
+                          id="firstName"
+                          name='firstName'
+                          placeholder="e.g. John"
+                          value={firstName}
+                          onChange={(e) => setFirstName(e.target.value)}
+                          className="w-full bg-transparent border border-gray-200 dark:border-gray-800 rounded-xl py-3.5 pl-12 pr-4 text-white hover:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all duration-200 dark:placeholder:text-gray-600"
+                        />
+                      </div>
                     </div>
+                    <div>
+                      <label className="block text-white/80 text-xs font-semibold uppercase tracking-wide mb-2">
+                        Last Name
+                      </label>
+                      <div className="relative">
+                        <User className={`absolute left-4 top-1/2 -translate-y-1/2 z-10 pointer-events-none ${lastName ? 'text-black' : 'text-white/40'}`} />
+                        <input
+                          type="text"
+                          id="lastName"
+                          name='lastName'
+                          placeholder="e.g. Christopher"
+                          value={lastName}
+                          onChange={(e) => setLastName(e.target.value)}
+                          className="w-full bg-transparent border border-gray-200 dark:border-gray-800 rounded-xl py-3.5 pl-12 pr-4 text-white hover:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all duration-200 dark:placeholder:text-gray-600"
+                        />
+                      </div>
                   </div>
-
-                  {/* DEPARTMENT */}
-                  <div>
-                    <label className="block text-white/80 text-xs font-semibold uppercase tracking-wide mb-2">
-                      Department
-                    </label>
-                    <div className="relative">
-                      <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" />
-                      <input
-                        type="text"
-                        id="Department"
-                        name="Department"
-                        placeholder="e.g. Computer Science"
-                        value={department}
-                        onChange={(e) => setDepartment(e.target.value)}
-                        className="w-full bg-transparent border border-gray-200 dark:border-gray-800 rounded-xl py-3.5 pl-12 pr-4 text-white hover:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all duration-200 dark:placeholder:text-gray-600"
-                      />
-                    </div>
-                  </div>
-
-                  {/* MATRIC — student only */}
-                  <div>
-                    <label className="block text-white/80 text-xs font-semibold uppercase tracking-wide mb-2">
-                      Matric Number
-                    </label>
-                    <div className="relative">
-                      <Hash className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" />
-                      <input
-                        type="text"
-                        id="Matric number"
-                        name="Matric number"
-                        placeholder="e.g. CSC/2024/057"
-                        value={matric}
-                        onChange={(e) => setMatric(e.target.value)}
-                        className="w-full bg-transparent border border-gray-200 dark:border-gray-800 rounded-xl py-3.5 pl-12 pr-4 text-white hover:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all duration-200 dark:placeholder:text-gray-600"
-                      />
-                    </div>
                   </div>
 
                   {/* EMAIL */}
@@ -230,7 +213,7 @@ const SignUp = () => {
                       Email
                     </label>
                     <div className="relative">
-                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" />
+                      <Mail className={`absolute left-4 top-1/2 -translate-y-1/2 z-10 pointer-events-none ${email ? 'text-black' : 'text-white/40'}`} />
                       <input
                         type="email"
                           id="email"
@@ -254,7 +237,7 @@ const SignUp = () => {
                       Password
                     </label>
                     <div className="relative">
-                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" />
+                      <Lock className={`absolute left-4 top-1/2 -translate-y-1/2 z-10 pointer-events-none ${password ? 'text-black' : 'text-white/40'}`} />
                       <input
                         id="password"
                        name="password"
@@ -279,34 +262,6 @@ const SignUp = () => {
                     )}
                   </div>
 
-                  {/* Confirm PASSWORD */}
-                  <div>
-                    <label className="block text-white/80 text-xs font-semibold uppercase tracking-wide mb-2">
-                      Confirm Password
-                    </label>
-                    <div className="relative">
-                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" />
-                      <input
-                        type={showConfirm ? "text" : "password"}
-                        placeholder="••••••••"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="w-full bg-transparent border border-gray-200 dark:border-gray-800 rounded-xl py-3.5 pl-12 pr-12 text-white hover:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all duration-200 dark:placeholder:text-gray-600"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirm(!showConfirm)}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40"
-                      >
-                        {showConfirm ? <EyeOff /> : <Eye />}
-                      </button>
-                    </div>
-                    {passwordMismatch && (
-                      <p className="text-red-500 text-xs mt-1">
-                        Passwords do not match.
-                      </p>
-                    )}
-                  </div>
                 </>
               )}
 
@@ -319,7 +274,7 @@ const SignUp = () => {
                       Organisation Name
                     </label>
                     <div className="relative">
-                      <UsersIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" />
+                      <UsersIcon className={`absolute left-4 top-1/2 -translate-y-1/2 z-10 pointer-events-none ${organisationName ? 'text-black' : 'text-white/40'}`} />
                       <input
                         type="text"
                         id="name"
@@ -332,30 +287,13 @@ const SignUp = () => {
                     </div>
                   </div>
 
-                  {/* Organisation Type */}
-                  <div>
-                    <label className="block text-white/80 text-xs font-semibold uppercase tracking-wide mb-2">
-                      Organisation Type
-                    </label>
-                    <div className="relative">
-                      <UsersIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" />
-                      <input
-                        type="text"
-                        placeholder="e.g. Non-profit / Student Society"
-                        value={organisationType}
-                        onChange={(e) => setOrganisationType(e.target.value)}
-                        className="w-full bg-transparent border border-gray-200 dark:border-gray-800 rounded-xl py-3.5 pl-12 pr-4 text-white hover:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all duration-200 dark:placeholder:text-gray-600"
-                      />
-                    </div>
-                  </div>
-
                   {/* Email */}
                   <div>
                     <label className="block text-white/80 text-xs font-semibold uppercase tracking-wide mb-2">
                       Email
                     </label>
                     <div className="relative">
-                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" />
+                      <Mail className={`absolute left-4 top-1/2 -translate-y-1/2 z-10 pointer-events-none ${organiserEmail ? 'text-black' : 'text-white/40'}`} />
                       <input
                         type="email"
                           id="email"
@@ -379,7 +317,7 @@ const SignUp = () => {
                       Password
                     </label>
                     <div className="relative">
-                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" />
+                      <Lock className={`absolute left-4 top-1/2 -translate-y-1/2 z-10 pointer-events-none ${organiserPassword ? 'text-black' : 'text-white/40'}`} />
                       <input
                         id="password"
                     name="password"
@@ -397,50 +335,21 @@ const SignUp = () => {
                         {showPass ? <EyeOff /> : <Eye />}
                       </button>
                     </div>
-                  </div>
-
-                  {/* Confirm Password */}
-                  <div>
-                    <label className="block text-white/80 text-xs font-semibold uppercase tracking-wide mb-2">
-                      Confirm Password
-                    </label>
-                    <div className="relative">
-                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" />
-                      <input
-                        type={showConfirm ? "text" : "password"}
-                        placeholder="••••••••"
-                        value={organiserConfirm}
-                        onChange={(e) => setOrganiserConfirm(e.target.value)}
-                        className="w-full bg-transparent border border-gray-200 dark:border-gray-800 rounded-xl py-3.5 pl-12 pr-12 text-white hover:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all duration-200 dark:placeholder:text-gray-600"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirm(!showConfirm)}
-                        className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40"
-                      >
-                        {showConfirm ? <EyeOff /> : <Eye />}
-                      </button>
-                    </div>
                     {organiserShortPassword && (
-                      <p className="text-red-500 text-xs mt-1">
+                      <p className="text-red-500 text-xs mt-1 animate-fade-in">
                         Password must be at least 6 characters long.
-                      </p>
-                    )}
-                    {organiserPasswordMismatch && (
-                      <p className="text-red-500 text-xs mt-1">
-                        Passwords do not match.
                       </p>
                     )}
                   </div>
                 </>
               )}
             </div>
-
+          
             <button
           type="submit"
            disabled={loading || !isFormValid()}
           className={`w-[80%] mx-auto bg-[#FF3A66] ${isFormValid() ? 'hover:bg-[#cf153e]' : ''} text-[#FFFFFF] font-semibold py-4 rounded-full mt-6 transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed`}
-        >
+           >
             {loading ? (<><Loader2 className="animate-spin mr-2" />Creating account...</>) : 'Create Account'}
            {!loading && <ArrowRight className="ml-2 h-5 w-5" />}
         </button>
@@ -475,6 +384,7 @@ const SignUp = () => {
             >
                 <img src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg" alt="Apple" className="w-5 h-5 group-hover:scale-110 transition-transform"/>
             </button>
+
         </div>
           </form>
 
@@ -489,6 +399,7 @@ const SignUp = () => {
           </div>
         </div>
       </motion.div>
+      
     </div>
   );
 };
