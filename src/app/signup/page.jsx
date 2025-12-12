@@ -62,29 +62,36 @@ const SignUp = () => {
 
     try {
       let payload;
+      let endpoint = "/student/register/";
       if (role === "Student") {
+        // Backend expects capitalized keys for student registration (see API docs)
         payload = {
-          firstName,
-          lastName,
-          role,
-          email,
-          password,
+          Firstname: firstName,
+          Lastname: lastName,
+          Email: email,
+          Password: password,
         };
+        endpoint = "/student/register/";
       } else {
+        // Organizer endpoint and expected keys per API docs
         payload = {
-          organisationName,
-          email: organiserEmail,
-          password: organiserPassword,
-          role,
+          Organization_Name: organisationName,
+          Email: organiserEmail,
+          Password: organiserPassword,
         };
+        endpoint = "/organizer/register/";
       }
 
-      const res = await api.post("/student/signup/", payload);
-      loginUser(res.data.user, res.data.token);
+      // POST to the correct backend register endpoint depending on role
+      const res = await api.post(endpoint, payload);
+      // Only log the user in if the backend returned a token (some backends issue tokens after verification)
+      if (res.data?.token) {
+        loginUser(res.data.user, res.data.token);
+      }
       toast.success('Account Created Successfully. Please verify your email.')
       // Redirect to OTP verification page for both students and organizers
       const userEmail = role === "Student" ? email : organiserEmail;
-      router.push(`/verify-otp?email=${userEmail}`);
+      router.push(`/verify-otp?email=${encodeURIComponent(userEmail)}`);
     } catch (err) {
       toast.error(err.response?.data?.message || "Signup failed.");
     } finally {

@@ -71,7 +71,8 @@ const VerifyOTP = () => {
 
     setLoading(true);
     try {
-      const res = await api.post("/auth/verify-otp", {
+      // Backend expects POST /verify-otp/ with { email, otp }
+      const res = await api.post("/verify-otp/", {
         email,
         otp: otpCode,
       });
@@ -79,7 +80,10 @@ const VerifyOTP = () => {
       toast.success("Email verified successfully!");
       router.push("/dashboard");
     } catch (err) {
-      toast.error(err.response?.data?.message || "OTP verification failed.");
+      console.error("Verify OTP error:", err.response || err);
+      // Show validation errors from backend if present
+      const msg = err.response?.data?.message || err.response?.data || "OTP verification failed.";
+      toast.error(typeof msg === 'string' ? msg : JSON.stringify(msg));
     } finally {
       setLoading(false);
     }
@@ -88,13 +92,16 @@ const VerifyOTP = () => {
   const handleResendOtp = async () => {
     setResendLoading(true);
     try {
-      await api.post("/auth/resend-otp", { email });
+      // Try the common resend endpoint — adjust if your backend uses a different path
+      await api.post("/resend-otp/", { email });
       setOtp(["", "", "", "", "", ""]);
       setTimeLeft(300);
       setIsExpired(false);
       toast.success("OTP resent to your email");
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to resend OTP.");
+      console.error("Resend OTP error:", err.response || err);
+      const msg = err.response?.data?.message || err.response?.data || "Failed to resend OTP.";
+      toast.error(typeof msg === 'string' ? msg : JSON.stringify(msg));
     } finally {
       setResendLoading(false);
     }

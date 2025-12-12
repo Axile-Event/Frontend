@@ -56,16 +56,35 @@ const LoginPage = () => {
     setError('')
 
     try {
-      const response = await api.post('/auth/login', formData)
-      const { user, token } = response.data
+      // Backend docs expect POST /login/ with { email, password }
+      const response = await api.post('/login/', formData)
+      const data = response.data || {}
+
+      // Try multiple shapes: { user, token } or { access, refresh, user_id, email }
+      const token = data.token || data.access || data.access_token || null
+      let user = data.user || null
+
+      if (!user) {
+        // Build a minimal user object if backend returned user fields individually
+        user = {
+          id: data.user_id || data.id || null,
+          email: data.email || formData.email || null,
+        }
+      }
+
+      if (!token) {
+        console.warn('Login: no token returned from API, continuing without token')
+      }
+
       login(user, token)
       toast.success('Login successful! Redirecting...')
       router.push('/dashboard')
     } catch (err) {
-      console.error('Login error:', err)
-      const message = err.response?.data?.message || 'Invalid email or password'
-      setError(message)
-      toast.error(message)
+      console.error('Login error:', err.response || err)
+      const message = err.response?.data?.message || err.response?.data || 'Invalid email or password'
+      const msg = typeof message === 'string' ? message : JSON.stringify(message)
+      setError(msg)
+      toast.error(msg)
     } finally {
       setLoading(false)
     }
