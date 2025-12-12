@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
+import { useGoogleLogin } from '@react-oauth/google'
 import api from "../../lib/axios";
 import useAuthStore from "../../store/authStore";
 import { Mail, Lock, User, Eye, EyeOff, UsersIcon, Loader2, ArrowRight } from "lucide-react";
@@ -92,20 +93,30 @@ const SignUp = () => {
     }
   };
 
-  const handleSocialLogin = async (provider) => {
-    setLoading(true)
-    try {
-      const res = await api.post(`/auth/social-login`, {
-        provider,
-        role,
-      })
+  const googleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setLoading(true);
+      try {
+        const res = await api.post('/auth/google', {
+          token: tokenResponse.access_token,
+          role: role
+        });
         loginUser(res.data.user, res.data.token);
-      toast.success('Account Created Successfully')
-      router.push("/dashboard");
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Signup failed.");
-    } finally {
-      setLoading(false);
+        toast.success('Account Created Successfully');
+        router.push("/dashboard");
+      } catch (err) {
+        console.error('Google signup error:', err);
+        toast.error(err.response?.data?.message || "Google signup failed");
+      } finally {
+        setLoading(false);
+      }
+    },
+    onError: () => toast.error('Google signup failed'),
+  });
+
+  const handleSocialLogin = (provider) => {
+    if (provider === 'Google') {
+      googleLogin();
     }
   }
 

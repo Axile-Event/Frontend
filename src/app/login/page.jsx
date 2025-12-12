@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Mail, Lock, Loader2, User, Sparkles, Eye, EyeOff, Check, ArrowRight } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { useGoogleLogin } from '@react-oauth/google'
 import api from '../../lib/axios'
 import useAuthStore from '../../store/authStore'
 import { Button } from '../../components/ui/button'
@@ -49,6 +50,25 @@ const LoginPage = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
     setError('')
   }
+
+  const handleGoogleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      try {
+        const res = await api.post('/auth/google', {
+          token: tokenResponse.access_token,
+        });
+        login(res.data.user, res.data.token);
+        toast.success('Login successful!');
+        router.push('/dashboard');
+      } catch (err) {
+        console.error('Google login error:', err);
+        toast.error('Google login failed');
+      }
+    },
+    onError: () => {
+      toast.error('Google login failed');
+    },
+  });
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -215,12 +235,13 @@ const LoginPage = () => {
               )}
             </Button>
           </form>
-
-          <div className="mt-8 flex flex-col space-y-4">
-            <div className="text-sm text-center text-gray-400">
-              Don&apos;t have an account?{' '}
-              <Link
-                href="/signup"
+            {/* Social Login Option */}
+            <Button
+              variant="outline"
+              onClick={() => handleGoogleLogin()}
+              className="w-full h-12 rounded-xl border-gray-800 bg-zinc-900 hover:bg-zinc-800 text-gray-300 transition-all duration-200"
+            >
+              <div className="flex items-center justify-center gap-3">
                 className="font-semibold text-rose-400 hover:text-rose-300 hover:underline transition-colors"
               >
                 Create an account
