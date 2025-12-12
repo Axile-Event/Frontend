@@ -1,5 +1,6 @@
 import { Geist, Geist_Mono, Plus_Jakarta_Sans } from "next/font/google";
 import { Toaster } from "react-hot-toast";
+import { GoogleAuthProvider } from "../components/GoogleAuthProvider";
 import "./globals.css";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
@@ -23,8 +24,10 @@ export default function RootLayout({ children }) {
       <body
         className={`${plusJakartaSans.variable} ${geistMono.variable} antialiased`}
       >
-        <Toaster position="top-center" />
-        {children}
+        <GoogleAuthProvider>
+          <Toaster position="top-center" />
+          {children}
+        </GoogleAuthProvider>
       </body>
     </html>
   );

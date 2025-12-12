@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
+import { useGoogleLogin } from '@react-oauth/google'
 import api from "../../lib/axios";
 import useAuthStore from "../../store/authStore";
 import { Mail, Lock, User, Eye, EyeOff, UsersIcon, Loader2, ArrowRight } from "lucide-react";
@@ -78,41 +79,58 @@ const SignUp = () => {
           Organization_Name: organisationName,
           Email: organiserEmail,
           Password: organiserPassword,
+          Phone: "", // Add phone field if needed in form
         };
         endpoint = "/organizer/register/";
       }
 
-      // POST to the correct backend register endpoint depending on role
       const res = await api.post(endpoint, payload);
-      // Only log the user in if the backend returned a token (some backends issue tokens after verification)
-      if (res.data?.token) {
-        loginUser(res.data.user, res.data.token);
+      
+      if (role === "Student") {
+         toast.success(res.data.message || 'OTP sent to email.')
+         router.push(`/verify-otp?email=${email}`);
+      } else {
+         // Organizer registration is immediate
+         const { email, access, refresh } = res.data;
+         loginUser({ email }, access);
+         toast.success('Account Created Successfully')
+         router.push("/dashboard");
       }
-      toast.success('Account Created Successfully. Please verify your email.')
-      // Redirect to OTP verification page for both students and organizers
-      const userEmail = role === "Student" ? email : organiserEmail;
-      router.push(`/verify-otp?email=${encodeURIComponent(userEmail)}`);
+
     } catch (err) {
-      toast.error(err.response?.data?.message || "Signup failed.");
+      toast.error(err.response?.data?.error || "Signup failed.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSocialLogin = async (provider) => {
-    setLoading(true)
-    try {
-      const res = await api.post(`/auth/social-login`, {
-        provider,
-        role,
-      })
-        loginUser(res.data.user, res.data.token);
-      toast.success('Account Created Successfully')
-      router.push("/dashboard");
-    } catch (err) {
-      toast.error(err.response?.data?.message || "Signup failed.");
-    } finally {
-      setLoading(false);
+  const googleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setLoading(true);
+      try {
+        const endpoint = role === "Student" ? '/student/google-signup/' : '/organizer/google-signup/';
+        const res = await api.post(endpoint, {
+          token: tokenResponse.access_token,
+        });
+        
+        const { email, access, refresh } = res.data;
+        loginUser({ email }, access);
+        
+        toast.success('Account Created Successfully');
+        router.push("/dashboard");
+      } catch (err) {
+        console.error('Google signup error:', err);
+        toast.error(err.response?.data?.error || "Google signup failed");
+      } finally {
+        setLoading(false);
+      }
+    },
+    onError: () => toast.error('Google signup failed'),
+  });
+
+  const handleSocialLogin = (provider) => {
+    if (provider === 'Google') {
+      googleLogin();
     }
   }
 

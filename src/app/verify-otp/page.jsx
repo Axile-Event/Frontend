@@ -71,14 +71,13 @@ const VerifyOTP = () => {
 
     setLoading(true);
     try {
-      // Backend expects POST /verify-otp/ with { email, otp }
       const res = await api.post("/verify-otp/", {
         email,
         otp: otpCode,
       });
 
       toast.success("Email verified successfully!");
-      router.push("/dashboard");
+      router.push("/login"); // Redirect to login after verification as per flow usually, or dashboard if auto-login
     } catch (err) {
       console.error("Verify OTP error:", err.response || err);
       // Show validation errors from backend if present
