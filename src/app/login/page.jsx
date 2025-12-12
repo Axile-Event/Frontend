@@ -237,13 +237,12 @@ const LoginPage = () => {
               )}
             </Button>
           </form>
-            {/* Social Login Option */}
-            <Button
-              variant="outline"
-              onClick={() => handleGoogleLogin()}
-              className="w-full h-12 rounded-xl border-gray-800 bg-zinc-900 hover:bg-zinc-800 text-gray-300 transition-all duration-200"
-            >
-              <div className="flex items-center justify-center gap-3">
+
+          <div className="mt-8 flex flex-col space-y-4">
+            <div className="text-sm text-center text-gray-400">
+              Don&apos;t have an account?{' '}
+              <Link
+                href="/signup"
                 className="font-semibold text-rose-400 hover:text-rose-300 hover:underline transition-colors"
               >
                 Create an account
@@ -260,6 +259,7 @@ const LoginPage = () => {
             {/* Social Login Option */}
             <Button
               variant="outline"
+              onClick={() => handleGoogleLogin()}
               className="w-full h-12 rounded-xl border-gray-800 bg-zinc-900 hover:bg-zinc-800 text-gray-300 transition-all duration-200"
             >
               <div className="flex items-center justify-center gap-3">
