@@ -79,7 +79,7 @@ const SignUp = () => {
         };
       }
 
-      const res = await api.post("/radar-ufvb.onrender.com/signup", payload); 
+      const res = await api.post("/student/signup/", payload);
       loginUser(res.data.user, res.data.token);
       toast.success('Account Created Successfully. Please verify your email.')
       // Redirect to OTP verification page for both students and organizers
