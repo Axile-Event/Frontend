@@ -63,8 +63,9 @@ const SignUp = () => {
 
     try {
       let payload;
-      let endpoint;
+      let endpoint = "/student/register/";
       if (role === "Student") {
+        // Backend expects capitalized keys for student registration (see API docs)
         payload = {
           Firstname: firstName,
           Lastname: lastName,
@@ -73,6 +74,7 @@ const SignUp = () => {
         };
         endpoint = "/student/register/";
       } else {
+        // Organizer endpoint and expected keys per API docs
         payload = {
           Organization_Name: organisationName,
           Email: organiserEmail,

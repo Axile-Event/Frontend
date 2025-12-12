@@ -1,7 +1,8 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL, // We go replace this when dem give us the backend api endpoint
+  // Prefer NEXT_PUBLIC_API_URL from environment; fall back to the provided endpoint
+  baseURL: process.env.NEXT_PUBLIC_API_URL || "https://radar-ufvb.onrender.com",
   headers: {
     "Content-Type": "application/json",
   },
