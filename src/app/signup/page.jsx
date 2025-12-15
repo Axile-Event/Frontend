@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
+import { useGoogleLogin } from '@react-oauth/google'
 import api from "../../lib/axios";
 import useAuthStore from "../../store/authStore";
 import { Mail, Lock, User, Eye, EyeOff, UsersIcon, Loader2, ArrowRight } from "lucide-react";
@@ -79,11 +80,11 @@ const SignUp = () => {
           Organization_Name: organisationName,
           Email: organiserEmail,
           Password: organiserPassword,
+          Phone: "", // Add phone field if needed in form
         };
         endpoint = "/organizer/register/";
       }
 
-      // POST to the correct backend register endpoint depending on role
       const res = await api.post(endpoint, payload);
 
       const data = res.data || {};
@@ -112,23 +113,33 @@ const SignUp = () => {
     }
   };
 
-  const handleSocialLogin = async (provider) => {
-    setLoading(true)
-    try {
-      const res = await api.post(`/auth/social-login`, {
-        provider,
-        role,
-      })
-        loginUser(res.data.user, res.data.token);
-      toast.success('Account Created Successfully')
-      router.push("/dashboard");
-    } catch (err) {
-      console.error("Social signup error:", err);
-      const message =
-        err.response?.data?.message || err.response?.data?.detail || err.message || "Signup failed.";
-      toast.error(message);
-    } finally {
-      setLoading(false);
+  const googleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      setLoading(true);
+      try {
+        const endpoint = role === "Student" ? '/student/google-signup/' : '/organizer/google-signup/';
+        const res = await api.post(endpoint, {
+          token: tokenResponse.access_token,
+        });
+        
+        const { email, access, refresh } = res.data;
+        loginUser({ email }, access);
+        
+        toast.success('Account Created Successfully');
+        router.push("/dashboard");
+      } catch (err) {
+        console.error('Google signup error:', err);
+        toast.error(err.response?.data?.error || "Google signup failed");
+      } finally {
+        setLoading(false);
+      }
+    },
+    onError: () => toast.error('Google signup failed'),
+  });
+
+  const handleSocialLogin = (provider) => {
+    if (provider === 'Google') {
+      googleLogin();
     }
   }
 

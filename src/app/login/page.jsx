@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Mail, Lock, Loader2, User, Sparkles, Eye, EyeOff, Check, ArrowRight } from 'lucide-react'
 import toast from 'react-hot-toast'
+import { useGoogleLogin } from '@react-oauth/google'
 import api from '../../lib/axios'
 import useAuthStore from '../../store/authStore'
 import { Button } from '../../components/ui/button'
@@ -50,41 +51,43 @@ const LoginPage = () => {
     setError('')
   }
 
+  const handleGoogleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      try {
+        // Assuming student login for now, logic might need adjustment based on user role selection if available on login page
+        const res = await api.post('/student/google-signup/', {
+          token: tokenResponse.access_token,
+        });
+        const { user_id, email, access, refresh, is_new_user } = res.data;
+        login({ user_id, email }, access);
+        toast.success('Login successful!');
+        router.push('/dashboard');
+      } catch (err) {
+        console.error('Google login error:', err);
+        toast.error('Google login failed');
+      }
+    },
+    onError: () => {
+      toast.error('Google login failed');
+    },
+  });
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
     setError('')
 
     try {
-      // Backend docs expect POST /login/ with { email, password }
       const response = await api.post('/login/', formData)
-      const data = response.data || {}
-
-      // Try multiple shapes: { user, token } or { access, refresh, user_id, email }
-      const token = data.token || data.access || data.access_token || null
-      let user = data.user || null
-
-      if (!user) {
-        // Build a minimal user object if backend returned user fields individually
-        user = {
-          id: data.user_id || data.id || null,
-          email: data.email || formData.email || null,
-        }
-      }
-
-      if (!token) {
-        console.warn('Login: no token returned from API, continuing without token')
-      }
-
-      login(user, token)
+      const { user_id, email, access, refresh } = response.data
+      login({ user_id, email }, access)
       toast.success('Login successful! Redirecting...')
       router.push('/dashboard')
     } catch (err) {
-      console.error('Login error:', err.response || err)
-      const message = err.response?.data?.message || err.response?.data || 'Invalid email or password'
-      const msg = typeof message === 'string' ? message : JSON.stringify(message)
-      setError(msg)
-      toast.error(msg)
+      console.error('Login error:', err)
+      const message = err.response?.data?.error || 'Invalid email or password'
+      setError(message)
+      toast.error(message)
     } finally {
       setLoading(false)
     }
@@ -232,7 +235,7 @@ const LoginPage = () => {
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </>
               )}
-            </Button>
+            </Button> //btn
           </form>
 
           <div className="mt-8 flex flex-col space-y-4">
@@ -256,6 +259,7 @@ const LoginPage = () => {
             {/* Social Login Option */}
             <Button
               variant="outline"
+              onClick={() => handleGoogleLogin()}
               className="w-full h-12 rounded-xl border-gray-800 bg-zinc-900 hover:bg-zinc-800 text-gray-300 transition-all duration-200"
             >
               <div className="flex items-center justify-center gap-3">

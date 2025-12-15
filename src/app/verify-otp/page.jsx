@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -8,7 +8,7 @@ import toast from "react-hot-toast";
 import api from "../../lib/axios";
 import { Mail, Lock, Loader2, ArrowRight, CheckCircle, Clock } from "lucide-react";
 
-const VerifyOTP = () => {
+const VerifyOTPContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get("email") || "";
@@ -72,14 +72,13 @@ const VerifyOTP = () => {
 
     setLoading(true);
     try {
-      // Backend expects POST /verify-otp/ with { email, otp }
       const res = await api.post("/verify-otp/", {
         email,
         otp: otpCode,
       });
 
       toast.success("Email verified successfully!");
-      router.push("/dashboard");
+      router.push("/login"); // Redirect to login after verification as per flow usually, or dashboard if auto-login
     } catch (err) {
       console.error("Verify OTP error:", err.response || err);
       // Show validation errors from backend if present
@@ -243,6 +242,14 @@ const VerifyOTP = () => {
         </div>
       </motion.div>
     </div>
+  );
+};
+
+const VerifyOTP = () => {
+  return (
+    <Suspense fallback={<div className="min-h-screen w-full flex items-center justify-center bg-[#0A0A14] text-white"><Loader2 className="animate-spin h-8 w-8" /></div>}>
+      <VerifyOTPContent />
+    </Suspense>
   );
 };
 
