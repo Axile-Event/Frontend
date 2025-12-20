@@ -8,6 +8,7 @@ import toast from 'react-hot-toast'
 import { useGoogleLogin } from '@react-oauth/google'
 import api from "../../lib/axios";
 import useAuthStore from "../../store/authStore";
+import { getErrorMessage } from "../../lib/utils";
 import { Mail, Lock, User, Eye, EyeOff, UsersIcon, Loader2, ArrowRight } from "lucide-react";
 import login from "../components/login/page";
 
@@ -61,6 +62,7 @@ const SignUp = () => {
   const submitForm = async (e) => {
     e.preventDefault();
     setLoading(true);
+    const toastId = toast.loading('Creating account...');
 
     try {
       let payload;
@@ -86,15 +88,16 @@ const SignUp = () => {
       }
 
       const res = await api.post(endpoint, payload);
-
-      const data = res.data || {};
-      const token = data.token || data.access || data.access_token || null;
-      let user = data.user || null;
-      if (!user) {
-        user = {
-          id: data.user_id || data.id || null,
-          email: data.email || (role === "Student" ? email : organiserEmail) || null,
-        };
+      
+      if (role === "Student") {
+         toast.success(res.data.message || 'OTP sent to email.', { id: toastId })
+         router.push(`/verify-otp?email=${email}`);
+      } else {
+         // Organizer registration is immediate
+         const { email, access, refresh } = res.data;
+         loginUser({ email }, access);
+         toast.success('Account Created Successfully', { id: toastId })
+         router.push("/dashboard");
       }
 
        login(user, token)
@@ -102,12 +105,9 @@ const SignUp = () => {
       const userEmail = role === "Student" ? email : organiserEmail;
       router.push(`/verify-otp?email=${encodeURIComponent(userEmail)}&role=${encodeURIComponent(role)}`);
     } catch (err) {
-      // Log the full error for debugging (network/CORS/backend issues)
-      // and show a more informative toast to the user.
       console.error("Signup error:", err);
-      const message =
-        err.response?.data?.message || err.response?.data?.detail || err.message || "Signup failed.";
-      toast.error(message);
+      const message = getErrorMessage(err);
+      toast.error(message, { id: toastId });
     } finally {
       setLoading(false);
     }

@@ -10,6 +10,7 @@ import { useGoogleLogin } from '@react-oauth/google'
 import api from '../../lib/axios'
 import useAuthStore from '../../store/authStore'
 import { Button } from '../../components/ui/button'
+import { getErrorMessage } from '../../lib/utils'
 
 const LoginPage = () => {
   const router = useRouter()
@@ -53,6 +54,7 @@ const LoginPage = () => {
 
   const handleGoogleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
+      const toastId = toast.loading('Verifying Google account...')
       try {
         // Assuming student login for now, logic might need adjustment based on user role selection if available on login page
         const res = await api.post('/student/google-signup/', {
@@ -60,11 +62,12 @@ const LoginPage = () => {
         });
         const { user_id, email, access, refresh, is_new_user } = res.data;
         login({ user_id, email }, access);
-        toast.success('Login successful!');
+        toast.success('Login successful!', { id: toastId });
         router.push('/dashboard');
       } catch (err) {
         console.error('Google login error:', err);
-        toast.error('Google login failed');
+        const message = getErrorMessage(err);
+        toast.error(message, { id: toastId });
       }
     },
     onError: () => {
@@ -76,18 +79,19 @@ const LoginPage = () => {
     e.preventDefault()
     setLoading(true)
     setError('')
+    const toastId = toast.loading('Logging in...')
 
     try {
       const response = await api.post('/login/', formData)
       const { user_id, email, access, refresh } = response.data
       login({ user_id, email }, access)
-      toast.success('Login successful! Redirecting...')
+      toast.success('Login successful! Redirecting...', { id: toastId })
       router.push('/dashboard')
     } catch (err) {
       console.error('Login error:', err)
-      const message = err.response?.data?.error || 'Invalid email or password'
+      const message = getErrorMessage(err)
       setError(message)
-      toast.error(message)
+      toast.error(message, { id: toastId })
     } finally {
       setLoading(false)
     }
