@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -9,14 +9,15 @@ import api from "../../lib/axios";
 import { getErrorMessage } from "../../lib/utils";
 import { Mail, Lock, Loader2, ArrowRight, CheckCircle, Clock } from "lucide-react";
 
-const VerifyOTP = () => {
+const VerifyOTPContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get("email") || "";
+  const role = searchParams.get("role") || "";
 
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
-  const [timeLeft, setTimeLeft] = useState(300); // 5 minutes
+  const [timeLeft, setTimeLeft] = useState(600); // 10 minutes
   const [isExpired, setIsExpired] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
 
@@ -96,7 +97,7 @@ const VerifyOTP = () => {
       // Try the common resend endpoint — adjust if your backend uses a different path
       await api.post("/resend-otp/", { email });
       setOtp(["", "", "", "", "", ""]);
-      setTimeLeft(300);
+      setTimeLeft(600);
       setIsExpired(false);
       toast.success("OTP resent to your email", { id: toastId });
     } catch (err) {
@@ -144,7 +145,7 @@ const VerifyOTP = () => {
             Verify Your Email
           </h1>
           <p className="text-base text-gray-400 mb-8 text-center">
-            We've sent a 6-digit code to <span className="text-white font-semibold">{email}</span> your email address.
+            OTP sent to email. Please verify to complete registration.
           </p>
 
           <form onSubmit={handleVerifyOtp} className="space-y-6">
@@ -243,6 +244,14 @@ const VerifyOTP = () => {
         </div>
       </motion.div>
     </div>
+  );
+};
+
+const VerifyOTP = () => {
+  return (
+    <Suspense fallback={<div className="min-h-screen w-full flex items-center justify-center bg-[#0A0A14] text-white"><Loader2 className="animate-spin h-8 w-8" /></div>}>
+      <VerifyOTPContent />
+    </Suspense>
   );
 };
 

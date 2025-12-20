@@ -10,6 +10,7 @@ import api from "../../lib/axios";
 import useAuthStore from "../../store/authStore";
 import { getErrorMessage } from "../../lib/utils";
 import { Mail, Lock, User, Eye, EyeOff, UsersIcon, Loader2, ArrowRight } from "lucide-react";
+import login from "../components/login/page";
 
 const SignUp = () => {
   const router = useRouter();
@@ -99,6 +100,10 @@ const SignUp = () => {
          router.push("/dashboard");
       }
 
+       login(user, token)
+      toast.success('Account created. Please verify your email using the OTP sent.');
+      const userEmail = role === "Student" ? email : organiserEmail;
+      router.push(`/verify-otp?email=${encodeURIComponent(userEmail)}&role=${encodeURIComponent(role)}`);
     } catch (err) {
       console.error("Signup error:", err);
       const message = getErrorMessage(err);
@@ -167,7 +172,7 @@ const SignUp = () => {
             Logo
           </div>
 
-          <h1 className="text-4xl font-bold text-white mb-8 text-center">
+          <h1 className="text-4xl font-semibold text-white mb-8 text-center">
             Create Account
           </h1>
 
