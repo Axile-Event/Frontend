@@ -6,11 +6,9 @@ import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Mail, Lock, Loader2, User, Sparkles, Eye, EyeOff, Check, ArrowRight } from 'lucide-react'
 import toast from 'react-hot-toast'
-// import { useGoogleLogin } from '@react-oauth/google'
-import api from '../../lib/axios'
-import useAuthStore from '../../store/authStore'
-import { Button } from '../../components/ui/button'
-import { getErrorMessage } from '../../lib/utils'
+import api from '../../../lib/axios'
+import useAuthStore from '../../../store/authStore'
+import { Button } from '../../../components/ui/button'
 
 const LoginPage = () => {
   const router = useRouter()

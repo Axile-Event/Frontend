@@ -6,11 +6,10 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
-// import { useGoogleLogin } from '@react-oauth/google'
-import api from "../../lib/axios";
-import useAuthStore from "../../store/authStore";
+import api from "../../../lib/axios";
+import useAuthStore from "../../../store/authStore";
 import { Mail, Lock, User, Eye, EyeOff, UsersIcon, Loader2, ArrowRight } from "lucide-react";
-import login from "../components/login/page";
+import login from "../../components/login/page";
 
 const SignUp = () => {
   const router = useRouter();
@@ -87,28 +86,21 @@ const SignUp = () => {
       }
 
       const res = await api.post(endpoint, payload);
-
-      const data = res.data || {};
-      const token = data.token || data.access || data.access_token || null;
-      let user = data.user || null;
-      if (!user) {
-        user = {
-          id: data.user_id || data.id || null,
-          email: data.email || (role === "Student" ? email : organiserEmail) || null,
-        };
+      
+      if (role === "Student") {
+         toast.success(res.data.message || 'OTP sent to email.')
+         router.push(`/verify-otp?email=${email}`);
+      } else {
+         // Organizer registration is immediate
+         const { email, access, refresh } = res.data;
+         loginUser({ email }, access);
+         toast.success('Account Created Successfully')
+         router.push("/dashboard");
       }
 
-       login(user, token)
-      toast.success('Account created. Please verify your email using the OTP sent.');
-      const userEmail = role === "Student" ? email : organiserEmail;
-      router.push(`/verify-otp?email=${encodeURIComponent(userEmail)}&role=${encodeURIComponent(role)}`);
     } catch (err) {
-      // Log the full error for debugging (network/CORS/backend issues)
-      // and show a more informative toast to the user.
-      console.error("Signup error:", err);
-      const message =
-        err.response?.data?.message || err.response?.data?.detail || err.message || "Signup failed.";
-      toast.error(message);
+      toast.error(err.response?.data?.error || "Signup failed.");
+
     } finally {
       setLoading(false);
     }
@@ -165,7 +157,8 @@ const SignUp = () => {
             Logo
           </div>
 
-          <h1 className="text-4xl font-semibold text-white mb-8 text-center">
+          <h1 className="text-4xl font-bold text-white mb-8 text-center">
+
             Create Account
           </h1>
 
