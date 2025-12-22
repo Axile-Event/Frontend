@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Button } from "../../components/ui/button";
+import { Button } from "../../../components/ui/button";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from 'framer-motion'
@@ -57,6 +57,8 @@ const SignUp = () => {
       );
     }
   };
+
+
 
   const submitForm = async (e) => {
     e.preventDefault();

@@ -50,28 +50,28 @@ const LoginPage = () => {
     setError('')
   }
 
-  const handleGoogleLogin = useGoogleLogin({
-    onSuccess: async (tokenResponse) => {
-      const toastId = toast.loading('Verifying Google account...')
-      try {
-        // Assuming student login for now, logic might need adjustment based on user role selection if available on login page
-        const res = await api.post('/student/google-signup/', {
-          token: tokenResponse.access_token,
-        });
-        const { user_id, email, access, refresh, is_new_user } = res.data;
-        login({ user_id, email }, access);
-        toast.success('Login successful!', { id: toastId });
-        router.push('/dashboard');
-      } catch (err) {
-        console.error('Google login error:', err);
-        const message = getErrorMessage(err);
-        toast.error(message, { id: toastId });
-      }
-    },
-    onError: () => {
-      toast.error('Google login failed');
-    },
-  });
+  // const handleGoogleLogin = useGoogleLogin({
+  //   onSuccess: async (tokenResponse) => {
+  //     const toastId = toast.loading('Verifying Google account...')
+  //     try {
+  //       // Assuming student login for now, logic might need adjustment based on user role selection if available on login page
+  //       const res = await api.post('/student/google-signup/', {
+  //         token: tokenResponse.access_token,
+  //       });
+  //       const { user_id, email, access, refresh, is_new_user } = res.data;
+  //       login({ user_id, email }, access);
+  //       toast.success('Login successful!', { id: toastId });
+  //       router.push('/dashboard');
+  //     } catch (err) {
+  //       console.error('Google login error:', err);
+  //       const message = getErrorMessage(err);
+  //       toast.error(message, { id: toastId });
+  //     }
+  //   },
+  //   onError: () => {
+  //     toast.error('Google login failed');
+  //   },
+  // });
 
   const handleSubmit = async (e) => {
     e.preventDefault()
