@@ -10,6 +10,7 @@ import toast from 'react-hot-toast'
 import api from '../../lib/axios'
 import useAuthStore from '../../store/authStore'
 import { Button } from '../../components/ui/button'
+import { getErrorMessage } from '../../lib/utils'
 
 const LoginPage = () => {
   const router = useRouter()
@@ -51,43 +52,46 @@ const LoginPage = () => {
     setError('')
   }
 
-  // const handleGoogleLogin = useGoogleLogin({
-  //   onSuccess: async (tokenResponse) => {
-  //     try {
-  //       // Assuming student login for now, logic might need adjustment based on user role selection if available on login page
-  //       const res = await api.post('/student/google-signup/', {
-  //         token: tokenResponse.access_token,
-  //       });
-  //       const { user_id, email, access, refresh, is_new_user } = res.data;
-  //       login({ user_id, email }, access);
-  //       toast.success('Login successful!');
-  //       router.push('/dashboard');
-  //     } catch (err) {
-  //       console.error('Google login error:', err);
-  //       toast.error('Google login failed');
-  //     }
-  //   },
-  //   onError: () => {
-  //     toast.error('Google login failed');
-  //   },
-  // });
+  const handleGoogleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      const toastId = toast.loading('Verifying Google account...')
+      try {
+        // Assuming student login for now, logic might need adjustment based on user role selection if available on login page
+        const res = await api.post('/student/google-signup/', {
+          token: tokenResponse.access_token,
+        });
+        const { user_id, email, access, refresh, is_new_user } = res.data;
+        login({ user_id, email }, access);
+        toast.success('Login successful!', { id: toastId });
+        router.push('/dashboard');
+      } catch (err) {
+        console.error('Google login error:', err);
+        const message = getErrorMessage(err);
+        toast.error(message, { id: toastId });
+      }
+    },
+    onError: () => {
+      toast.error('Google login failed');
+    },
+  });
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
     setError('')
+    const toastId = toast.loading('Logging in...')
 
     try {
       const response = await api.post('/login/', formData)
       const { user_id, email, access, refresh } = response.data
       login({ user_id, email }, access)
-      toast.success('Login successful! Redirecting...')
+      toast.success('Login successful! Redirecting...', { id: toastId })
       router.push('/dashboard')
     } catch (err) {
       console.error('Login error:', err)
-      const message = err.response?.data?.error || 'Invalid email or password'
+      const message = getErrorMessage(err)
       setError(message)
-      toast.error(message)
+      toast.error(message, { id: toastId })
     } finally {
       setLoading(false)
     }
