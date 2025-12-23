@@ -6,11 +6,9 @@ import Link from 'next/link'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Mail, Lock, Loader2, User, Sparkles, Eye, EyeOff, Check, ArrowRight } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { useGoogleLogin } from '@react-oauth/google'
-import api from '../../lib/axios'
-import useAuthStore from '../../store/authStore'
-import { Button } from '../../components/ui/button'
-import { getErrorMessage } from '../../lib/utils'
+import api from '../../../lib/axios'
+import useAuthStore from '../../../store/authStore'
+import { Button } from '../../../components/ui/button'
 
 const LoginPage = () => {
   const router = useRouter()
@@ -52,28 +50,26 @@ const LoginPage = () => {
     setError('')
   }
 
-  const handleGoogleLogin = useGoogleLogin({
-    onSuccess: async (tokenResponse) => {
-      const toastId = toast.loading('Verifying Google account...')
-      try {
-        // Assuming student login for now, logic might need adjustment based on user role selection if available on login page
-        const res = await api.post('/student/google-signup/', {
-          token: tokenResponse.access_token,
-        });
-        const { user_id, email, access, refresh, is_new_user } = res.data;
-        login({ user_id, email }, access);
-        toast.success('Login successful!', { id: toastId });
-        router.push('/dashboard');
-      } catch (err) {
-        console.error('Google login error:', err);
-        const message = getErrorMessage(err);
-        toast.error(message, { id: toastId });
-      }
-    },
-    onError: () => {
-      toast.error('Google login failed');
-    },
-  });
+  // const handleGoogleLogin = useGoogleLogin({
+  //   onSuccess: async (tokenResponse) => {
+  //     try {
+  //       // Assuming student login for now, logic might need adjustment based on user role selection if available on login page
+  //       const res = await api.post('/student/google-signup/', {
+  //         token: tokenResponse.access_token,
+  //       });
+  //       const { user_id, email, access, refresh, is_new_user } = res.data;
+  //       login({ user_id, email }, access);
+  //       toast.success('Login successful!');
+  //       router.push('/dashboard');
+  //     } catch (err) {
+  //       console.error('Google login error:', err);
+  //       toast.error('Google login failed');
+  //     }
+  //   },
+  //   onError: () => {
+  //     toast.error('Google login failed');
+  //   },
+  // });
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -239,7 +235,7 @@ const LoginPage = () => {
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </>
               )}
-            </Button> //btn
+            </Button>
           </form>
 
           <div className="mt-8 flex flex-col space-y-4">
@@ -261,16 +257,21 @@ const LoginPage = () => {
             </div>
 
             {/* Social Login Option */}
-            <Button
-              variant="outline"
-              onClick={() => handleGoogleLogin()}
-              className="w-full h-12 rounded-xl border-gray-800 bg-zinc-900 hover:bg-zinc-800 text-gray-300 transition-all duration-200"
-            >
-              <div className="flex items-center justify-center gap-3">
-                <div className="h-5 w-5 rounded-full bg-gray-700 flex items-center justify-center text-xs font-bold text-gray-500">G</div>
-                <span>Continue with Google</span>
-              </div>
-            </Button>
+                   <Button
+                      variant="outline"
+                      onClick={() => handleGoogleLogin()}
+                      className="w-full h-12 rounded-xl border-gray-800 bg-zinc-900 hover:bg-zinc-800 text-gray-300 transition-all duration-200"
+                    >
+                      <div className="flex items-center justify-center gap-3">
+                        <div className="h-5 w-5 flex items-center justify-center">
+                          <img
+                           src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg"
+                            alt="Google" 
+                          />
+                        </div>
+                        <span>Continue with Google</span>
+                      </div>
+                    </Button>
           </div>
         </div>
       </motion.div>

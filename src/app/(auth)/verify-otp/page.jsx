@@ -5,8 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
-import api from "../../lib/axios";
-import { getErrorMessage } from "../../lib/utils";
+import api from "../../../lib/axios";
 import { Mail, Lock, Loader2, ArrowRight, CheckCircle, Clock } from "lucide-react";
 
 const VerifyOTPContent = () => {
@@ -97,7 +96,7 @@ const VerifyOTPContent = () => {
       // Try the common resend endpoint — adjust if your backend uses a different path
       await api.post("/resend-otp/", { email });
       setOtp(["", "", "", "", "", ""]);
-      setTimeLeft(600);
+      setTimeLeft(300);
       setIsExpired(false);
       toast.success("OTP resent to your email", { id: toastId });
     } catch (err) {
@@ -145,7 +144,8 @@ const VerifyOTPContent = () => {
             Verify Your Email
           </h1>
           <p className="text-base text-gray-400 mb-8 text-center">
-            OTP sent to email. Please verify to complete registration.
+            We've sent a 6-digit code to <span className="text-white font-semibold">{email}</span> your email address.
+
           </p>
 
           <form onSubmit={handleVerifyOtp} className="space-y-6">

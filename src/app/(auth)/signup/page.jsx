@@ -1,16 +1,15 @@
 "use client";
 
 import React, { useState } from "react";
+import { Button } from "../../../components/ui/button";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from 'framer-motion'
 import toast from 'react-hot-toast'
-import { useGoogleLogin } from '@react-oauth/google'
-import api from "../../lib/axios";
-import useAuthStore from "../../store/authStore";
-import { getErrorMessage } from "../../lib/utils";
+import api from "../../../lib/axios";
+import useAuthStore from "../../../store/authStore";
 import { Mail, Lock, User, Eye, EyeOff, UsersIcon, Loader2, ArrowRight } from "lucide-react";
-import login from "../components/login/page";
+import login from "../../components/login/page";
 
 const SignUp = () => {
   const router = useRouter();
@@ -59,6 +58,8 @@ const SignUp = () => {
     }
   };
 
+
+
   const submitForm = async (e) => {
     e.preventDefault();
     setLoading(true);
@@ -90,52 +91,47 @@ const SignUp = () => {
       const res = await api.post(endpoint, payload);
       
       if (role === "Student") {
-         toast.success(res.data.message || 'OTP sent to email.', { id: toastId })
+         toast.success(res.data.message || 'OTP sent to email.')
          router.push(`/verify-otp?email=${email}`);
       } else {
          // Organizer registration is immediate
          const { email, access, refresh } = res.data;
          loginUser({ email }, access);
-         toast.success('Account Created Successfully', { id: toastId })
+         toast.success('Account Created Successfully')
          router.push("/dashboard");
       }
 
-       login(user, token)
-      toast.success('Account created. Please verify your email using the OTP sent.');
-      const userEmail = role === "Student" ? email : organiserEmail;
-      router.push(`/verify-otp?email=${encodeURIComponent(userEmail)}&role=${encodeURIComponent(role)}`);
     } catch (err) {
-      console.error("Signup error:", err);
-      const message = getErrorMessage(err);
-      toast.error(message, { id: toastId });
+      toast.error(err.response?.data?.error || "Signup failed.");
+
     } finally {
       setLoading(false);
     }
   };
 
-  const googleLogin = useGoogleLogin({
-    onSuccess: async (tokenResponse) => {
-      setLoading(true);
-      try {
-        const endpoint = role === "Student" ? '/student/google-signup/' : '/organizer/google-signup/';
-        const res = await api.post(endpoint, {
-          token: tokenResponse.access_token,
-        });
+  // const googleLogin = useGoogleLogin({
+  //   onSuccess: async (tokenResponse) => {
+  //     setLoading(true);
+  //     try {
+  //       const endpoint = role === "Student" ? '/student/google-signup/' : '/organizer/google-signup/';
+  //       const res = await api.post(endpoint, {
+  //         token: tokenResponse.access_token,
+  //       });
         
-        const { email, access, refresh } = res.data;
-        loginUser({ email }, access);
+  //       const { email, access, refresh } = res.data;
+  //       loginUser({ email }, access);
         
-        toast.success('Account Created Successfully');
-        router.push("/dashboard");
-      } catch (err) {
-        console.error('Google signup error:', err);
-        toast.error(err.response?.data?.error || "Google signup failed");
-      } finally {
-        setLoading(false);
-      }
-    },
-    onError: () => toast.error('Google signup failed'),
-  });
+  //       toast.success('Account Created Successfully');
+  //       router.push("/dashboard");
+  //     } catch (err) {
+  //       console.error('Google signup error:', err);
+  //       toast.error(err.response?.data?.error || "Google signup failed");
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   },
+  //   onError: () => toast.error('Google signup failed'),
+  // });
 
   const handleSocialLogin = (provider) => {
     if (provider === 'Google') {
@@ -172,7 +168,8 @@ const SignUp = () => {
             Logo
           </div>
 
-          <h1 className="text-4xl font-semibold text-white mb-8 text-center">
+          <h1 className="text-4xl font-bold text-white mb-8 text-center">
+
             Create Account
           </h1>
 
@@ -402,7 +399,7 @@ const SignUp = () => {
 
               {/* --- Social Login Buttons --- */}
         <div className="flex gap-4 justify-center mb-4">
-            <button
+            {/* <button
                 type="button"
                 onClick={() => handleSocialLogin('Google')}
                 disabled={loading}
@@ -410,17 +407,23 @@ const SignUp = () => {
                 title="Sign up with Google"
             >
                  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg" alt="Google" className="w-5 h-5 group-hover:scale-110 transition-transform"/>
-            </button>
-            <button
-                type="button"
-                onClick={() => handleSocialLogin('Apple')}
-                disabled={loading}
-                className="w-12 h-12 bg-white rounded-lg flex items-center justify-center hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95 group"
-                title="Sign up with Apple"
-            >
-                <img src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg" alt="Apple" className="w-5 h-5 group-hover:scale-110 transition-transform"/>
-            </button>
+            </button> */}
 
+                <Button
+              variant="outline"
+              onClick={() => toast.error('Social login currently unavailable')}
+              className="w-full h-12 rounded-xl border-gray-800 bg-zinc-900 hover:bg-zinc-800 text-gray-300 transition-all duration-200"
+            >
+              <div className="flex items-center justify-center gap-3">
+                <div className="h-5 w-5 flex items-center justify-center">
+                  <img
+                   src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg"
+                    alt="Google" 
+                  />
+                </div>
+                <span>Sign Up with Google</span>
+              </div>
+            </Button>
         </div>
           </form>
 
@@ -435,7 +438,6 @@ const SignUp = () => {
           </div>
         </div>
       </motion.div>
-      
     </div>
   );
 };
