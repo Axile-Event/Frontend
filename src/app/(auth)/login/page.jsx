@@ -50,43 +50,44 @@ const LoginPage = () => {
     setError('')
   }
 
-  const handleGoogleLogin = useGoogleLogin({
-    onSuccess: async (tokenResponse) => {
-      try {
-        // Assuming student login for now, logic might need adjustment based on user role selection if available on login page
-        const res = await api.post('/student/google-signup/', {
-          token: tokenResponse.access_token,
-        });
-        const { user_id, email, access, refresh, is_new_user } = res.data;
-        login({ user_id, email }, access);
-        toast.success('Login successful!');
-        router.push('/dashboard');
-      } catch (err) {
-        console.error('Google login error:', err);
-        toast.error('Google login failed');
-      }
-    },
-    onError: () => {
-      toast.error('Google login failed');
-    },
-  });
+  // const handleGoogleLogin = useGoogleLogin({
+  //   onSuccess: async (tokenResponse) => {
+  //     try {
+  //       // Assuming student login for now, logic might need adjustment based on user role selection if available on login page
+  //       const res = await api.post('/student/google-signup/', {
+  //         token: tokenResponse.access_token,
+  //       });
+  //       const { user_id, email, access, refresh, is_new_user } = res.data;
+  //       login({ user_id, email }, access);
+  //       toast.success('Login successful!');
+  //       router.push('/dashboard');
+  //     } catch (err) {
+  //       console.error('Google login error:', err);
+  //       toast.error('Google login failed');
+  //     }
+  //   },
+  //   onError: () => {
+  //     toast.error('Google login failed');
+  //   },
+  // });
 
   const handleSubmit = async (e) => {
     e.preventDefault()
     setLoading(true)
     setError('')
+    const toastId = toast.loading('Logging in...')
 
     try {
       const response = await api.post('/login/', formData)
       const { user_id, email, access, refresh } = response.data
       login({ user_id, email }, access)
-      toast.success('Login successful! Redirecting...')
+      toast.success('Login successful! Redirecting...', { id: toastId })
       router.push('/dashboard')
     } catch (err) {
       console.error('Login error:', err)
-      const message = err.response?.data?.error || 'Invalid email or password'
+      const message = getErrorMessage(err)
       setError(message)
-      toast.error(message)
+      toast.error(message, { id: toastId })
     } finally {
       setLoading(false)
     }
@@ -234,7 +235,7 @@ const LoginPage = () => {
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </>
               )}
-            </Button> //btn
+            </Button>
           </form>
 
           <div className="mt-8 flex flex-col space-y-4">
@@ -256,16 +257,21 @@ const LoginPage = () => {
             </div>
 
             {/* Social Login Option */}
-            <Button
-              variant="outline"
-              onClick={() => handleGoogleLogin()}
-              className="w-full h-12 rounded-xl border-gray-800 bg-zinc-900 hover:bg-zinc-800 text-gray-300 transition-all duration-200"
-            >
-              <div className="flex items-center justify-center gap-3">
-                <div className="h-5 w-5 rounded-full bg-gray-700 flex items-center justify-center text-xs font-bold text-gray-500">G</div>
-                <span>Continue with Google</span>
-              </div>
-            </Button>
+                   <Button
+                      variant="outline"
+                      onClick={() => handleGoogleLogin()}
+                      className="w-full h-12 rounded-xl border-gray-800 bg-zinc-900 hover:bg-zinc-800 text-gray-300 transition-all duration-200"
+                    >
+                      <div className="flex items-center justify-center gap-3">
+                        <div className="h-5 w-5 flex items-center justify-center">
+                          <img
+                           src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg"
+                            alt="Google" 
+                          />
+                        </div>
+                        <span>Continue with Google</span>
+                      </div>
+                    </Button>
           </div>
         </div>
       </motion.div>

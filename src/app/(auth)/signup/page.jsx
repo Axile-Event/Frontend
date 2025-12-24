@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { Button } from "../../../components/ui/button";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from 'framer-motion'
@@ -57,9 +58,12 @@ const SignUp = () => {
     }
   };
 
+
+
   const submitForm = async (e) => {
     e.preventDefault();
     setLoading(true);
+    const toastId = toast.loading('Creating account...');
 
     try {
       let payload;
@@ -395,7 +399,7 @@ const SignUp = () => {
 
               {/* --- Social Login Buttons --- */}
         <div className="flex gap-4 justify-center mb-4">
-            <button
+            {/* <button
                 type="button"
                 onClick={() => handleSocialLogin('Google')}
                 disabled={loading}
@@ -403,17 +407,23 @@ const SignUp = () => {
                 title="Sign up with Google"
             >
                  <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg" alt="Google" className="w-5 h-5 group-hover:scale-110 transition-transform"/>
-            </button>
-            <button
-                type="button"
-                onClick={() => handleSocialLogin('Apple')}
-                disabled={loading}
-                className="w-12 h-12 bg-white rounded-lg flex items-center justify-center hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed transform active:scale-95 group"
-                title="Sign up with Apple"
-            >
-                <img src="https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg" alt="Apple" className="w-5 h-5 group-hover:scale-110 transition-transform"/>
-            </button>
+            </button> */}
 
+                <Button
+              variant="outline"
+              onClick={() => toast.error('Social login currently unavailable')}
+              className="w-full h-12 rounded-xl border-gray-800 bg-zinc-900 hover:bg-zinc-800 text-gray-300 transition-all duration-200"
+            >
+              <div className="flex items-center justify-center gap-3">
+                <div className="h-5 w-5 flex items-center justify-center">
+                  <img
+                   src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg"
+                    alt="Google" 
+                  />
+                </div>
+                <span>Sign Up with Google</span>
+              </div>
+            </Button>
         </div>
           </form>
 
@@ -428,7 +438,6 @@ const SignUp = () => {
           </div>
         </div>
       </motion.div>
-      
     </div>
   );
 };

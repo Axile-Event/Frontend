@@ -71,19 +71,19 @@ const VerifyOTPContent = () => {
     }
 
     setLoading(true);
+    const toastId = toast.loading('Verifying OTP...');
     try {
       const res = await api.post("/verify-otp/", {
         email,
         otp: otpCode,
       });
 
-      toast.success("Email verified successfully!");
+      toast.success("Email verified successfully!", { id: toastId });
       router.push("/login"); // Redirect to login after verification as per flow usually, or dashboard if auto-login
     } catch (err) {
       console.error("Verify OTP error:", err.response || err);
-      // Show validation errors from backend if present
-      const msg = err.response?.data?.message || err.response?.data || "OTP verification failed.";
-      toast.error(typeof msg === 'string' ? msg : JSON.stringify(msg));
+      const message = getErrorMessage(err);
+      toast.error(message, { id: toastId });
     } finally {
       setLoading(false);
     }
@@ -91,17 +91,18 @@ const VerifyOTPContent = () => {
 
   const handleResendOtp = async () => {
     setResendLoading(true);
+    const toastId = toast.loading('Resending OTP...');
     try {
       // Try the common resend endpoint — adjust if your backend uses a different path
       await api.post("/resend-otp/", { email });
       setOtp(["", "", "", "", "", ""]);
       setTimeLeft(300);
       setIsExpired(false);
-      toast.success("OTP resent to your email");
+      toast.success("OTP resent to your email", { id: toastId });
     } catch (err) {
-      console.error("Resend OTP error:", err.response || err);
-      const msg = err.response?.data?.message || err.response?.data || "Failed to resend OTP.";
-      toast.error(typeof msg === 'string' ? msg : JSON.stringify(msg));
+      console.error("Resend OTP error:", err);
+      const message = getErrorMessage(err);
+      toast.error(message, { id: toastId });
     } finally {
       setResendLoading(false);
     }

@@ -9,7 +9,10 @@ const useAuthStore = create(
       isAuthenticated: false,
       login: (userData, token) =>
         set({ user: userData, token, isAuthenticated: true }),
-      logout: () => set({ user: null, token: null, isAuthenticated: false }),
+      logout: () => {
+        set({ user: null, token: null, isAuthenticated: false });
+        localStorage.removeItem("auth-storage");
+      },
     }),
     {
       name: "auth-storage", // name of the item in the storage (e need dey unique)
