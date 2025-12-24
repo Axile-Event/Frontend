@@ -87,7 +87,8 @@ const SignUp = () => {
         };
         endpoint = "/organizer/register/";
       }
-
+      
+      console.log("Submitting to", endpoint, "with payload", payload);
       const res = await api.post(endpoint, payload);
       
       if (role === "Student") {
