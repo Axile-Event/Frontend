@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Marker } from './Marker';
 
 const BackgroundCarousel = ({ images, interval = 5000 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -52,7 +53,7 @@ const BackgroundCarousel = ({ images, interval = 5000 }) => {
             className="shrink-0 w-full h-full bg-cover bg-center opacity-40"
             style={{
               backgroundImage: `url('${image}')`,
-              filter: "grayscale(20%)",
+              filter: "grayscale(10%)",
               filter: "brightness(100%)",
             }}
           />
@@ -79,6 +80,21 @@ const BackgroundCarousel = ({ images, interval = 5000 }) => {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
         </svg>
       </button>
+
+        <div className="absolute inset-0 z-5 flex items-center justify-center">
+       <div className="text-center text-white max-w-lg px-6">
+         <div className="mb-6">
+     
+          <h2 className="text-4xl font-bold mb-2 bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent tracking-wide">
+             Welcome to <Marker className='text-[#ff3a66] font-bold text-5xl'> Radar</Marker>
+           </h2>
+            <p className="text-lg text-gray-300 font-light leading-relaxed">
+              Discover amazing events and create unforgettable experiences
+            </p>
+          </div>
+        </div>
+     </div>
+
 
       {/* Navigation Dots */}
       <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10 flex space-x-2">
