@@ -5,8 +5,10 @@ import api from "@/lib/axios";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2, Ticket, Calendar } from "lucide-react";
 import { motion } from "framer-motion";
+import useAuthStore from "@/store/authStore";
 
 const StudentDashboardOverview = () => {
+  const { user } = useAuthStore();
   const [profile, setProfile] = useState(null);
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -48,7 +50,7 @@ const StudentDashboardOverview = () => {
     <div className="space-y-8">
       <div className="flex flex-col gap-2">
         <h1 className="text-3xl font-bold tracking-tight">
-          Welcome back, {profile?.first_name || "Student"}! 👋
+          Welcome back, {profile?.first_name || profile?.firstName || user?.email?.split('@')[0] || "Student"}! 👋
         </h1>
         <p className="text-muted-foreground">
           Here's what's happening with your events.
