@@ -1,11 +1,187 @@
+"use client";
 
-const Home = () => {
+import React from "react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { motion } from "framer-motion";
+import { Calendar, QrCode, ShieldCheck, Zap, Users, BarChart3, ArrowRight } from "lucide-react";
 
+const LandingPage = () => {
   return (
-    <div className="flex min-h-screen w-full items-center justify-center bg-gray-50 dark:bg-black p-4 transition-colors duration-300">
-      Landing Page
-    </div>
-  )
-}
+    <div className="min-h-screen bg-[#0A0A14] text-white selection:bg-primary/30">
+      {/* Navigation */}
+      <nav className="fixed top-0 w-full z-50 border-b border-white/10 bg-[#0A0A14]/80 backdrop-blur-md">
+        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+              <Zap className="h-5 w-5 text-white fill-white" />
+            </div>
+            <span className="text-xl font-bold tracking-tight">Radar</span>
+          </div>
+          <div className="flex items-center gap-4">
+            <Link href="/login">
+              <Button variant="ghost" className="text-gray-300 hover:text-white hover:bg-white/10">
+                Log in
+              </Button>
+            </Link>
+            <Link href="/signup">
+              <Button className="bg-primary hover:bg-primary/90 text-white font-semibold">
+                Get Started
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </nav>
 
-export default Home
+      {/* Hero Section */}
+      <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
+        {/* Background Gradients */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-7xl pointer-events-none">
+          <div className="absolute top-20 left-1/4 w-96 h-96 bg-primary/20 rounded-full blur-[100px]" />
+          <div className="absolute bottom-20 right-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-[100px]" />
+        </div>
+
+        <div className="container mx-auto px-4 relative z-10 text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="max-w-3xl mx-auto space-y-6"
+          >
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-sm text-gray-300 mb-4">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+              </span>
+              Live on OAU Campus
+            </div>
+            
+            <h1 className="text-5xl md:text-7xl font-bold tracking-tight leading-tight">
+              The Future of <br />
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-purple-500">
+                Campus Events
+              </span>
+            </h1>
+            
+            <p className="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto">
+              Discover, book, and experience events like never before. 
+              The all-in-one ticketing platform for students and organizers.
+            </p>
+
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+              <Link href="/signup">
+                <Button size="lg" className="h-12 px-8 text-base bg-primary hover:bg-primary/90">
+                  Start Exploring
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </Link>
+              <Link href="/login">
+                <Button size="lg" variant="outline" className="h-12 px-8 text-base border-white/20 bg-transparent text-white hover:bg-white/10">
+                  Organizer Dashboard
+                </Button>
+              </Link>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Features Grid */}
+      <section className="py-20 bg-white/5">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4">Everything you need</h2>
+            <p className="text-gray-400 max-w-2xl mx-auto">
+              Whether you're hosting a massive concert or looking for the next tech meetup, 
+              Radar has the tools to make it happen.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            <FeatureCard 
+              icon={<Calendar className="h-8 w-8 text-primary" />}
+              title="Easy Discovery"
+              description="Find events that match your interests. From tech talks to music festivals, never miss out."
+            />
+            <FeatureCard 
+              icon={<QrCode className="h-8 w-8 text-purple-500" />}
+              title="Seamless Entry"
+              description="Forget paper tickets. Get a unique QR code for instant check-in at the venue."
+            />
+            <FeatureCard 
+              icon={<ShieldCheck className="h-8 w-8 text-green-500" />}
+              title="Secure Payments"
+              description="Safe and fast transactions. Pay with card or transfer and get your ticket instantly."
+            />
+            <FeatureCard 
+              icon={<BarChart3 className="h-8 w-8 text-orange-500" />}
+              title="Real-time Analytics"
+              description="Organizers get live insights on ticket sales, revenue, and attendee demographics."
+            />
+            <FeatureCard 
+              icon={<Users className="h-8 w-8 text-blue-500" />}
+              title="Community Focused"
+              description="Built for the campus community. Connect with peers and grow your network."
+            />
+            <FeatureCard 
+              icon={<Zap className="h-8 w-8 text-yellow-500" />}
+              title="Instant Setup"
+              description="Create an event in minutes. Customize ticket types, prices, and details effortlessly."
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 relative overflow-hidden">
+        <div className="container mx-auto px-4 text-center relative z-10">
+          <h2 className="text-3xl md:text-5xl font-bold mb-6">Ready to get started?</h2>
+          <p className="text-gray-400 mb-8 max-w-xl mx-auto">
+            Join thousands of students and organizers transforming the event experience today.
+          </p>
+          <Link href="/signup">
+            <Button size="lg" className="h-14 px-10 text-lg rounded-full bg-white text-black hover:bg-gray-200">
+              Create Free Account
+            </Button>
+          </Link>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-white/10 py-12 bg-[#05050A]">
+        <div className="container mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-6">
+          <div className="flex items-center gap-2">
+            <div className="h-6 w-6 rounded bg-primary flex items-center justify-center">
+              <Zap className="h-4 w-4 text-white fill-white" />
+            </div>
+            <span className="font-bold text-lg">Radar</span>
+          </div>
+          <div className="text-gray-500 text-sm">
+            © {new Date().getFullYear()} Radar. All rights reserved.
+          </div>
+          <div className="flex gap-6 text-sm text-gray-400">
+            <Link href="#" className="hover:text-white transition-colors">Privacy</Link>
+            <Link href="#" className="hover:text-white transition-colors">Terms</Link>
+            <Link href="#" className="hover:text-white transition-colors">Contact</Link>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+};
+
+const FeatureCard = ({ icon, title, description }) => (
+  <motion.div 
+    whileHover={{ y: -5 }}
+    className="p-6 rounded-2xl bg-white/5 border border-white/10 hover:border-primary/50 transition-colors"
+  >
+    <div className="mb-4 p-3 rounded-xl bg-white/5 w-fit">
+      {icon}
+    </div>
+    <h3 className="text-xl font-bold mb-2">{title}</h3>
+    <p className="text-gray-400 leading-relaxed">
+      {description}
+    </p>
+  </motion.div>
+);
+
+export default LandingPage;
