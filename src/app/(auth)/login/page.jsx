@@ -10,6 +10,7 @@ import api from '../../../lib/axios'
 import useAuthStore from '../../../store/authStore'
 import { Button } from '../../../components/ui/button'
 import Logo from '@/components/Logo'
+import { getErrorMessage } from '@/lib/utils'
 
 const LoginPage = () => {
   const router = useRouter()
