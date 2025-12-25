@@ -9,7 +9,6 @@ import toast from 'react-hot-toast'
 import api from "../../../lib/axios";
 import useAuthStore from "../../../store/authStore";
 import { Mail, Lock, User, Eye, EyeOff, UsersIcon, Loader2, ArrowRight } from "lucide-react";
-import login from "../../components/login/page";
 import Logo from "@/components/Logo";
 
 const SignUp = () => {
