@@ -19,6 +19,9 @@ const geistMono = Geist_Mono({
 export const metadata = {
   title: "Radar",
   description: "Ticket app",
+  icons: {
+    icon: "/logo.svg",
+  },
 };
 
 export default function RootLayout({ children }) {
