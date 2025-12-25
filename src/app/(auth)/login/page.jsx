@@ -45,6 +45,14 @@ const LoginPage = () => {
     return re.test(email)
   }
 
+  const parseJwt = (token) => {
+    try {
+      return JSON.parse(atob(token.split('.')[1]));
+    } catch (e) {
+      return null;
+    }
+  };
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
     setError('')
@@ -79,8 +87,16 @@ const LoginPage = () => {
 
     try {
       const response = await api.post('/login/', formData)
-      const { user_id, email, access, refresh } = response.data
-      login({ user_id, email }, access)
+      const { user_id, email, access, refresh, role: responseRole } = response.data
+      
+      let userRole = responseRole;
+      if (!userRole && access) {
+        const decoded = parseJwt(access);
+        // Check for common role claims
+        userRole = decoded?.role || decoded?.user_type || (decoded?.is_organizer ? 'organizer' : 'student');
+      }
+
+      login({ user_id, email }, access, userRole)
       toast.success('Login successful! Redirecting...', { id: toastId })
       router.push('/dashboard')
     } catch (err) {
