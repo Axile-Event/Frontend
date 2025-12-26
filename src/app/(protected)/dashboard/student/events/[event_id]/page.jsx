@@ -110,9 +110,9 @@ const EventDetailsPage = () => {
   const eventDate = new Date(event.date);
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 pb-20">
+    <div className="max-w-5xl mx-auto space-y-6 md:space-y-8 pb-20">
       {/* Hero Section */}
-      <div className="relative w-full h-[300px] md:h-[400px] rounded-2xl overflow-hidden bg-muted">
+      <div className="relative w-full h-[200px] md:h-[400px] rounded-xl md:rounded-2xl overflow-hidden bg-muted">
         {event.image ? (
           <img 
             src={event.image} 
@@ -121,11 +121,11 @@ const EventDetailsPage = () => {
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-secondary">
-            <Calendar className="h-20 w-20 text-muted-foreground/50" />
+            <Calendar className="h-12 w-12 md:h-20 md:w-20 text-muted-foreground/50" />
           </div>
         )}
-        <div className="absolute top-4 right-4">
-          <span className={`px-4 py-2 rounded-full text-sm font-bold shadow-lg ${
+        <div className="absolute top-3 right-3 md:top-4 md:right-4">
+          <span className={`px-3 py-1 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-bold shadow-lg ${
             event.pricing_type === 'free' 
               ? 'bg-green-500 text-white' 
               : 'bg-primary text-primary-foreground'
@@ -135,30 +135,30 @@ const EventDetailsPage = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
         {/* Main Content */}
-        <div className="md:col-span-2 space-y-6">
+        <div className="md:col-span-2 space-y-4 md:space-y-6">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold mb-2">{event.name}</h1>
-            <div className="flex flex-wrap gap-4 text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4" />
+            <h1 className="text-2xl md:text-4xl font-bold mb-2">{event.name}</h1>
+            <div className="flex flex-wrap gap-3 md:gap-4 text-muted-foreground text-sm md:text-base">
+              <div className="flex items-center gap-1.5 md:gap-2">
+                <Calendar className="h-3.5 w-3.5 md:h-4 md:w-4" />
                 <span>{eventDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
               </div>
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4" />
+              <div className="flex items-center gap-1.5 md:gap-2">
+                <Clock className="h-3.5 w-3.5 md:h-4 md:w-4" />
                 <span>{eventDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</span>
               </div>
-              <div className="flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
+              <div className="flex items-center gap-1.5 md:gap-2">
+                <MapPin className="h-3.5 w-3.5 md:h-4 md:w-4" />
                 <span>{event.location}</span>
               </div>
             </div>
           </div>
 
-          <div className="space-y-4">
-            <h3 className="text-xl font-semibold">About this Event</h3>
-            <div className="prose dark:prose-invert max-w-none text-muted-foreground whitespace-pre-wrap">
+          <div className="space-y-3 md:space-y-4">
+            <h3 className="text-lg md:text-xl font-semibold">About this Event</h3>
+            <div className="prose dark:prose-invert max-w-none text-muted-foreground whitespace-pre-wrap text-sm md:text-base">
               {event.description}
             </div>
           </div>
@@ -167,13 +167,13 @@ const EventDetailsPage = () => {
         {/* Booking Card */}
         <div className="md:col-span-1">
           <Card className="sticky top-24">
-            <CardHeader>
-              <CardTitle>Book Tickets</CardTitle>
+            <CardHeader className="p-4 md:p-6">
+              <CardTitle className="text-lg md:text-xl">Book Tickets</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-4 md:space-y-6 p-4 md:p-6 pt-0 md:pt-0">
               {/* Quantity Selector */}
               <div className="space-y-2">
-                <Label htmlFor="quantity">Quantity</Label>
+                <Label htmlFor="quantity" className="text-xs md:text-sm">Quantity</Label>
                 <Input 
                   id="quantity"
                   type="number" 
@@ -181,20 +181,21 @@ const EventDetailsPage = () => {
                   max="10"
                   value={quantity}
                   onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
+                  className="h-9 md:h-10 text-sm md:text-base"
                 />
               </div>
 
               {/* Seat Selection */}
               {event.allows_seat_selection && (
                 <div className="space-y-3">
-                  <Label>Select a Seat</Label>
+                  <Label className="text-xs md:text-sm">Select a Seat</Label>
                   {event.available_seats && event.available_seats.length > 0 ? (
                     <div className="grid grid-cols-4 gap-2 max-h-[200px] overflow-y-auto p-1">
                       {event.available_seats.map((seat) => (
                         <button
                           key={seat}
                           onClick={() => setSelectedSeat(seat === selectedSeat ? null : seat)}
-                          className={`p-2 text-sm rounded-md border transition-colors ${
+                          className={`p-2 text-xs md:text-sm rounded-md border transition-colors ${
                             selectedSeat === seat
                               ? "bg-primary text-primary-foreground border-primary"
                               : "hover:bg-secondary border-input"
@@ -205,10 +206,10 @@ const EventDetailsPage = () => {
                       ))}
                     </div>
                   ) : (
-                    <p className="text-sm text-red-500">No seats available</p>
+                    <p className="text-xs md:text-sm text-red-500">No seats available</p>
                   )}
                   {selectedSeat && (
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-xs md:text-sm text-muted-foreground">
                       Selected Seat: <span className="font-bold text-foreground">{selectedSeat}</span>
                     </p>
                   )}
@@ -217,11 +218,11 @@ const EventDetailsPage = () => {
 
               {/* Price Summary */}
               <div className="pt-4 border-t space-y-2">
-                <div className="flex justify-between text-sm">
+                <div className="flex justify-between text-xs md:text-sm">
                   <span>Price per ticket</span>
                   <span>{event.pricing_type === 'free' ? 'Free' : `₦${event.price}`}</span>
                 </div>
-                <div className="flex justify-between font-bold text-lg">
+                <div className="flex justify-between font-bold text-base md:text-lg">
                   <span>Total</span>
                   <span>
                     {event.pricing_type === 'free' 
@@ -231,9 +232,9 @@ const EventDetailsPage = () => {
                 </div>
               </div>
             </CardContent>
-            <CardFooter>
+            <CardFooter className="p-4 md:p-6 pt-0 md:pt-0">
               <Button 
-                className="w-full" 
+                className="w-full h-10 md:h-11 text-sm md:text-base" 
                 size="lg" 
                 onClick={handleBookTicket}
                 disabled={bookingLoading || (event.allows_seat_selection && !selectedSeat)}
