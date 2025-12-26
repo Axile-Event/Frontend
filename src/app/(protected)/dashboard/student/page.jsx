@@ -21,7 +21,7 @@ const StudentDashboardOverview = () => {
           api.get("/tickets/my-tickets/"),
         ]);
 
-        setProfile(profileRes.data);
+        setProfile(profileRes.data.profile);
         setTickets(ticketsRes.data.tickets || []);
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
@@ -50,8 +50,9 @@ const StudentDashboardOverview = () => {
     <div className="space-y-6 md:space-y-8">
       <div className="flex flex-col gap-1 md:gap-2">
         <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
-          Welcome back, {profile?.first_name || profile?.firstName || user?.email?.split('@')[0] || "Student"}! 👋
+          Welcome back, {profile?.Preferred_name || profile?.firstname || user?.email?.split('@')[0] || "Student"}! 👋
         </h1>
+
         <p className="text-sm md:text-base text-muted-foreground">
           Here's what's happening with your events.
         </p>
