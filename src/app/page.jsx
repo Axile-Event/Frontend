@@ -8,17 +8,37 @@ import { Calendar, QrCode, ShieldCheck, Zap, Users, BarChart3, ArrowRight } from
 import Logo from "@/components/Logo";
 import useAuthStore from "@/store/authStore";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import api from "@/lib/axios";
 
 const LandingPage = () => {
   const { token } = useAuthStore();
   const router = useRouter();
+  const [events, setEvents] = useState([]);
+  const [loadingEvents, setLoadingEvents] = useState(true);
 
   useEffect(() => {
     if (token) {
       router.replace("/dashboard");
     }
   }, [token, router]);
+
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const response = await api.get('/create-event/');
+        setEvents(response.data.slice(0, 6)); 
+      } catch (error) {
+        console.error("Failed to fetch events", error);
+      } finally {
+        setLoadingEvents(false);
+      }
+    };
+    fetchEvents();
+  }, []);
+
+
+
 
   return (
     <div className="min-h-screen bg-[#0A0A14] text-white selection:bg-primary/30">
@@ -94,7 +114,92 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Features Grid */}
+      {/* Discover Events Section */}
+      <section className="py-20 bg-black/20">
+        <div className="container mx-auto px-4">
+          <div className="flex items-center justify-between mb-12">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-bold mb-2">Discover Events</h2>
+              <p className="text-gray-400">Explore trending events happening around you</p>
+            </div>
+            <Link href="/signup">
+              <Button variant="outline" className="hidden md:flex border-white/20 hover:bg-white/10 text-white">
+                View All Events
+              </Button>
+            </Link>
+          </div>
+
+          {loadingEvents ? (
+             <div className="grid md:grid-cols-3 gap-6">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="h-96 rounded-2xl bg-white/5 animate-pulse" />
+                ))}
+            </div>
+          ) : events.length > 0 ? (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {events.map((event) => (
+                <Link href={`/login`} key={event.event_id}>
+                  <motion.div 
+                    whileHover={{ y: -5 }}
+                    className="group h-full rounded-2xl bg-white/5 border border-white/10 overflow-hidden hover:border-primary/50 transition-colors"
+                  >
+                    <div className="aspect-video relative bg-white/5">
+                      {event.event_image ? (
+                        <img 
+                          src={event.event_image} 
+                          alt={event.event_name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-600 bg-white/5">
+                          <Calendar className="h-12 w-12 opacity-20" />
+                        </div>
+                      )}
+                      <div className="absolute top-4 right-4 px-3 py-1 rounded-full bg-black/60 backdrop-blur-md text-xs font-medium border border-white/10">
+                        {event.pricing_type === 'free' ? 'Free' : `₦${event.event_price}`}
+                      </div>
+                      <div className="absolute top-4 left-4 px-3 py-1 rounded-full bg-primary/90 text-white text-xs font-bold uppercase tracking-wider">
+                        {event.event_type}
+                      </div>
+                    </div>
+                    
+                    <div className="p-6">
+                      <div className="text-sm text-primary mb-2 font-medium flex items-center gap-2">
+                         <Calendar className="h-3.5 w-3.5" />
+                         {new Date(event.event_date).toLocaleDateString(undefined, { 
+                           month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                         })}
+                      </div>
+                      <h3 className="text-xl font-bold mb-2 line-clamp-1 group-hover:text-primary transition-colors">
+                        {event.event_name}
+                      </h3>
+                      <p className="text-gray-400 text-sm mb-4 line-clamp-2">
+                        {event.event_location}
+                      </p>
+                      <div className="flex items-center text-sm font-medium text-white/50 group-hover:text-white transition-colors">
+                        Get Tickets <ArrowRight className="ml-2 h-4 w-4" />
+                      </div>
+                    </div>
+                  </motion.div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-20 bg-white/5 rounded-2xl border border-white/10">
+               <Calendar className="h-12 w-12 text-gray-500 mx-auto mb-4" />
+               <p className="text-gray-400">No upcoming events found at the moment.</p>
+            </div>
+          )}
+          
+          <div className="mt-8 text-center md:hidden">
+            <Link href="/signup">
+              <Button size="lg" className="w-full border-white/20 bg-white/5 hover:bg-white/10 text-white">
+                View All Events
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
       <section className="py-20 bg-white/5">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
