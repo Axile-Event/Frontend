@@ -135,14 +135,14 @@ const LoginPage = () => {
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className="w-full lg:w-1/2 flex flex-col items-center justify-center px-6 py-12 lg:px-16 xl:px-24 overflow-y-auto"
+        className="w-full lg:w-1/2 flex flex-col items-center justify-center px-6 py-8 md:py-12 lg:px-16 xl:px-24 overflow-y-auto"
       >
         <div className="w-full max-w-md">
-          <div className="flex justify-center mb-8">
-            <Logo textSize="text-3xl" iconSize="h-8 w-8" />
+          <div className="flex justify-center mb-6 md:mb-8">
+            <Logo textSize="text-2xl md:text-3xl" iconSize="h-6 w-6 md:h-8 md:w-8" />
           </div>
 
-          <h1 className="text-4xl font-bold text-white mb-2 text-center">
+          <h1 className="text-2xl md:text-4xl font-bold text-white mb-2 text-center">
             Welcome Back
           </h1>
           
@@ -153,21 +153,21 @@ const LoginPage = () => {
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="mb-8 text-center"
+                className="mb-6 md:mb-8 text-center"
               >
-                <p className="text-base font-medium text-rose-400 flex items-center justify-center gap-2">
-                  <Sparkles className="h-4 w-4" />
+                <p className="text-sm md:text-base font-medium text-rose-400 flex items-center justify-center gap-2">
+                  <Sparkles className="h-3 w-3 md:h-4 md:w-4" />
                   {greeting}
                 </p>
               </motion.div>
             ) : (
-              <p className="text-base text-gray-400 mb-8 text-center">
+              <p className="text-sm md:text-base text-gray-400 mb-6 md:mb-8 text-center">
                 Sign in to get your tickets
               </p>
             )}
           </AnimatePresence>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
             {/* Email Field */}
             <div>
               <label htmlFor="email" className="block text-white/80 text-xs font-semibold uppercase tracking-wide mb-2">
@@ -175,21 +175,21 @@ const LoginPage = () => {
               </label>
               <div className="relative group">
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40">
-                  <Mail className="h-5 w-5" />
+                  <Mail className="h-4 w-4 md:h-5 md:w-5" />
                 </div>
                 <input
                   id="email"
                   name="email"
                   type="email"
                   placeholder="radar@gmail.com"
-                  className="w-full bg-transparent border border-gray-200 dark:border-gray-800 rounded-xl py-3.5 pl-12 pr-4 text-white hover:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all duration-200 dark:placeholder:text-gray-600"
+                  className="w-full bg-transparent border border-gray-200 dark:border-gray-800 rounded-xl py-3 md:py-3.5 pl-10 md:pl-12 pr-4 text-sm md:text-base text-white hover:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all duration-200 dark:placeholder:text-gray-600"
                   value={formData.email}
                   onChange={handleChange}
                   required
                 />
                 {isValidEmail && (
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-500">
-                    <Check className="h-4 w-4" />
+                    <Check className="h-3 w-3 md:h-4 md:w-4" />
                   </div>
                 )}
               </div>
@@ -210,14 +210,14 @@ const LoginPage = () => {
               </div>
               <div className="relative group">
                 <div className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40">
-                  <Lock className="h-5 w-5" />
+                  <Lock className="h-4 w-4 md:h-5 md:w-5" />
                 </div>
                 <input
                   id="password"
                   name="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
-                  className="w-full bg-transparent border border-gray-200 dark:border-gray-800 rounded-xl py-3.5 pl-12 pr-12 text-white hover:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all duration-200 dark:placeholder:text-gray-600"
+                  className="w-full bg-transparent border border-gray-200 dark:border-gray-800 rounded-xl py-3 md:py-3.5 pl-10 md:pl-12 pr-10 md:pr-12 text-sm md:text-base text-white hover:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all duration-200 dark:placeholder:text-gray-600"
                   value={formData.password}
                   onChange={handleChange}
                   required
@@ -228,9 +228,9 @@ const LoginPage = () => {
                   className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/60 transition-colors"
                 >
                   {showPassword ? (
-                    <EyeOff className="h-5 w-5" />
+                    <EyeOff className="h-4 w-4 md:h-5 md:w-5" />
                   ) : (
-                    <Eye className="h-5 w-5" />
+                    <Eye className="h-4 w-4 md:h-5 md:w-5" />
                   )}
                 </button>
               </div>
@@ -239,25 +239,25 @@ const LoginPage = () => {
             {/* Submit Button */}
             <Button
               type="submit"
-              className="w-full h-12 rounded-xl text-base font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-500/20 transition-all duration-200"
+              className="w-full h-10 md:h-12 rounded-xl text-sm md:text-base font-bold bg-rose-600 hover:bg-rose-700 text-white shadow-lg shadow-rose-500/20 transition-all duration-200"
               disabled={loading}
             >
               {loading ? (
                 <>
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  <Loader2 className="mr-2 h-4 w-4 md:h-5 md:w-5 animate-spin" />
                   Signing in...
                 </>
               ) : (
                 <>
                   Sign In
-                  <ArrowRight className="ml-2 h-5 w-5" />
+                  <ArrowRight className="ml-2 h-4 w-4 md:h-5 md:w-5" />
                 </>
               )}
             </Button>
           </form>
 
-          <div className="mt-8 flex flex-col space-y-4">
-            <div className="text-sm text-center text-gray-400">
+          <div className="mt-6 md:mt-8 flex flex-col space-y-3 md:space-y-4">
+            <div className="text-xs md:text-sm text-center text-gray-400">
               Don&apos;t have an account?{' '}
               <Link
                 href="/signup"
@@ -270,7 +270,7 @@ const LoginPage = () => {
             {/* Divider */}
             <div className="relative flex items-center justify-center w-full">
               <div className="grow border-t border-gray-800"></div>
-              <span className="mx-4 text-xs text-gray-500 font-medium">OR</span>
+              <span className="mx-4 text-[10px] md:text-xs text-gray-500 font-medium">OR</span>
               <div className="grow border-t border-gray-800"></div>
             </div>
 
@@ -278,16 +278,16 @@ const LoginPage = () => {
                    <Button
                       variant="outline"
                       onClick={() => handleGoogleLogin()}
-                      className="w-full h-12 rounded-xl border-gray-800 bg-zinc-900 hover:bg-zinc-800 text-gray-300 transition-all duration-200"
+                      className="w-full h-10 md:h-12 rounded-xl border-gray-800 bg-zinc-900 hover:bg-zinc-800 text-gray-300 transition-all duration-200"
                     >
                       <div className="flex items-center justify-center gap-3">
-                        <div className="h-5 w-5 flex items-center justify-center">
+                        <div className="h-4 w-4 md:h-5 md:w-5 flex items-center justify-center">
                           <img
                            src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg"
                             alt="Google" 
                           />
                         </div>
-                        <span>Continue with Google</span>
+                        <span className="text-sm md:text-base">Continue with Google</span>
                       </div>
                     </Button>
           </div>
