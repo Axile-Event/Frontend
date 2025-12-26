@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X, User, LogOut, LayoutDashboard } from "lucide-react";
+import { Menu, X, User, LogOut, LayoutDashboard, Home, Calendar, Ticket } from "lucide-react";
 import Logo from "./Logo";
 import { Button } from "./ui/button";
 import useAuthStore from "@/store/authStore";
@@ -22,15 +22,12 @@ const Header = () => {
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   const closeMenu = () => setIsMenuOpen(false);
 
-  const navLinks = user
-    ? [
-        { name: "Dashboard", href: "/dashboard", icon: <LayoutDashboard className="h-4 w-4" /> },
-        { name: "Profile", href: "/dashboard/student/profile", icon: <User className="h-4 w-4" /> },
-      ]
-    : [
-        { name: "Login", href: "/login" },
-        { name: "Sign Up", href: "/signup" },
-      ];
+  const studentLinks = [
+    { name: "Overview", href: "/dashboard/student", icon: <Home className="h-5 w-5" /> },
+    { name: "Events", href: "/dashboard/student/events", icon: <Calendar className="h-5 w-5" /> },
+    { name: "My Tickets", href: "/dashboard/student/my-tickets", icon: <Ticket className="h-5 w-5" /> },
+    { name: "Profile", href: "/dashboard/student/profile", icon: <User className="h-5 w-5" /> },
+  ];
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-gray-800 bg-[#0A0A14]/80 backdrop-blur-md">
@@ -108,23 +105,27 @@ const Header = () => {
                     </div>
                   </div>
                   
-                  <Link
-                    href="/dashboard"
-                    onClick={closeMenu}
-                    className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white transition-colors"
-                  >
-                    <LayoutDashboard className="h-5 w-5" />
-                    Dashboard
-                  </Link>
-                  
-                  <Link
-                    href="/dashboard/student/profile"
-                    onClick={closeMenu}
-                    className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white transition-colors"
-                  >
-                    <User className="h-5 w-5" />
-                    Profile
-                  </Link>
+                  {/* Student Dashboard Links */}
+                  <div className="space-y-1">
+                    <p className="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Menu</p>
+                    {studentLinks.map((link) => (
+                      <Link
+                        key={link.name}
+                        href={link.href}
+                        onClick={closeMenu}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                          pathname === link.href 
+                            ? "bg-rose-600/10 text-rose-500" 
+                            : "hover:bg-gray-800 text-gray-300 hover:text-white"
+                        }`}
+                      >
+                        {link.icon}
+                        {link.name}
+                      </Link>
+                    ))}
+                  </div>
+
+                  <div className="border-t border-gray-800 my-2"></div>
 
                   <button
                     onClick={() => {
