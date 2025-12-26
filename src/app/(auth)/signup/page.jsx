@@ -91,18 +91,18 @@ const SignUp = () => {
       const res = await api.post(endpoint, payload);
       
       if (role === "Student") {
-         toast.success(res.data.message || 'OTP sent to email.')
+         toast.success(res.data.message || 'OTP sent to email.', { id: toastId })
          router.push(`/verify-otp?email=${email}`);
       } else {
          // Organizer registration is immediate
          const { email, access, refresh } = res.data;
          loginUser({ email }, access);
-         toast.success('Account Created Successfully')
+         toast.success('Account Created Successfully', { id: toastId })
          router.push("/dashboard");
       }
 
     } catch (err) {
-      toast.error(err.response?.data?.error || "Signup failed.");
+      toast.error(err.response?.data?.error || "Signup failed.", { id: toastId });
 
     } finally {
       setLoading(false);
@@ -162,22 +162,22 @@ const SignUp = () => {
         initial={{ opacity: 0, scale: 0.95, y: 20 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className="w-full lg:w-1/2 flex flex-col items-center justify-center px-6 py-12 lg:px-16 xl:px-24 overflow-y-auto">
+        className="w-full lg:w-1/2 flex flex-col items-center justify-center px-6 py-8 md:py-12 lg:px-16 xl:px-24 overflow-y-auto">
         <div className="w-full max-w-md">
-          <div className="flex justify-center mb-8">
-            <Logo textSize="text-3xl" iconSize="h-8 w-8" />
+          <div className="flex justify-center mb-6 md:mb-8">
+            <Logo textSize="text-2xl md:text-3xl" iconSize="h-6 w-6 md:h-8 md:w-8" />
           </div>
 
-          <h1 className="text-4xl font-bold text-white mb-8 text-center">
+          <h1 className="text-2xl md:text-4xl font-bold text-white mb-6 md:mb-8 text-center">
 
             Create Account
           </h1>
 
            {/* Role Switch */}
-          <div className="flex gap-2 mb-8">
+          <div className="flex gap-2 mb-6 md:mb-8">
             <button
               onClick={() => setRole("Student")}
-           className={`flex-1 py-3 px-6 rounded-full font-semibold text-base transition-all duration-200 ${
+           className={`flex-1 py-2 md:py-3 px-4 md:px-6 rounded-full font-semibold text-sm md:text-base transition-all duration-200 ${
                 role === "Student"
                   ? "bg-yellow-400 text-black border-yellow-400"
                   : "border-gray-600 border text-gray-300 hover:border-gray-500"
@@ -188,7 +188,7 @@ const SignUp = () => {
 
             <button
               onClick={() => setRole("Organizer")}
-              className={`flex-1 py-3 px-6 rounded-full font-semibold text-base transition-all duration-200 ${
+              className={`flex-1 py-2 md:py-3 px-4 md:px-6 rounded-full font-semibold text-sm md:text-base transition-all duration-200 ${
                 role === "Organizer"
                   ? "bg-yellow-400 text-black border-yellow-400"
                   : "border-gray-600 border text-gray-300 hover:border-gray-500"
@@ -198,18 +198,18 @@ const SignUp = () => {
             </button>
           </div>
 
-          <form onSubmit={submitForm} className="space-y-4">
-            <div className="space-y-3">
+          <form onSubmit={submitForm} className="space-y-3 md:space-y-4">
+            <div className="space-y-2 md:space-y-3">
               {role === "Student" && (
                 <>
                   {/* FIRST NAME AND LAST NAME */}
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-2 md:gap-3">
                     <div>
-                      <label className="block text-white/80 text-xs font-semibold uppercase tracking-wide mb-2">
+                      <label className="block text-white/80 text-[10px] md:text-xs font-semibold uppercase tracking-wide mb-1 md:mb-2">
                         First Name
                       </label>
                       <div className="relative">
-                        <User className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" />
+                        <User className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 h-4 w-4 md:h-5 md:w-5" />
                         <input
                           type="text"
                           id="firstName"
@@ -217,16 +217,16 @@ const SignUp = () => {
                           placeholder="e.g. John"
                           value={firstName}
                           onChange={(e) => setFirstName(e.target.value)}
-                          className="w-full bg-transparent border border-gray-200 dark:border-gray-800 rounded-xl py-3.5 pl-12 pr-4 text-white hover:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all duration-200 dark:placeholder:text-gray-600"
+                          className="w-full bg-transparent border border-gray-200 dark:border-gray-800 rounded-xl py-3 md:py-3.5 pl-10 md:pl-12 pr-4 text-sm md:text-base text-white hover:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all duration-200 dark:placeholder:text-gray-600"
                         />
                       </div>
                     </div>
                     <div>
-                      <label className="block text-white/80 text-xs font-semibold uppercase tracking-wide mb-2">
+                      <label className="block text-white/80 text-[10px] md:text-xs font-semibold uppercase tracking-wide mb-1 md:mb-2">
                         Last Name
                       </label>
                       <div className="relative">
-                        <User className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" />
+                        <User className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 h-4 w-4 md:h-5 md:w-5" />
                         <input
                           type="text"
                           id="lastName"
@@ -234,7 +234,7 @@ const SignUp = () => {
                           placeholder="e.g. Christopher"
                           value={lastName}
                           onChange={(e) => setLastName(e.target.value)}
-                          className="w-full bg-transparent border border-gray-200 dark:border-gray-800 rounded-xl py-3.5 pl-12 pr-4 text-white hover:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all duration-200 dark:placeholder:text-gray-600"
+                          className="w-full bg-transparent border border-gray-200 dark:border-gray-800 rounded-xl py-3 md:py-3.5 pl-10 md:pl-12 pr-4 text-sm md:text-base text-white hover:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all duration-200 dark:placeholder:text-gray-600"
                         />
                       </div>
                   </div>
@@ -242,11 +242,11 @@ const SignUp = () => {
 
                   {/* EMAIL */}
                   <div>
-                    <label className="block text-white/80 text-xs font-semibold uppercase tracking-wide mb-2">
+                    <label className="block text-white/80 text-[10px] md:text-xs font-semibold uppercase tracking-wide mb-1 md:mb-2">
                       Student Email
                     </label>
                     <div className="relative">
-                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" />
+                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 h-4 w-4 md:h-5 md:w-5" />
                       <input
                         type="email"
                           id="email"
@@ -254,11 +254,11 @@ const SignUp = () => {
                         placeholder="your.name@student.edu.ng"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="w-full bg-transparent border border-gray-200 dark:border-gray-800 rounded-xl py-3.5 pl-12 pr-4 text-white hover:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all duration-200 dark:placeholder:text-gray-600"
+                        className="w-full bg-transparent border border-gray-200 dark:border-gray-800 rounded-xl py-3 md:py-3.5 pl-10 md:pl-12 pr-4 text-sm md:text-base text-white hover:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all duration-200 dark:placeholder:text-gray-600"
                       />
                     </div>
                     {invalidEmail && (
-                      <p className="text-red-500 text-xs mt-1">
+                      <p className="text-red-500 text-[10px] md:text-xs mt-1">
                         Please enter a valid student email address.
                       </p>
                     )}
@@ -266,11 +266,11 @@ const SignUp = () => {
 
                   {/* PASSWORD */}
                   <div>
-                    <label className="block text-white/80 text-xs font-semibold uppercase tracking-wide mb-2">
+                    <label className="block text-white/80 text-[10px] md:text-xs font-semibold uppercase tracking-wide mb-1 md:mb-2">
                       Password
                     </label>
                     <div className="relative">
-                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" />
+                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 h-4 w-4 md:h-5 md:w-5" />
                       <input
                         id="password"
                        name="password"
@@ -278,18 +278,18 @@ const SignUp = () => {
                         placeholder="••••••••"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
-                        className="w-full bg-transparent border border-gray-200 dark:border-gray-800 rounded-xl py-3.5 pl-12 pr-12 text-white hover:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all duration-200 dark:placeholder:text-gray-600"
+                        className="w-full bg-transparent border border-gray-200 dark:border-gray-800 rounded-xl py-3 md:py-3.5 pl-10 md:pl-12 pr-10 md:pr-12 text-sm md:text-base text-white hover:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all duration-200 dark:placeholder:text-gray-600"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPass(!showPass)}
                         className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40"
                       >
-                        {showPass ? <EyeOff /> : <Eye />}
+                        {showPass ? <EyeOff className="h-4 w-4 md:h-5 md:w-5" /> : <Eye className="h-4 w-4 md:h-5 md:w-5" />}
                       </button>
                     </div>
                     {shortPassword && (
-                      <p className="text-red-500 text-xs mt-1 animate-fade-in">
+                      <p className="text-red-500 text-[10px] md:text-xs mt-1 animate-fade-in">
                         Password must be at least 6 characters long.
                       </p>
                     )}
@@ -303,11 +303,11 @@ const SignUp = () => {
                 <>
                   {/* Organisation Name */}
                   <div>
-                    <label className="block text-white/80 text-xs font-semibold uppercase tracking-wide mb-2">
+                    <label className="block text-white/80 text-[10px] md:text-xs font-semibold uppercase tracking-wide mb-1 md:mb-2">
                       Organisation Name
                     </label>
                     <div className="relative">
-                      <UsersIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" />
+                      <UsersIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 h-4 w-4 md:h-5 md:w-5" />
                       <input
                         type="text"
                         id="name"
@@ -315,18 +315,18 @@ const SignUp = () => {
                         placeholder="Enter Organisation Name"
                         value={organisationName}
                         onChange={(e) => setOrganisationName(e.target.value)}
-                        className="w-full bg-transparent border border-gray-200 dark:border-gray-800 rounded-xl py-3.5 pl-12 pr-4 text-white hover:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all duration-200 dark:placeholder:text-gray-600"
+                        className="w-full bg-transparent border border-gray-200 dark:border-gray-800 rounded-xl py-3 md:py-3.5 pl-10 md:pl-12 pr-4 text-sm md:text-base text-white hover:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all duration-200 dark:placeholder:text-gray-600"
                       />
                     </div>
                   </div>
 
                   {/* Email */}
                   <div>
-                    <label className="block text-white/80 text-xs font-semibold uppercase tracking-wide mb-2">
+                    <label className="block text-white/80 text-[10px] md:text-xs font-semibold uppercase tracking-wide mb-1 md:mb-2">
                       Email
                     </label>
                     <div className="relative">
-                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" />
+                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 h-4 w-4 md:h-5 md:w-5" />
                       <input
                         type="email"
                           id="email"
@@ -334,11 +334,11 @@ const SignUp = () => {
                         placeholder="Enter organisation email"
                         value={organiserEmail}
                         onChange={(e) => setOrganiserEmail(e.target.value)}
-                        className="w-full bg-transparent border border-gray-200 dark:border-gray-800 rounded-xl py-3.5 pl-12 pr-4 text-white hover:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all duration-200 dark:placeholder:text-gray-600"
+                        className="w-full bg-transparent border border-gray-200 dark:border-gray-800 rounded-xl py-3 md:py-3.5 pl-10 md:pl-12 pr-4 text-sm md:text-base text-white hover:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all duration-200 dark:placeholder:text-gray-600"
                       />
                     </div>
                     {invalidOrganiserEmail && (
-                      <p className="text-red-500 text-xs mt-1">
+                      <p className="text-red-500 text-[10px] md:text-xs mt-1">
                         Please enter a valid email address.
                       </p>
                     )}
@@ -346,11 +346,11 @@ const SignUp = () => {
 
                   {/* Password */}
                   <div>
-                    <label className="block text-white/80 text-xs font-semibold uppercase tracking-wide mb-2">
+                    <label className="block text-white/80 text-[10px] md:text-xs font-semibold uppercase tracking-wide mb-1 md:mb-2">
                       Password
                     </label>
                     <div className="relative">
-                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" />
+                      <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 h-4 w-4 md:h-5 md:w-5" />
                       <input
                         id="password"
                        name="password"
@@ -358,18 +358,18 @@ const SignUp = () => {
                         placeholder="••••••••"
                         value={organiserPassword}
                         onChange={(e) => setOrganiserPassword(e.target.value)}
-                        className="w-full bg-transparent border border-gray-200 dark:border-gray-800 rounded-xl py-3.5 pl-12 pr-12 text-white hover:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all duration-200 dark:placeholder:text-gray-600"
+                        className="w-full bg-transparent border border-gray-200 dark:border-gray-800 rounded-xl py-3 md:py-3.5 pl-10 md:pl-12 pr-10 md:pr-12 text-sm md:text-base text-white hover:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all duration-200 dark:placeholder:text-gray-600"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPass(!showPass)}
                         className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40"
                       >
-                        {showPass ? <EyeOff /> : <Eye />}
+                        {showPass ? <EyeOff className="h-4 w-4 md:h-5 md:w-5" /> : <Eye className="h-4 w-4 md:h-5 md:w-5" />}
                       </button>
                     </div>
                     {organiserShortPassword && (
-                      <p className="text-red-500 text-xs mt-1 animate-fade-in">
+                      <p className="text-red-500 text-[10px] md:text-xs mt-1 animate-fade-in">
                         Password must be at least 6 characters long.
                       </p>
                     )}
@@ -381,18 +381,18 @@ const SignUp = () => {
             <button
           type="submit"
            disabled={loading || !isFormValid()}
-          className={`w-full mx-auto bg-rose-600 ${isFormValid() ? 'hover:bg-rose-700' : ''} text-[#FFFFFF] font-semibold py-4 rounded-full mt-6 transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed`}
+          className={`w-full mx-auto bg-rose-600 ${isFormValid() ? 'hover:bg-rose-700' : ''} text-[#FFFFFF] font-semibold py-3 md:py-4 rounded-full mt-4 md:mt-6 transition-all flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed text-sm md:text-base`}
            >
-            {loading ? (<><Loader2 className="animate-spin mr-2" />Creating account...</>) : 'Create Account'}
-           {!loading && <ArrowRight className="ml-2 h-5 w-5" />}
+            {loading ? (<><Loader2 className="animate-spin mr-2 h-4 w-4 md:h-5 md:w-5" />Creating account...</>) : 'Create Account'}
+           {!loading && <ArrowRight className="ml-2 h-4 w-4 md:h-5 md:w-5" />}
         </button>
 
             {/* --- OR Separator --- */}
-            <div className="relative my-4 text-center">
+            <div className="relative my-3 md:my-4 text-center">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-800"></div>
               </div>
-              <span className="relative px-4 text-sm text-gray-500 bg-[#050B14]">
+              <span className="relative px-4 text-xs md:text-sm text-gray-500 bg-[#050B14]">
                 or
               </span>
             </div>
@@ -412,16 +412,16 @@ const SignUp = () => {
                 <Button
               variant="outline"
               onClick={() => toast.error('Social login currently unavailable')}
-              className="w-full h-12 rounded-xl border-gray-800 bg-zinc-900 hover:bg-zinc-800 text-gray-300 transition-all duration-200"
+              className="w-full h-10 md:h-12 rounded-xl border-gray-800 bg-zinc-900 hover:bg-zinc-800 text-gray-300 transition-all duration-200"
             >
               <div className="flex items-center justify-center gap-3">
-                <div className="h-5 w-5 flex items-center justify-center">
+                <div className="h-4 w-4 md:h-5 md:w-5 flex items-center justify-center">
                   <img
                    src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg"
                     alt="Google" 
                   />
                 </div>
-                <span>Sign Up with Google</span>
+                <span className="text-sm md:text-base">Sign Up with Google</span>
               </div>
             </Button>
         </div>
@@ -429,7 +429,7 @@ const SignUp = () => {
 
           {/* Already have an account? Sign in */}
           <div className="text-center mt-3">
-            <p className="text-gray-400 text-sm">
+            <p className="text-gray-400 text-xs md:text-sm">
               Already have an account?{" "}
               <Link href="/login" className="text-[#FF3A66] hover:text-[#cf153e] font-semibold underline">
                 Sign in

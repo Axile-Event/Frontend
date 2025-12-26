@@ -47,32 +47,32 @@ const StudentDashboardOverview = () => {
   }).length;
 
   return (
-    <div className="space-y-8">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold tracking-tight">
+    <div className="space-y-6 md:space-y-8">
+      <div className="flex flex-col gap-1 md:gap-2">
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
           Welcome back, {profile?.first_name || profile?.firstName || user?.email?.split('@')[0] || "Student"}! 👋
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-sm md:text-base text-muted-foreground">
           Here's what's happening with your events.
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 md:gap-4 grid-cols-2 lg:grid-cols-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
         >
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4 md:p-6">
+              <CardTitle className="text-xs md:text-sm font-medium">
                 Total Tickets
               </CardTitle>
-              <Ticket className="h-4 w-4 text-muted-foreground" />
+              <Ticket className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{tickets.length}</div>
-              <p className="text-xs text-muted-foreground">
+            <CardContent className="p-4 md:p-6 pt-0 md:pt-0">
+              <div className="text-xl md:text-2xl font-bold">{tickets.length}</div>
+              <p className="text-[10px] md:text-xs text-muted-foreground">
                 Lifetime tickets purchased
               </p>
             </CardContent>
@@ -85,15 +85,15 @@ const StudentDashboardOverview = () => {
           transition={{ duration: 0.3, delay: 0.1 }}
         >
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4 md:p-6">
+              <CardTitle className="text-xs md:text-sm font-medium">
                 Upcoming Events
               </CardTitle>
-              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <Calendar className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{upcomingEventsCount}</div>
-              <p className="text-xs text-muted-foreground">
+            <CardContent className="p-4 md:p-6 pt-0 md:pt-0">
+              <div className="text-xl md:text-2xl font-bold">{upcomingEventsCount}</div>
+              <p className="text-[10px] md:text-xs text-muted-foreground">
                 Events you are attending soon
               </p>
             </CardContent>

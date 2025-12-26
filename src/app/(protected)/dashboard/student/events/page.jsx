@@ -40,17 +40,17 @@ const EventsPage = () => {
   }
 
   return (
-    <div className="space-y-6 pb-20 md:pb-0">
+    <div className="space-y-4 md:space-y-6 pb-20 md:pb-0">
       {/* Header & Search */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col gap-3 md:gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Discovery Page</h1>
+          <h1 className="text-xl md:text-2xl font-bold tracking-tight">Discovery Page</h1>
         </div>
         <div className="relative w-full md:w-72">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
           <Input
             placeholder="Search for events"
-            className="pl-9 bg-secondary/50 border-0"
+            className="pl-8 md:pl-9 bg-secondary/50 border-0 text-sm md:text-base h-9 md:h-10"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -60,21 +60,21 @@ const EventsPage = () => {
       {/* Content */}
       {events.length === 0 ? (
         // Empty State
-        <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-4">
-          <CalendarIcon className="h-24 w-24 text-muted-foreground/50" />
-          <h2 className="text-2xl font-bold text-foreground">No Events Yet</h2>
+        <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-3 md:space-y-4">
+          <CalendarIcon className="h-16 w-16 md:h-24 md:w-24 text-muted-foreground/50" />
+          <h2 className="text-xl md:text-2xl font-bold text-foreground">No Events Yet</h2>
         </div>
       ) : (
         // Events Grid
-        <div className="space-y-6">
-          <h2 className="text-xl font-semibold">Upcoming Events</h2>
+        <div className="space-y-4 md:space-y-6">
+          <h2 className="text-lg md:text-xl font-semibold">Upcoming Events</h2>
           
           {filteredEvents.length === 0 ? (
-             <div className="text-center py-10">
-                <p className="text-muted-foreground">No events match your search.</p>
+             <div className="text-center py-8 md:py-10">
+                <p className="text-sm md:text-base text-muted-foreground">No events match your search.</p>
              </div>
           ) : (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
               {filteredEvents.map((event, index) => (
                 <motion.div
                   key={event.event_id}
@@ -83,7 +83,7 @@ const EventsPage = () => {
                   transition={{ duration: 0.3, delay: index * 0.05 }}
                 >
                   <Link href={`/dashboard/student/events/${event.event_id}`}>
-                    <div className="group relative aspect-[4/3] overflow-hidden rounded-2xl bg-muted cursor-pointer">
+                    <div className="group relative aspect-[4/3] overflow-hidden rounded-xl md:rounded-2xl bg-muted cursor-pointer">
                       {/* Background Image */}
                       {event.event_image ? (
                         <img
@@ -93,7 +93,7 @@ const EventsPage = () => {
                         />
                       ) : (
                         <div className="h-full w-full bg-gray-800 flex items-center justify-center">
-                           <CalendarIcon className="h-12 w-12 text-gray-600" />
+                           <CalendarIcon className="h-10 w-10 md:h-12 md:w-12 text-gray-600" />
                         </div>
                       )}
 

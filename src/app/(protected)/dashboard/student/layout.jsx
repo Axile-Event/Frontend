@@ -4,13 +4,13 @@ import React from 'react'
 const StudentDashboardLayout = ({children}) => {
   return (
    <>
-    <section className='flex flex-col md:flex-row gap-2'>
-      {/* sidebar content */}
-      <nav className='fixed bottom-0 w-full mt-20 p-2 rounded-xl md:mt-0 md:left-0 md:pt-10 md:w-66 lg:w-65 border border-gray-800 md:min-h-screen order-1 bg-[#0A0A14] z-50'>
+    <section className='flex flex-col md:flex-row min-h-screen'>
+      {/* sidebar content - Hidden on mobile, shown on desktop */}
+      <nav className='hidden md:block fixed left-0 top-16 w-64 h-[calc(100vh-4rem)] border-r border-gray-800 bg-[#0A0A14] z-40 overflow-y-auto py-6'>
         <Sidebar />
       </nav>
       {/* main content */}
-      <main className='md:ml-70 w-full p-4 md:p-8 mb-20 md:mb-0'>
+      <main className='w-full md:ml-64 p-4 md:p-8'>
         {children}
       </main>
     </section>

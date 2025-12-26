@@ -15,18 +15,18 @@ import { useRouter } from "next/navigation";
 import Logo from "@/components/Logo";
 
 const StudentDashboardNavLinks = [
-  { name: "Overview", link: "/dashboard/student", icon: <Home size={30} /> },
+  { name: "Overview", link: "/dashboard/student", icon: <Home className="h-5 w-5 md:h-7 md:w-7" /> },
   {
     name: "Events",
     link: "/dashboard/student/events",
-    icon: <Calendar size={30} />,
+    icon: <Calendar className="h-5 w-5 md:h-7 md:w-7" />,
   },
   {
     name: "My Tickets",
     link: "/dashboard/student/my-tickets",
-    icon: <Ticket size={30} />,
+    icon: <Ticket className="h-5 w-5 md:h-7 md:w-7" />,
   },
-  { name: "Profile", link: "/dashboard/student/profile", icon: <User size={30} /> },
+  { name: "Profile", link: "/dashboard/student/profile", icon: <User className="h-5 w-5 md:h-7 md:w-7" /> },
 ];
 
 const Sidebar = () => {
@@ -44,52 +44,50 @@ const Sidebar = () => {
   );
 
   return (
-    <>
-      <div className="hidden md:flex justify-center mb-6">
-        <Logo />
-      </div>
-      <div className="flex flex-row justify-around max-sm:items-center md:flex-col md:gap-8">
+    <div className="flex flex-col h-full px-4">
+      {/* Logo is now in the global header, so we might not need it here, 
+          but keeping it or removing it depends on design. 
+          Since Header is sticky top, Sidebar starts below it. 
+          So we don't need Logo in Sidebar anymore. */}
+      
+      <div className="flex flex-col gap-2 w-full">
         {StudentDashboardNavLinks.map((link) => (
           <Link
             href={link.link}
             key={link.name}
-            className={`${active ? (active.link === link.link ? "bg-gray-200 p-2 md:p-2 rounded-xl text-gray-800 font-bold" : "") : null}`}
+            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+              active && active.link === link.link 
+                ? "bg-rose-600 text-white font-bold shadow-lg shadow-rose-500/20" 
+                : "text-gray-400 hover:bg-gray-800 hover:text-white"
+            }`}
           >
-            <div className="flex flex-col md:flex-row items-center md:gap-3 gap-1">
-              <span className="">{link.icon}</span>
-              <p
-                className={`${active ? (active.link === link.link ? "text-xs md:text-base" : "hidden md:block") : "hidden md:block"}`}
-              >
-                {link.name}
-              </p>
-            </div>
+            {link.icon}
+            <span className="text-base font-medium">{link.name}</span>
           </Link>
         ))}
       </div>
 
-      <hr className="mt-8 text-gray-800 hidden md:block" />
-
-      <div className="mt-8 space-y-7 hidden md:block">
+      <div className="mt-auto pt-8 space-y-2 border-t border-gray-800">
         <Link
           href={`/dashboard/student/settings`}
-          className={`${location === "/dashboard/student/settings" ? "bg-gray-200 flex gap-3 text-gray-800 p-2 rounded-xl font-bold" : "md:flex md:flex-row hidden md:gap-3 items-center"}`}
+          className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+            location === "/dashboard/student/settings" 
+              ? "bg-rose-600 text-white font-bold" 
+              : "text-gray-400 hover:bg-gray-800 hover:text-white"
+          }`}
         >
-          <span>
-            <Settings />
-          </span>
-          <p>Settings</p>
+          <Settings className="h-5 w-5 md:h-7 md:w-7" />
+          <span className="text-base font-medium">Settings</span>
         </Link>
         <button 
           onClick={handleLogout}
-          className="hover:bg-gray-200 p-2 md:p-2 hover:rounded-xl font-bold md:flex md:flex-row hidden md:gap-3 items-center text-red-500 cursor-pointer w-full"
+          className="flex items-center gap-3 px-4 py-3 rounded-xl w-full text-left text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all duration-200"
         >
-          <span>
-            <LogOut />
-          </span>
-          <p>Logout</p>
+          <LogOut className="h-5 w-5 md:h-7 md:w-7" />
+          <span className="text-base font-medium">Logout</span>
         </button>
       </div>
-    </>
+    </div>
   );
 };
 

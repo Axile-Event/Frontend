@@ -26,20 +26,20 @@ const ForgotPassword = () => {
 
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-[#0A0A14] p-4">
-      <div className="w-full max-w-md space-y-8">
+      <div className="w-full max-w-md space-y-6 md:space-y-8">
         <div className="flex justify-center">
-          <Logo iconSize="h-10 w-10" textSize="text-3xl" className="text-white" />
+          <Logo iconSize="h-8 w-8 md:h-10 md:w-10" textSize="text-2xl md:text-3xl" className="text-white" />
         </div>
         
-        <div className="bg-[#12121A] border border-white/10 rounded-2xl p-8 shadow-xl">
-          <div className="text-center mb-8">
-            <h1 className="text-2xl font-bold text-white mb-2">Forgot Password?</h1>
-            <p className="text-gray-400">
+        <div className="bg-[#12121A] border border-white/10 rounded-2xl p-6 md:p-8 shadow-xl">
+          <div className="text-center mb-6 md:mb-8">
+            <h1 className="text-xl md:text-2xl font-bold text-white mb-2">Forgot Password?</h1>
+            <p className="text-gray-400 text-sm md:text-base">
               Enter your email address and we'll send you a link to reset your password.
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
             <div className="space-y-2">
               <Label htmlFor="email" className="text-gray-300">Email Address</Label>
               <div className="relative">
@@ -58,7 +58,7 @@ const ForgotPassword = () => {
 
             <Button 
               type="submit" 
-              className="w-full bg-primary hover:bg-primary/90 text-white h-11"
+              className="w-full bg-primary hover:bg-primary/90 text-white h-10 md:h-11"
               disabled={loading}
             >
               {loading ? (

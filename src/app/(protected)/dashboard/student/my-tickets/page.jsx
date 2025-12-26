@@ -51,31 +51,31 @@ const MyTicketsPage = () => {
   }
 
   return (
-    <div className="space-y-6 pb-20 md:pb-0">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">My Tickets</h1>
-        <p className="text-muted-foreground">
+    <div className="space-y-4 md:space-y-6 pb-20 md:pb-0">
+      <div className="flex flex-col gap-1 md:gap-2">
+        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">My Tickets</h1>
+        <p className="text-sm md:text-base text-muted-foreground">
           View and manage your booked tickets.
         </p>
       </div>
 
       {tickets.length === 0 ? (
-        <div className="flex flex-col items-center justify-center h-[50vh] space-y-4 text-center border rounded-2xl bg-muted/10 border-dashed">
-          <div className="p-4 rounded-full bg-muted">
-            <Ticket className="h-12 w-12 text-muted-foreground" />
+        <div className="flex flex-col items-center justify-center h-[50vh] space-y-3 md:space-y-4 text-center border rounded-2xl bg-muted/10 border-dashed p-4">
+          <div className="p-3 md:p-4 rounded-full bg-muted">
+            <Ticket className="h-8 w-8 md:h-12 md:w-12 text-muted-foreground" />
           </div>
-          <div className="space-y-2">
-            <h3 className="text-xl font-bold">No Tickets Yet</h3>
-            <p className="text-muted-foreground max-w-sm mx-auto">
+          <div className="space-y-1 md:space-y-2">
+            <h3 className="text-lg md:text-xl font-bold">No Tickets Yet</h3>
+            <p className="text-xs md:text-base text-muted-foreground max-w-sm mx-auto">
               You haven't booked any events yet. Browse our events to find something interesting!
             </p>
           </div>
           <Link href="/dashboard/student/events">
-            <Button>Explore Events</Button>
+            <Button className="h-9 md:h-10 text-sm md:text-base">Explore Events</Button>
           </Link>
         </div>
       ) : (
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {tickets.map((ticket, index) => (
             <motion.div
               key={ticket.ticket_id}
@@ -84,20 +84,20 @@ const MyTicketsPage = () => {
               transition={{ duration: 0.3, delay: index * 0.05 }}
             >
               <Card className="h-full flex flex-col overflow-hidden border-l-4 border-l-primary">
-                <CardHeader className="pb-2">
+                <CardHeader className="pb-2 p-4 md:p-6">
                   <div className="flex justify-between items-start gap-2">
-                    <CardTitle className="line-clamp-1 text-lg">
+                    <CardTitle className="line-clamp-1 text-base md:text-lg">
                       {ticket.event_name}
                     </CardTitle>
                     <span
-                      className={`px-2 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(
+                      className={`px-2 py-0.5 rounded-full text-[10px] md:text-xs font-medium border ${getStatusColor(
                         ticket.status
                       )}`}
                     >
                       {ticket.status}
                     </span>
                   </div>
-                  <CardDescription className="text-xs">
+                  <CardDescription className="text-[10px] md:text-xs">
                     ID: {ticket.ticket_id.split(":")[1]}
                   </CardDescription>
                 </CardHeader>
