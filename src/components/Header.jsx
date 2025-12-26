@@ -14,11 +14,6 @@ const Header = () => {
   const pathname = usePathname();
   const { user, logout } = useAuthStore();
 
-  // Don't show header on auth pages if you prefer, but user asked for "all devices"
-  // Usually auth pages (login/signup) are standalone. 
-  // Let's keep it simple and show it everywhere, or maybe hide on specific paths if needed.
-  // For now, I'll render it.
-
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   const closeMenu = () => setIsMenuOpen(false);
 
@@ -39,9 +34,12 @@ const Header = () => {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-6">
+          <Link href="/events" className="text-sm font-medium text-gray-300 hover:text-white transition-colors">
+            Discover Events
+          </Link>
+          
           {user ? (
             <>
-
               {!pathname.startsWith('/dashboard') && (
                 <Link href="/dashboard" className="text-sm font-medium text-gray-300 hover:text-white transition-colors">
                   Dashboard
@@ -61,7 +59,6 @@ const Header = () => {
                    </Button>
                  )}
               </div>
-
             </>
           ) : (
             <>
@@ -169,6 +166,14 @@ const Header = () => {
                     </>
                   ) : (
                     <div className="flex flex-col gap-3 mt-4">
+                       <Link 
+                         href="/events" 
+                         onClick={closeMenu}
+                         className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white transition-colors w-full"
+                       >
+                         <Calendar className="h-5 w-5" />
+                         Discover Events
+                       </Link>
                       <Link href="/login" onClick={closeMenu}>
                         <Button variant="outline" className="w-full border-gray-700 text-gray-300 h-12">
                           Login

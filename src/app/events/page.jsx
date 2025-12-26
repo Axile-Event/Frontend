@@ -34,7 +34,7 @@ const PublicEventsPage = () => {
 
   return (
     <div className="min-h-screen bg-[#0A0A14] bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.15),rgba(255,255,255,0))]">
-      <div className="container mx-auto px-4 py-24 md:py-32">
+      <div className="container mx-auto px-4 pt-20 pb-12 md:pt-28 md:pb-16">
         {/* Header & Search */}
         <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between mb-12">
           <div className="space-y-4">

@@ -98,7 +98,7 @@ const LandingPage = () => {
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-              <Link href="/signup">
+              <Link href="/events">
                 <Button size="lg" className="h-12 px-8 text-base bg-primary hover:bg-primary/90">
                   Start Exploring
                   <ArrowRight className="ml-2 h-4 w-4" />
