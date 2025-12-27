@@ -61,8 +61,17 @@ const LoginPage = () => {
         const res = await api.post('/student/google-signup/', {
           token: tokenResponse.access_token,
         });
-        const { user_id, email, access, refresh, is_new_user } = res.data;
-        login({ user_id, email }, access, "student");
+        const { user_id, email, access, refresh, is_new_user, role: responseRole } = res.data;
+        
+        // Extract role dynamically from response or JWT token
+        let userRole = responseRole;
+        if (!userRole && access) {
+          const decoded = parseJwt(access);
+          // Check for common role claims
+          userRole = decoded?.role || decoded?.user_type || (decoded?.is_organizer ? 'organizer' : 'student');
+        }
+        
+        login({ user_id, email }, access, userRole);
         toast.success('Login successful!');
         router.push('/dashboard');
       } catch (err) {
