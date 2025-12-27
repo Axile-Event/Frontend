@@ -97,7 +97,7 @@ const SignUp = () => {
       } else {
          // Organizer registration is immediate
          const { email, access, refresh } = res.data;
-         loginUser({ email }, access);
+         loginUser({ email }, access, "organizer");
          toast.success('Account Created Successfully', { id: toastId })
          router.push("/dashboard");
       }

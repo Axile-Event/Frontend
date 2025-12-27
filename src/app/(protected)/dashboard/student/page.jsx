@@ -75,8 +75,7 @@ const StudentDashboardOverview = () => {
   const displayName = profile?.firstname || 
                       profile?.Firstname || 
                       profile?.first_name || 
-                      profile?.Preferred_name || 
-                      user?.email?.split('@')[0] || 
+                      profile?.Preferred_name ||
                       "Student";
 
   // Animation Variants
