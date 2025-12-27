@@ -15,7 +15,7 @@ const SignUp = () => {
   const router = useRouter();
   const loginUser = useAuthStore((state) => state.login);
 
-  const [role, setRole] = useState("Student");
+  const [role, setRole] = useState("student");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -42,7 +42,7 @@ const SignUp = () => {
     organiserConfirm.length > 0 && organiserConfirm !== organiserPassword;
 
   const isFormValid = () => {
-    if (role === "Student") {
+    if (role === "student") {
       return (
         firstName.trim() &&
         lastName.trim() &&
@@ -68,7 +68,7 @@ const SignUp = () => {
     try {
       let payload;
       let endpoint = "/student/register/";
-      if (role === "Student") {
+      if (role === "student") {
         // Backend expects capitalized keys for student registration (see API docs)
         payload = {
           Firstname: firstName,
@@ -91,13 +91,13 @@ const SignUp = () => {
       console.log("Submitting to", endpoint, "with payload", payload);
       const res = await api.post(endpoint, payload);
       
-      if (role === "Student") {
+      if (role === "student") {
          toast.success(res.data.message || 'OTP sent to email.', { id: toastId })
          router.push(`/verify-otp?email=${email}`);
       } else {
          // Organizer registration is immediate
-         const { email, access, refresh } = res.data;
-         loginUser({ email }, access, "organizer");
+         const { email: responseEmail, access, refresh } = res.data;
+         loginUser({ email: responseEmail }, access, role);
          toast.success('Account Created Successfully', { id: toastId })
          router.push("/dashboard");
       }
@@ -114,13 +114,13 @@ const SignUp = () => {
   //   onSuccess: async (tokenResponse) => {
   //     setLoading(true);
   //     try {
-  //       const endpoint = role === "Student" ? '/student/google-signup/' : '/organizer/google-signup/';
+  //       const endpoint = role === "student" ? '/student/google-signup/' : '/organizer/google-signup/';
   //       const res = await api.post(endpoint, {
   //         token: tokenResponse.access_token,
   //       });
         
   //       const { email, access, refresh } = res.data;
-  //       loginUser({ email }, access);
+  //       loginUser({ email }, access, role);
         
   //       toast.success('Account Created Successfully');
   //       router.push("/dashboard");
@@ -177,9 +177,9 @@ const SignUp = () => {
            {/* Role Switch */}
           <div className="flex gap-2 mb-6 md:mb-8">
             <button
-              onClick={() => setRole("Student")}
+              onClick={() => setRole("student")}
            className={`flex-1 py-2 md:py-3 px-4 md:px-6 rounded-full font-semibold text-sm md:text-base transition-all duration-200 ${
-                role === "Student"
+                role === "student"
                   ? "bg-yellow-400 text-black border-yellow-400"
                   : "border-gray-600 border text-gray-300 hover:border-gray-500"
               }`}
@@ -188,9 +188,9 @@ const SignUp = () => {
             </button>
 
             <button
-              onClick={() => setRole("Organizer")}
+              onClick={() => setRole("organizer")}
               className={`flex-1 py-2 md:py-3 px-4 md:px-6 rounded-full font-semibold text-sm md:text-base transition-all duration-200 ${
-                role === "Organizer"
+                role === "organizer"
                   ? "bg-yellow-400 text-black border-yellow-400"
                   : "border-gray-600 border text-gray-300 hover:border-gray-500"
               }`}
@@ -201,7 +201,7 @@ const SignUp = () => {
 
           <form onSubmit={submitForm} className="space-y-3 md:space-y-4">
             <div className="space-y-2 md:space-y-3">
-              {role === "Student" && (
+              {role === "student" && (
                 <>
                   {/* FIRST NAME AND LAST NAME */}
                   <div className="grid grid-cols-2 gap-2 md:gap-3">
@@ -300,7 +300,7 @@ const SignUp = () => {
               )}
 
               {/* --- ORGANIZER FORM --- */}
-              {role === "Organizer" && (
+              {role === "organizer" && (
                 <>
                   {/* Organisation Name */}
                   <div>
