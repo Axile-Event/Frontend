@@ -25,7 +25,7 @@ const Header = () => {
   ];
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-gray-800 bg-[#0A0A14]/80 backdrop-blur-md">
+    <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-md">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         {/* Logo */}
         <Link href="/" onClick={closeMenu}>
@@ -34,19 +34,19 @@ const Header = () => {
 
         {/* Desktop Navigation */}
         <nav className="hidden md:flex items-center gap-6">
-          <Link href="/events" className="text-sm font-medium text-gray-300 hover:text-white transition-colors">
+          <Link href="/events" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
             Discover Events
           </Link>
           
           {user ? (
             <>
               {!pathname.startsWith('/dashboard') && (
-                <Link href="/dashboard" className="text-sm font-medium text-gray-300 hover:text-white transition-colors">
+                <Link href="/dashboard" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                   Dashboard
                 </Link>
               )}
               <div className="flex items-center gap-4">
-                 <span className="text-sm text-gray-400">Hi, {user.email?.split('@')[0]}</span>
+                 <span className="text-sm text-muted-foreground">Hi, {user.email?.split('@')[0]}</span>
                  {!pathname.startsWith('/dashboard') && (
                    <Button 
                       variant="ghost" 
