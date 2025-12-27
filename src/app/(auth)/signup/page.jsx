@@ -113,13 +113,13 @@ const SignUp = () => {
   //   onSuccess: async (tokenResponse) => {
   //     setLoading(true);
   //     try {
-  //       const endpoint = role === "Student" ? '/student/google-signup/' : '/organizer/google-signup/';
+  //       const endpoint = role === "student" ? '/student/google-signup/' : '/organizer/google-signup/';
   //       const res = await api.post(endpoint, {
   //         token: tokenResponse.access_token,
   //       });
         
   //       const { email, access, refresh } = res.data;
-  //       loginUser({ email }, access);
+  //       loginUser({ email }, access, role);
         
   //       toast.success('Account Created Successfully');
   //       router.push("/dashboard");
