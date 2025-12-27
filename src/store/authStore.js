@@ -6,11 +6,12 @@ const useAuthStore = create(
     (set) => ({
       user: null,
       token: null,
+      role: null, // Add role to state
       isAuthenticated: false,
-      login: (userData, token) =>
-        set({ user: userData, token, isAuthenticated: true }),
+      login: (userData, token, role) =>
+        set({ user: userData, token, role, isAuthenticated: true }),
       logout: () => {
-        set({ user: null, token: null, isAuthenticated: false });
+        set({ user: null, token: null, role: null, isAuthenticated: false });
         localStorage.removeItem("auth-storage");
       },
     }),

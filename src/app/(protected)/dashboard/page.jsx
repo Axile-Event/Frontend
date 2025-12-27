@@ -6,23 +6,25 @@ import { useEffect } from "react";
 import React from "react";
 
 const DashboardPage = () => {
-  const user = useAuthStore((state) => state.user);
-  const router = useRouter()
-  const role = "organizer"; //dummy data
+  const role = useAuthStore((state) => state.role);
+  const router = useRouter();
 
- useEffect(() => {
-    if (role === "organizer") {
+  useEffect(() => {
+    if (!role) return;
+
+    // Normalize role string to handle case sensitivity
+    const normalizedRole = role.toLowerCase();
+
+    if (normalizedRole === "organizer") {
       router.replace("/dashboard/org");
     } else {
-      // add student dashboard here
-      router.replace("/dashboard");
+      router.replace("/dashboard/student");
     }
-  }, [user, router]);
+  }, [role, router]);
 
   return (
-    <div>
-      {/* student dashboard */}
-      <p>Student</p>
+    <div className="flex items-center justify-center h-full w-full">
+      <div className="animate-pulse">Redirecting...</div>
     </div>
   );
 };

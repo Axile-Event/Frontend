@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 import api from "../../../lib/axios";
 import { Mail, Lock, Loader2, ArrowRight, CheckCircle, Clock } from "lucide-react";
+import Logo from "@/components/Logo";
 
 const VerifyOTPContent = () => {
   const router = useRouter();
@@ -136,8 +137,8 @@ const VerifyOTPContent = () => {
         transition={{ duration: 0.5, ease: "easeOut" }}
         className="w-full lg:w-1/2 flex flex-col items-center justify-center px-6 py-12 lg:px-16 xl:px-24 overflow-y-auto">
         <div className="w-full max-w-md">
-          <div className="text-[#FF3A66] text-3xl font-bold mb-8 text-center">
-            Logo
+          <div className="flex justify-center mb-8">
+            <Logo textSize="text-3xl" iconSize="h-8 w-8" />
           </div>
 
           <h1 className="text-4xl font-bold text-white mb-2 text-center">

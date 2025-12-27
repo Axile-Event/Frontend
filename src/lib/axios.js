@@ -4,6 +4,7 @@ import useAuthStore from "../store/authStore";
 const api = axios.create({
   // Prefer NEXT_PUBLIC_API_URL from environment; fall back to the provided endpoint
   baseURL: process.env.NEXT_PUBLIC_API_URL = "https://radar-ufvb.onrender.com/",
+
   headers: {
     "Content-Type": "application/json",
   },
