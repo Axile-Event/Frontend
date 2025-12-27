@@ -66,8 +66,8 @@ const LoginPage = () => {
         const res = await api.post("/student/google-signup/", {
           token: tokenResponse.access_token,
         });
-        const { user_id, email, access, refresh, is_new_user } = res.data;
-        login({ user_id, email }, access);
+        const { user_id, email, access, refresh, role } = res.data;
+        login({ user_id, email }, access, refresh, role || "Student");
         toast.success("Login successful!");
         router.push("/dashboard");
       } catch (err) {
@@ -87,8 +87,8 @@ const LoginPage = () => {
 
     try {
       const response = await api.post("/login/", formData);
-      const { user_id, email, access, refresh } = response.data;
-      login({ user_id, email }, access, refresh);
+      const { user_id, email, access, refresh, role } = response.data;
+      login({ user_id, email }, access, refresh, role);
       toast.success("Login successful! Redirecting...");
       router.push("/dashboard");
     } catch (err) {

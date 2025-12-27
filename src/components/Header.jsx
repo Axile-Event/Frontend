@@ -12,10 +12,13 @@ import { motion, AnimatePresence } from "framer-motion";
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname();
-  const { user, logout } = useAuthStore();
+  const { user, role, logout } = useAuthStore();
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   const closeMenu = () => setIsMenuOpen(false);
+
+  // Capitalize role for display
+  const displayRole = role ? role.charAt(0).toUpperCase() + role.slice(1).toLowerCase() : "User";
 
   const studentLinks = [
     { name: "Overview", href: "/dashboard/student", icon: <Home className="h-5 w-5" /> },
@@ -23,6 +26,15 @@ const Header = () => {
     { name: "My Tickets", href: "/dashboard/student/my-tickets", icon: <Ticket className="h-5 w-5" /> },
     { name: "Profile", href: "/dashboard/student/profile", icon: <User className="h-5 w-5" /> },
   ];
+
+  const organizerLinks = [
+    { name: "Overview", href: "/dashboard/org", icon: <Home className="h-5 w-5" /> },
+    { name: "My Events", href: "/dashboard/org/my-event", icon: <Calendar className="h-5 w-5" /> },
+    { name: "Create Event", href: "/dashboard/org/create-event", icon: <Calendar className="h-5 w-5" /> },
+    { name: "Profile", href: "/dashboard/org/profile", icon: <User className="h-5 w-5" /> },
+  ];
+
+  const sidebarLinks = role?.toLowerCase() === "organizer" ? organizerLinks : studentLinks;
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-md">
@@ -127,14 +139,14 @@ const Header = () => {
                         </div>
                         <div className="flex flex-col overflow-hidden">
                             <span className="text-sm font-medium text-white truncate">{user.email}</span>
-                            <span className="text-xs text-gray-500">Student</span>
+                            <span className="text-xs text-gray-500">{displayRole}</span>
                         </div>
                       </div>
                       
-                      {/* Student Dashboard Links */}
+                      {/* Dashboard Links */}
                       <div className="space-y-1">
                         <p className="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Menu</p>
-                        {studentLinks.map((link) => (
+                        {sidebarLinks.map((link) => (
                           <Link
                             key={link.name}
                             href={link.href}

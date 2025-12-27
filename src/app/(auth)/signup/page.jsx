@@ -96,8 +96,8 @@ const SignUp = () => {
          router.push(`/verify-otp?email=${email}`);
       } else {
          // Organizer registration is immediate
-         const { email, access, refresh } = res.data;
-         loginUser({ email }, access);
+         const { email, access, refresh, role: respRole } = res.data;
+         loginUser({ email }, access, refresh, respRole || role);
          toast.success('Account Created Successfully', { id: toastId })
          router.push("/dashboard");
       }
