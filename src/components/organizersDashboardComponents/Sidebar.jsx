@@ -44,10 +44,7 @@ const Sidebar = () => {
   console.log(active);
   return (
     <>
-      <div className="hidden md:flex justify-center mb-6">
-        <Logo />
-      </div>
-      <div className="flex flex-row justify-around max-sm:items-center md:flex-col md:gap-8">
+      <div className="flex flex-row justify-around max-md:bg-black max-sm:rounded-xl max-sm:items-center md:flex-col md:gap-8">
         {OrganizationDashboardNavLinks.map((link) => (
           <Link
             href={link.link}
