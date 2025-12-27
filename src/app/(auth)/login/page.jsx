@@ -49,6 +49,17 @@ const LoginPage = () => {
     }
   };
 
+  const extractUserRole = (responseRole, accessToken) => {
+    let userRole = responseRole;
+    if (!userRole && accessToken) {
+      const decoded = parseJwt(accessToken);
+      // Check for common role claims
+      userRole = decoded?.role || decoded?.user_type || (decoded?.is_organizer ? 'organizer' : 'student');
+    }
+    // Fallback to 'student' if no role information is available
+    return userRole || 'student';
+  };
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
     setError('')
@@ -57,21 +68,12 @@ const LoginPage = () => {
   const handleGoogleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       try {
-        // Assuming student login for now, logic might need adjustment based on user role selection if available on login page
         const res = await api.post('/student/google-signup/', {
           token: tokenResponse.access_token,
         });
         const { user_id, email, access, refresh, is_new_user, role: responseRole } = res.data;
         
-        // Extract role dynamically from response or JWT token
-        let userRole = responseRole;
-        if (!userRole && access) {
-          const decoded = parseJwt(access);
-          // Check for common role claims
-          userRole = decoded?.role || decoded?.user_type || (decoded?.is_organizer ? 'organizer' : 'student');
-        }
-        // Fallback to 'student' if no role information is available
-        userRole = userRole || 'student';
+        const userRole = extractUserRole(responseRole, access);
         
         login({ user_id, email }, access, userRole);
         toast.success('Login successful!');
@@ -96,14 +98,7 @@ const LoginPage = () => {
       const response = await api.post('/login/', formData)
       const { user_id, email, access, refresh, role: responseRole } = response.data
       
-      let userRole = responseRole;
-      if (!userRole && access) {
-        const decoded = parseJwt(access);
-        // Check for common role claims
-        userRole = decoded?.role || decoded?.user_type || (decoded?.is_organizer ? 'organizer' : 'student');
-      }
-      // Fallback to 'student' if no role information is available
-      userRole = userRole || 'student';
+      const userRole = extractUserRole(responseRole, access);
 
       login({ user_id, email }, access, userRole)
       toast.success('Login successful! Redirecting...', { id: toastId })
