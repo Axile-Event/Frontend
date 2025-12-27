@@ -54,6 +54,17 @@ const LoginPage = () => {
     }
   };
 
+  const extractUserRole = (responseRole, accessToken) => {
+    let userRole = responseRole;
+    if (!userRole && accessToken) {
+      const decoded = parseJwt(accessToken);
+      // Check for common role claims
+      userRole = decoded?.role || decoded?.user_type || (decoded?.is_organizer ? 'organizer' : 'student');
+    }
+    // Fallback to 'student' if no role information is available
+    return userRole || 'student';
+  };
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     setError("");
@@ -62,12 +73,14 @@ const LoginPage = () => {
   const handleGoogleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       try {
-        // Assuming student login for now, logic might need adjustment based on user role selection if available on login page
-        const res = await api.post("/student/google-signup/", {
+        const res = await api.post('/student/google-signup/', {
           token: tokenResponse.access_token,
         });
-        const { user_id, email, access, refresh, is_new_user } = res.data;
-        login({ user_id, email }, access, "student");
+        const { user_id, email, access, refresh, is_new_user, role: responseRole } = res.data;
+        
+        const userRole = extractUserRole(responseRole, access);
+        
+        login({ user_id, email }, access, userRole);
         toast.success('Login successful!');
         router.push('/dashboard');
       } catch (err) {
@@ -86,11 +99,14 @@ const LoginPage = () => {
     setError("");
 
     try {
-      const response = await api.post("/login/", formData);
-      const { user_id, email, access, refresh } = response.data;
-      login({ user_id, email }, access, refresh);
-      toast.success("Login successful! Redirecting...");
-      router.push("/dashboard");
+      const response = await api.post('/login/', formData)
+      const { user_id, email, access, refresh, role: responseRole } = response.data
+      
+      const userRole = extractUserRole(responseRole, access);
+
+      login({ user_id, email }, access, userRole)
+      toast.success('Login successful! Redirecting...', { id: toastId })
+      router.push('/dashboard')
     } catch (err) {
       console.error("Login error:", err);
       const message = err.response?.data?.error || "Invalid email or password";
