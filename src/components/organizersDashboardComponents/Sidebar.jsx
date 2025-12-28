@@ -1,7 +1,7 @@
-// "use client";
+// 'use client';
 
+// import React, { useState, useEffect } from 'react';
 // import {
-//   Group,
 //   GroupIcon,
 //   Home,
 //   LogOut,
@@ -9,78 +9,149 @@
 //   QrCodeIcon,
 //   Settings,
 //   User,
-//   User2,
-// } from "lucide-react";
-// import Link from "next/link";
-// import { usePathname } from "next/navigation";
+// } from 'lucide-react';
+// import Link from 'next/link';
+// import { usePathname } from 'next/navigation';
+// import { motion, AnimatePresence } from 'framer-motion';
+// import Logo from '@/components/Logo';
 
 // const OrganizationDashboardNavLinks = [
-//   { name: "Overview", link: "/dashboard/org", icon: <Home size={30} /> },
-//   {
-//     name: "Create Event",
-//     link: "/dashboard/org/create-event",
-//     icon: <PlusIcon size={30} />,
-//   },
-//   {
-//     name: "My Event",
-//     link: "/dashboard/org/my-event",
-//     icon: <GroupIcon size={30} />,
-//   },
-//   {
-//     name: "QR Scanner",
-//     link: "/dashboard/org/qr-scanner",
-//     icon: <QrCodeIcon size={30} />,
-//   },
-//   { name: "Profile", link: "/dashboard/org/profile", icon: <User size={30} /> },
+//   { name: 'Overview', link: '/dashboard/org', icon: <Home size={24} /> },
+//   { name: 'Create Event', link: '/dashboard/org/create-event', icon: <PlusIcon size={24} /> },
+//   { name: 'My Event', link: '/dashboard/org/my-event', icon: <GroupIcon size={24} /> },
+//   { name: 'QR Scanner', link: '/dashboard/org/qr-scanner', icon: <QrCodeIcon size={24} /> },
+//   { name: 'Profile', link: '/dashboard/org/profile', icon: <User size={24} /> },
 // ];
 
 // const Sidebar = () => {
-//   const location = usePathname();
-//   console.log(location);
-//   const active = OrganizationDashboardNavLinks.find(
-//     (link) => location === `${link.link}`
-//   );
-//   console.log(active);
+//   const pathname = usePathname();
+//   const [isOpen, setIsOpen] = useState(false);
+
 //   return (
 //     <>
-//       <div className="flex flex-row justify-around max-sm:items-center md:flex-col md:gap-8">
-//         {OrganizationDashboardNavLinks.map((link) => (
-//           <Link
-//             href={link.link}
-//             key={link.name}
-//             className={`${active ? (active.link === link.link ? "bg-gray-200 p-2 md:p-2 rounded-xl text-gray-800 font-bold" : "") : null}`}
+//       {/* Mobile Header */}
+//       <div className="flex md:hidden items-center justify-between bg-gray-900 p-4 text-white fixed top-0 left-0 right-0 z-50">
+//         <Logo />
+//         <button onClick={() => setIsOpen(!isOpen)}>
+//           <svg
+//             className="w-6 h-6"
+//             fill="none"
+//             stroke="currentColor"
+//             strokeWidth={2}
+//             viewBox="0 0 24 24"
 //           >
-//             <div className="flex flex-col md:flex-row items-center md:gap-3 gap-1">
-//               <span className="">{link.icon}</span>
-//               <p
-//                 className={`${active ? (active.link === link.link ? "text-xs md:text-base" : "hidden md:block") : "hidden md:block"}`}
-//               >
-//                 {link.name}
-//               </p>
-//             </div>
-//           </Link>
-//         ))}
-//       </div>
-
-//       <hr className="mt-8 text-gray-800 hidden md:block" />
-
-//       <div className="mt-8 space-y-7 hidden md:block">
-//         <Link
-//           href={`/dashboard/org/settings`}
-//           className={`${location === "/dashboard/org/settings" ? "bg-gray-200 flex gap-3 text-gray-800 p-2 rounded-xl font-bold" : "md:flex md:flex-row hidden md:gap-3 items-center"}`}
-//         >
-//           <span>
-//             <Settings />
-//           </span>
-//           <p>Settings</p>
-//         </Link>
-//         <button className="hover:bg-gray-200 p-2 md:p-2 hover:rounded-xl font-bold md:flex md:flex-row hidden md:gap-3 items-center text-red-500 cursor-pointer">
-//           <span>
-//             <LogOut />
-//           </span>
-//           <p>Logout</p>
+//             <path
+//               strokeLinecap="round"
+//               strokeLinejoin="round"
+//               d={isOpen ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'}
+//             />
+//           </svg>
 //         </button>
 //       </div>
+
+//       {/* Mobile Sidebar with Motion */}
+//       <AnimatePresence>
+//         {isOpen && (
+//           <>
+//             {/* Backdrop */}
+//             <motion.div
+//               initial={{ opacity: 0 }}
+//               animate={{ opacity: 0.5 }}
+//               exit={{ opacity: 0 }}
+//               transition={{ duration: 0.2 }}
+//               className="fixed inset-0 bg-black z-40"
+//               onClick={() => setIsOpen(false)}
+//             />
+
+//             {/* Slide-in Sidebar */}
+//             <motion.div
+//               initial={{ x: '-100%' }}
+//               animate={{ x: 0 }}
+//               exit={{ x: '-100%' }}
+//               transition={{ type: 'spring', bounce: 0, duration: 0.3 }}
+//               className="fixed inset-y-0 left-0 w-64 bg-gray-900 z-50 p-6 flex flex-col"
+//             >
+//               <Logo />
+//               <nav className="flex flex-col gap-4 mt-6">
+//                 {OrganizationDashboardNavLinks.map((link) => (
+//                   <Link
+//                     key={link.name}
+//                     href={link.link}
+//                     onClick={() => setIsOpen(false)}
+//                     className={`flex items-center gap-3 p-2 rounded-lg ${
+//                       pathname === link.link
+//                         ? 'bg-gray-200 text-gray-900 font-bold'
+//                         : 'text-gray-200 hover:bg-gray-800'
+//                     }`}
+//                   >
+//                     {link.icon}
+//                     <span>{link.name}</span>
+//                   </Link>
+//                 ))}
+//               </nav>
+
+//               <div className="mt-auto space-y-4">
+//                 <Link
+//                   href="/dashboard/org/settings"
+//                   onClick={() => setIsOpen(false)}
+//                   className={`flex items-center gap-3 p-2 rounded-lg ${
+//                     pathname === '/dashboard/org/settings'
+//                       ? 'bg-gray-200 text-gray-900 font-bold'
+//                       : 'text-gray-200 hover:bg-gray-800'
+//                   }`}
+//                 >
+//                   <Settings />
+//                   <span>Settings</span>
+//                 </Link>
+//                 <button className="flex items-center gap-3 p-2 rounded-lg text-red-500 hover:bg-gray-800">
+//                   <LogOut />
+//                   <span>Logout</span>
+//                 </button>
+//               </div>
+//             </motion.div>
+//           </>
+//         )}
+//       </AnimatePresence>
+
+//       {/* Desktop Sidebar */}
+//       <aside className="hidden md:flex flex-col w-64 h-screen bg-gray-900 text-white p-6 fixed left-0 top-0">
+//         <div className="mb-6 flex justify-center">
+//           <Logo />
+//         </div>
+//         <nav className="flex-1 flex flex-col gap-4">
+//           {OrganizationDashboardNavLinks.map((link) => (
+//             <Link
+//               key={link.name}
+//               href={link.link}
+//               className={`flex items-center gap-3 p-2 rounded-lg ${
+//                 pathname === link.link
+//                   ? 'bg-gray-200 text-gray-900 font-bold'
+//                   : 'text-gray-200 hover:bg-gray-800'
+//               }`}
+//             >
+//               {link.icon}
+//               <span className="text-sm">{link.name}</span>
+//             </Link>
+//           ))}
+//         </nav>
+//         <div className="mt-auto space-y-4">
+//           <Link
+//             href="/dashboard/org/settings"
+//             className={`flex items-center gap-3 p-2 rounded-lg ${
+//               pathname === '/dashboard/org/settings'
+//                 ? 'bg-gray-200 text-gray-900 font-bold'
+//                 : 'text-gray-200 hover:bg-gray-800'
+//             }`}
+//           >
+//             <Settings />
+//             <span>Settings</span>
+//           </Link>
+//           <button className="flex items-center gap-3 p-2 rounded-lg text-red-500 hover:bg-gray-800">
+//             <LogOut />
+//             <span>Logout</span>
+//           </button>
+//         </div>
+//       </aside>
 //     </>
 //   );
 // };
@@ -88,168 +159,94 @@
 // export default Sidebar;
 
 
-
 "use client";
 
-import React, { useState } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard,
-  Calendar,
-  PlusCircle,
-  ScanLine,
+  Group,
+  GroupIcon,
+  Home,
+  LogOut,
+  PlusIcon,
+  QrCodeIcon,
   Settings,
   User,
-  LogOut,
-  Wallet,
-  Menu,
-  X,
+  User2,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import Logo from "@/components/Logo";
+import { motion } from "framer-motion";
+import useAuthStore from "@/store/authStore";
 
-const links = [
-  { name: "Overview", link: "/dashboard/org", icon: LayoutDashboard },
-  { name: "My Events", link: "/dashboard/org/my-event", icon: Calendar },
-  { name: "Create Event", link: "/dashboard/org/create-event", icon: PlusCircle },
-  { name: "Payouts", link: "/dashboard/org/payouts", icon: Wallet },
-  { name: "QR Scanner", link: "/dashboard/org/qr-scanner", icon: ScanLine },
-  { name: "Profile", link: "/dashboard/org/profile", icon: User },
+const OrganizationDashboardNavLinks = [
+  { name: "Overview", link: "/dashboard/org", icon: <Home size={30} /> },
+  {
+    name: "Create Event",
+    link: "/dashboard/org/create-event",
+    icon: <PlusIcon size={30} />,
+  },
+  {
+    name: "My Event",
+    link: "/dashboard/org/my-event",
+    icon: <GroupIcon size={30} />,
+  },
+  {
+    name: "QR Scanner",
+    link: "/dashboard/org/qr-scanner",
+    icon: <QrCodeIcon size={30} />,
+  },
+  { name: "Profile", link: "/dashboard/org/profile", icon: <User size={30} /> },
 ];
 
-const SidebarItem = ({ icon: Icon, name, href, active, onClick }) => (
-  <Link
-    href={href}
-    onClick={onClick}
-    className={cn(
-      "flex items-center gap-3 w-full px-4 py-3.5 rounded-xl transition-all duration-200 group relative overflow-hidden",
-      active
-        ? "text-white bg-white/5"
-        : "text-gray-400 hover:text-white hover:bg-white/3"
-    )}
-  >
-    {active && (
-      <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-primary rounded-r-full" />
-    )}
-    <Icon
-      size={20}
-      className={cn(
-        "transition-colors",
-        active ? "text-primary" : "text-gray-500 group-hover:text-white"
-      )}
-    />
-    <span className="text-sm font-medium tracking-wide">{name}</span>
-  </Link>
-);
-
-const SidebarContent = ({ onClose }) => {
-  const pathname = usePathname();
-
+const Sidebar = () => {
+  const location = usePathname();
+  console.log(location);
+  const active = OrganizationDashboardNavLinks.find(
+    (link) => location === `${link.link}`
+  );
+  console.log(active);
   return (
-    <div className="flex flex-col h-full bg-background">
-      {/* Logo */}
-      <div className="p-8">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
-          </div>
-          <div>
-            <h1 className="text-lg font-bold text-white leading-none">
-              Radar
-            </h1>
-            <p className="text-[10px] text-gray-500 uppercase tracking-wider mt-1">
-              Organizer Panel
-            </p>
-          </div>
-        </div>
+    <>
+      <div className="flex flex-row justify-around max-md:bg-black max-sm:rounded-xl max-sm:items-center md:flex-col md:gap-8">
+        {OrganizationDashboardNavLinks.map((link) => (
+          <Link
+            href={link.link}
+            key={link.name}
+            className={`${active ? (active.link === link.link ? "bg-gray-200 p-2 md:p-2 rounded-xl text-gray-800 font-bold" : "") : null}`}
+          >
+            <div className="flex flex-col md:flex-row items-center md:gap-3 gap-1">
+              <span className="">{link.icon}</span>
+              <p
+                className={`${active ? (active.link === link.link ? "text-xs md:text-base" : "hidden md:block") : "hidden md:block"}`}
+              >
+                {link.name}
+              </p>
+            </div>
+          </Link>
+        ))}
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 px-4 space-y-1 overflow-y-auto">
-        {links.map((l) => (
-          <SidebarItem
-            key={l.link}
-            icon={l.icon}
-            name={l.name}
-            href={l.link}
-            active={pathname === l.link}
-            onClick={onClose}
-          />
-        ))}
-      </nav>
+      <hr className="mt-8 text-gray-800 hidden md:block" />
 
-      {/* Footer */}
-      <div className="p-4 border-t border-white/5">
+      <div className="mt-8 space-y-7 hidden md:block">
         <Link
-          href="/dashboard/org/settings"
-          className={cn(
-            "flex items-center gap-3 w-full px-4 py-3.5 rounded-xl transition-all",
-            pathname === "/dashboard/org/settings"
-              ? "text-white bg-white/5"
-              : "text-gray-400 hover:text-white hover:bg-white/[0.03]"
-          )}
+          href={`/dashboard/org/settings`}
+          className={`${location === "/dashboard/org/settings" ? "bg-gray-200 flex gap-3 text-gray-800 p-2 rounded-xl font-bold" : "md:flex md:flex-row hidden md:gap-3 items-center"}`}
         >
-          <Settings size={20} />
-          <span className="text-sm font-medium">Settings</span>
+          <span>
+            <Settings />
+          </span>
+          <p>Settings</p>
         </Link>
-
-        <button className="mt-2 flex items-center gap-3 w-full px-4 py-3.5 rounded-xl hover:bg-red-500/10 text-red-400 transition">
-          <LogOut size={20} />
-          <span className="text-sm font-medium">Log Out</span>
+        <button className="hover:bg-gray-200 p-2 md:p-2 hover:rounded-xl font-bold md:flex md:flex-row hidden md:gap-3 items-center text-red-500 cursor-pointer">
+          <span>
+            <LogOut />
+          </span>
+          <p>Logout</p>
         </button>
       </div>
-    </div>
+    </>
   );
 };
 
-export default function Sidebar() {
-  const [open, setOpen] = useState(false);
-
-  return (
-    <>
-      {/* Mobile header */}
-      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-background/80 backdrop-blur-md border-b border-white/5 flex items-center justify-between px-4 z-50">
-        <span className="font-bold text-white">Radar</span>
-        <button onClick={() => setOpen(true)} className="text-white">
-          <Menu />
-        </button>
-      </div>
-
-      {/* Desktop */}
-      <aside className="hidden lg:flex w-64 h-screen fixed left-0 top-0 border-r border-white/5 bg-background z-40">
-        <SidebarContent />
-      </aside>
-
-      {/* Mobile Drawer */}
-      <AnimatePresence>
-        {open && (
-          <>
-            <motion.div
-              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50"
-              onClick={() => setOpen(false)}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            />
-
-            <motion.div
-              className="fixed inset-y-0 left-0 w-72 bg-background border-r border-white/10 z-50"
-              initial={{ x: "-100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "-100%" }}
-              transition={{ duration: 0.25 }}
-            >
-              <button
-                onClick={() => setOpen(false)}
-                className="absolute top-4 right-4 text-gray-400 hover:text-white"
-              >
-                <X size={20} />
-              </button>
-              <SidebarContent onClose={() => setOpen(false)} />
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-    </>
-  );
-}
+export default Sidebar;

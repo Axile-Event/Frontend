@@ -9,8 +9,9 @@ import toast from 'react-hot-toast'
 import api from "../../../lib/axios";
 import useAuthStore from "../../../store/authStore";
 // import { useGoogleLogin } from '@react-oauth/google';
-import { Mail, Lock, User, Eye, EyeOff, UsersIcon, Loader2, ArrowRight } from "lucide-react";
+import { Mail, Lock, User, Eye, EyeOff, UsersIcon, Loader2, ArrowRight, Phone } from "lucide-react";
 import Logo from "@/components/Logo";
+import BackgroundCarousel from "../../../components/BackgroundCarousel";
 
 const SignUp = () => {
   const router = useRouter();
@@ -26,6 +27,7 @@ const SignUp = () => {
 
   const [organisationName, setOrganisationName] = useState("");
   const [organiserEmail, setOrganiserEmail] = useState("");
+  const [organiserPhone, setOrganiserPhone] = useState("");
   const [organiserPassword, setOrganiserPassword] = useState("");
   const [organiserConfirm, setOrganiserConfirm] = useState("");
 
@@ -84,7 +86,7 @@ const SignUp = () => {
           Organization_Name: organisationName,
           Email: organiserEmail,
           Password: organiserPassword,
-          Phone: "", // Add phone field if needed in form
+          Phone: organiserPhone,
         };
         endpoint = "/organizer/register/";
       }
@@ -95,9 +97,10 @@ const SignUp = () => {
          toast.success(res.data.message || 'OTP sent to email.', { id: toastId })
          router.push(`/verify-otp?email=${email}`);
       } else {
-         // Organizer registration is immediate
+         // Organizer registration - account created immediately, no OTP required
          const { email, access, refresh } = res.data;
-         loginUser({ email }, access);
+
+         loginUser({ email }, access, role);
          toast.success('Account Created Successfully', { id: toastId })
          router.push("/dashboard");
       }
@@ -344,6 +347,25 @@ const SignUp = () => {
                         Please enter a valid email address.
                       </p>
                     )}
+                  </div>
+
+                  {/* Phone */}
+                  <div>
+                    <label className="block text-white/80 text-[10px] md:text-xs font-semibold uppercase tracking-wide mb-1 md:mb-2">
+                      Phone Number
+                    </label>
+                    <div className="relative">
+                      <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 h-4 w-4 md:h-5 md:w-5" />
+                      <input
+                        type="tel"
+                        id="phone"
+                        name="phone"
+                        placeholder="Enter phone number"
+                        value={organiserPhone}
+                        onChange={(e) => setOrganiserPhone(e.target.value)}
+                        className="w-full bg-transparent border border-gray-200 dark:border-gray-800 rounded-xl py-3 md:py-3.5 pl-10 md:pl-12 pr-4 text-sm md:text-base text-white hover:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all duration-200 dark:placeholder:text-gray-600"
+                      />
+                    </div>
                   </div>
 
                   {/* Password */}

@@ -8,8 +8,12 @@ import toast from "react-hot-toast";
 import api from "../../../lib/axios";
 import { Mail, Lock, Loader2, ArrowRight, CheckCircle, Clock } from "lucide-react";
 import Logo from "@/components/Logo";
+import { getErrorMessage } from "@/lib/utils";
+import BackgroundCarousel from "../../../components/BackgroundCarousel";
+import useAuthStore from "@/store/authStore";
 
 const VerifyOTPContent = () => {
+  const login = useAuthStore((state) => state.login);
   const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get("email") || "";
@@ -79,8 +83,12 @@ const VerifyOTPContent = () => {
         otp: otpCode,
       });
 
-      toast.success("Email verified successfully!", { id: toastId });
-      router.push("/login"); // Redirect to login after verification as per flow usually, or dashboard if auto-login
+     const { user_id, email: verifiedEmail, access, role } = res.data;
+login({ user_id, email: verifiedEmail }, access, role);
+
+toast.success("Email verified successfully! Redirecting...", { id: toastId });
+router.push("/dashboard");
+
     } catch (err) {
       console.error("Verify OTP error:", err.response || err);
       const message = getErrorMessage(err);

@@ -9,6 +9,7 @@ import toast from 'react-hot-toast'
 import api from "../../../lib/axios";
 import { Mail, Loader2, ArrowRight, ArrowLeft } from "lucide-react";
 import BackgroundCarousel from "../../../components/BackgroundCarousel";
+import Logo from "@/components/Logo";
 
 const ForgotPassword = () => {
   const router = useRouter();
@@ -59,8 +60,10 @@ const ForgotPassword = () => {
         transition={{ duration: 0.5, ease: "easeOut" }}
         className="w-full lg:w-1/2 flex flex-col items-center justify-center px-6 py-12 lg:px-16 xl:px-24 overflow-y-auto">
         <div className="w-full max-w-md">
-          <div className="text-[#FF3A66] text-3xl font-bold mb-8 text-center">
-            Logo
+            <div className="flex justify-center mb-6 md:mb-8">
+            <Logo
+            href= "/" textColor="white"
+            textSize="text-2xl md:text-3xl" iconSize="h-6 w-6 md:h-8 md:w-8" />
           </div>
 
           <h1 className="text-4xl font-bold text-white mb-8 text-center">

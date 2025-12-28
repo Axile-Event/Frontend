@@ -12,6 +12,7 @@ import useAuthStore from '../../../store/authStore'
 import { Button } from '../../../components/ui/button'
 import Logo from '@/components/Logo'
 import { getErrorMessage } from '@/lib/utils'
+import BackgroundCarousel from '../../../components/BackgroundCarousel'
 
 
 import { useGoogleLogin } from '@react-oauth/google';
@@ -85,7 +86,7 @@ const LoginPage = () => {
        try {
       const response = await api.post('/login/', formData)
       const { user_id, email, access, refresh, role: responseRole } = response.data
-      
+
       let userRole = responseRole;
       if (!userRole && access) {
         const decoded = parseJwt(access);
