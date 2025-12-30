@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Menu, X, User, LogOut, LayoutDashboard, Home, Calendar, Ticket } from "lucide-react";
 import Logo from "./Logo";
 import { Button } from "./ui/button";
@@ -10,12 +10,18 @@ import useAuthStore from "@/store/authStore";
 import { motion, AnimatePresence } from "framer-motion";
 
 const Header = () => {
+  const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname();
   const { user, role, logout } = useAuthStore();
 
   const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
   const closeMenu = () => setIsMenuOpen(false);
+
+  const handleLogout = () => {
+    logout();
+    router.push("/login");
+  };
 
   // Capitalize role for display
   const displayRole = role ? role.charAt(0).toUpperCase() + role.slice(1).toLowerCase() : "User";
@@ -63,7 +69,7 @@ const Header = () => {
                    <Button 
                       variant="ghost" 
                       size="sm" 
-                      onClick={logout}
+                      onClick={handleLogout}
                       className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
                    >
                       <LogOut className="h-4 w-4 mr-2" />
@@ -167,7 +173,7 @@ const Header = () => {
 
                       <button
                         onClick={() => {
-                          logout();
+                          handleLogout();
                           closeMenu();
                         }}
                         className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-red-500/10 text-red-400 hover:text-red-300 transition-colors w-full text-left"
