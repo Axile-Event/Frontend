@@ -20,11 +20,23 @@ export default function UsersPage() {
 
   const fetchUsers = async () => {
     try {
-      const data = await adminService.getAllOrganizers();
-      setUsers(data);
+      // Try to get real users (students)
+      const usersData = await adminService.getAllUsers();
+      
+      // Handle various response structures
+      let combinedUsers = [];
+      if (Array.isArray(usersData)) {
+        combinedUsers = usersData;
+      } else if (usersData?.users) {
+        combinedUsers = usersData.users;
+      } else if (usersData?.students) {
+        combinedUsers = usersData.students;
+      }
+
+      setUsers(combinedUsers);
     } catch (error) {
-       console.log(error); // Silent fail or log
-       // Mock data if needed or just empty
+       console.error(error);
+       toast.error("Failed to fetch users");
     } finally {
       setLoading(false);
     }
@@ -77,14 +89,22 @@ export default function UsersPage() {
                             <User className="h-4 w-4 text-gray-500" />
                          </div>
                          <div>
-                            <div className="font-medium">{user.organisation_name}</div>
-                            <div className="text-[10px] text-muted-foreground">{user.organiser_id}</div>
+                            <div className="font-medium">
+                              {user.full_name || user.username || user.organisation_name || "Unknown User"}
+                            </div>
+                            <div className="text-[10px] text-muted-foreground">
+                              {user.id || user.user_id || user.organiser_id}
+                            </div>
                          </div>
                       </td>
                       <td className="p-3">{user.email}</td>
                       <td className="p-3">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-purple-50 text-purple-700 border border-purple-100">
-                          Organizer
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium border
+                          ${user.organisation_name 
+                            ? "bg-purple-50 text-purple-700 border-purple-100" 
+                            : "bg-blue-50 text-blue-700 border-blue-100"
+                          }`}>
+                          {user.organisation_name ? "Organizer" : "Student"}
                         </span>
                       </td>
                       <td className="p-3 text-muted-foreground">

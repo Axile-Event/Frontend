@@ -47,7 +47,22 @@ export const adminService = {
     return response.data.organisers;
   },
 
-  // Users (Assuming endpoint or mock)
-  // The API doc doesn't list users, but we might need to handle it.
-  // For now, we will use organizers as the only manageable user type via API.
+  // Users
+  getAllUsers: async () => {
+    try {
+      const response = await api.get("/api/admin/users/");
+      return response.data;
+    } catch (error) {
+      console.warn(
+        "Failed to fetch /api/admin/users/, trying /api/admin/students/"
+      );
+      try {
+        const response = await api.get("/api/admin/students/");
+        return response.data;
+      } catch (e) {
+        console.error("Failed to fetch users/students", e);
+        return [];
+      }
+    }
+  },
 };
