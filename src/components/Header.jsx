@@ -117,7 +117,6 @@ const Header = () => {
               className="md:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
             />
             
-            {/* Slider Menu (Right Side) */}
             <motion.div
               initial={{ x: "100%" }}
               animate={{ x: 0 }}

@@ -57,18 +57,18 @@ export default function AdminLayout({ children }) {
               onClick={() => setMobileMenuOpen(false)}
             />
             <motion.div 
-              initial={{ x: "-100%" }}
+              initial={{ x: "100%" }}
               animate={{ x: 0 }}
-              exit={{ x: "-100%" }}
+              exit={{ x: "100%" }}
               transition={{ type: "spring", bounce: 0, duration: 0.3 }}
-              className="fixed inset-y-0 left-0 z-50 w-[80%] max-w-sm bg-card border-r shadow-2xl md:hidden"
+              className="fixed inset-y-0 right-0 z-50 w-[80%] max-w-sm bg-card border-l shadow-2xl md:hidden overflow-y-auto"
             >
                <div className="absolute right-4 top-4 z-50">
                   <Button variant="ghost" size="icon" onClick={() => setMobileMenuOpen(false)}>
                     <X className="w-5 h-5" />
                   </Button>
                </div>
-               <AdminSidebar className="h-full w-full pt-12" />
+               <AdminSidebar className="h-full w-full pt-12 border-none" />
             </motion.div>
           </>
         )}
