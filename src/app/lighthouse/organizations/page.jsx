@@ -17,8 +17,9 @@ export default function OrganizationsPage() {
 
   const fetchOrganizers = async () => {
     try {
-      const data = await adminService.getAllOrganizers();
-      setOrganizers(data);
+      const data = await adminService.getAllUsers({ role: 'organizer' });
+      // API returns { users: [...], ... }
+      setOrganizers(data.users || []);
     } catch (error) {
       console.error(error);
       toast.error("Failed to fetch organizations");
@@ -71,15 +72,14 @@ export default function OrganizationsPage() {
                   </tr>
                 ) : (
                   organizers.map((org) => (
-                    <tr key={org.organiser_id} className="hover:bg-muted/30 transition-colors text-xs">
+                    <tr key={org.id} className="hover:bg-muted/30 transition-colors text-xs">
                       <td className="p-3">
                         <div className="flex items-center gap-2.5">
                           <div className="h-8 w-8 rounded bg-primary/10 flex items-center justify-center text-primary shrink-0">
                             <Building2 className="h-4 w-4" />
                           </div>
                           <div>
-                            <div className="font-medium">{org.organisation_name}</div>
-                            <div className="text-[10px] text-muted-foreground">{org.organiser_id}</div>
+                            <div className="font-medium">{org.name}</div>
                           </div>
                         </div>
                       </td>
@@ -95,7 +95,7 @@ export default function OrganizationsPage() {
                       </td>
                       <td className="p-3">
                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-100">
-                          {org.total_events} Events
+                          {org.total_events || 0} Events
                         </span>
                       </td>
                       <td className="p-3 text-muted-foreground">

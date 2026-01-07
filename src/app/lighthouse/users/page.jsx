@@ -87,9 +87,6 @@ export default function UsersPage() {
                             <div className="font-medium">
                               {user.name || "Unknown User"}
                             </div>
-                            <div className="text-[10px] text-muted-foreground">
-                              {user.id}
-                            </div>
                          </div>
                       </td>
                       <td className="p-3">{user.email}</td>
