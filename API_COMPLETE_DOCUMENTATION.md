@@ -898,23 +898,60 @@ async function updateStudentProfile(data) {
 
 **Endpoint:** `POST /student/google-signup/`
 
-**Description:** Register student using Google OAuth.
+**Description:** Register/login student using Google OAuth. Accepts Google **access token** and fetches user info from Google UserInfo API.
 
 **Authentication:** Not required
 
 **Request Body:**
 ```json
 {
-  "token": "google_oauth_token_here"
+  "token": "ya29.A0ARrdaM..."
 }
 ```
 
-**Success Response (201 Created):**
+Or alternatively:
 ```json
 {
-  "message": "Registration successful",
+  "access_token": "ya29.A0ARrdaM..."
+}
+```
+
+**Note:** The token should be the Google **access token** (starts with `ya29.`), NOT the ID token.
+
+**Success Response (200 OK):**
+```json
+{
+  "message": "Google login successful",
+  "email": "student@example.com",
   "access": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
-  "refresh": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+  "refresh": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+  "is_new_user": true
+}
+```
+
+**Response Fields:**
+| Field | Type | Description |
+|-------|------|-------------|
+| `message` | string | Success message |
+| `email` | string | User's email from Google |
+| `access` | string | JWT access token for API calls |
+| `refresh` | string | JWT refresh token |
+| `is_new_user` | boolean | `true` if user needs to complete profile |
+
+**Error Responses:**
+
+*No token provided (400):*
+```json
+{
+  "error": "No token provided"
+}
+```
+
+*Invalid/expired token (400):*
+```json
+{
+  "error": "Invalid or expired token",
+  "detail": "Could not fetch user info from Google"
 }
 ```
 
@@ -924,24 +961,71 @@ async function updateStudentProfile(data) {
 
 **Endpoint:** `POST /organizer/google-signup/`
 
-**Description:** Register organizer using Google OAuth.
+**Description:** Register/login organizer using Google OAuth. Accepts Google **access token** and fetches user info from Google UserInfo API.
 
 **Authentication:** Not required
 
 **Request Body:**
 ```json
 {
-  "token": "google_oauth_token_here"
+  "token": "ya29.A0ARrdaM..."
 }
 ```
 
-**Success Response (201 Created):**
+Or alternatively:
 ```json
 {
-  "message": "Registration successful",
-  "access": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
-  "refresh": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+  "access_token": "ya29.A0ARrdaM..."
 }
+```
+
+**Note:** The token should be the Google **access token** (starts with `ya29.`), NOT the ID token.
+
+**Success Response (200 OK):**
+```json
+{
+  "message": "Google login successful",
+  "email": "organizer@example.com",
+  "access": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+  "refresh": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+  "is_new_user": true
+}
+```
+
+**Response Fields:**
+| Field | Type | Description |
+|-------|------|-------------|
+| `message` | string | Success message |
+| `email` | string | User's email from Google |
+| `access` | string | JWT access token for API calls |
+| `refresh` | string | JWT refresh token |
+| `is_new_user` | boolean | `true` if user needs to complete profile (missing Organization_Name or Phone) |
+
+**Frontend Implementation:**
+```typescript
+import { useGoogleLogin } from '@react-oauth/google'
+
+const googleLogin = useGoogleLogin({
+  onSuccess: async (tokenResponse) => {
+    const response = await fetch('/organizer/google-signup/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: tokenResponse.access_token })
+    })
+    const data = await response.json()
+    
+    // Store tokens
+    localStorage.setItem('access_token', data.access)
+    localStorage.setItem('refresh_token', data.refresh)
+    
+    // Redirect based on is_new_user
+    if (data.is_new_user) {
+      router.push('/complete-profile')
+    } else {
+      router.push('/dashboard')
+    }
+  }
+})
 ```
 
 ---
@@ -3641,55 +3725,221 @@ async function updateEventStatus(eventId, newStatus) {
 
 ---
 
-### 7. Get All Organisers
+### 7. Get All Users (with Filtering & Pagination)
 
-**Endpoint:** `GET /api/admin/organisers/`
+**Endpoint:** `GET /api/admin/users/`
 
-**Description:** Get all organisers in the system with their information and event counts.
+**Description:** Get all users (students and organizers) with server-side filtering and pagination.
 
 **Authentication:** Required (JWT token, Admin only)
+
+**Query Parameters:**
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `page` | integer | 1 | Page number (1-indexed) |
+| `page_size` | integer | 20 | Items per page (max: 100) |
+| `role` | string | null | Filter by role: `student`, `organizer`, or omit for all |
+
+**Example Requests:**
+```
+GET /api/admin/users/                           # All users, page 1, 20 per page
+GET /api/admin/users/?page=2                    # All users, page 2
+GET /api/admin/users/?role=student              # Only students
+GET /api/admin/users/?role=organizer            # Only organizers
+GET /api/admin/users/?role=student&page=3&page_size=10  # Students, page 3, 10 per page
+```
 
 **Success Response (200 OK):**
 ```json
 {
-  "organisers": [
+  "users": [
     {
-      "organiser_id": "organiser:ABC12-XYZ34",
-      "organisation_name": "Tech Org",
+      "id": "organiser:ABC12-XYZ34",
       "email": "organizer@techorg.com",
+      "role": "organizer",
+      "name": "Tech Org",
       "phone": "+2348012345678",
+      "created_at": "2024-11-01T10:00:00Z",
       "total_events": 5,
-      "created_at": "2024-11-01T10:00:00Z"
+      "event_preferences": null
+    },
+    {
+      "id": "123",
+      "email": "john.doe@student.edu",
+      "role": "student",
+      "name": "John Doe",
+      "phone": null,
+      "created_at": "2024-11-02T14:30:00Z",
+      "total_events": null,
+      "event_preferences": ["tech", "music", "career"]
     }
   ],
-  "count": 30,
-  "message": "All organisers retrieved successfully"
+  "pagination": {
+    "current_page": 1,
+    "total_pages": 5,
+    "total_count": 95,
+    "page_size": 20,
+    "has_next": true,
+    "has_previous": false
+  },
+  "filters": {
+    "role": null
+  },
+  "message": "Users retrieved successfully"
 }
 ```
 
 **Response Fields:**
-- `organiser_id`: Unique alphanumeric organiser ID (e.g., "organiser:ABC12-XYZ34")
-- `organisation_name`: Organization name
-- `email`: Organiser email address
-- `phone`: Phone number (or "N/A")
-- `total_events`: Number of events created by this organiser
-- `created_at`: Account creation date
+
+*User Object:*
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | string | Unique user ID |
+| `email` | string | User email address |
+| `role` | string | `student` or `organizer` |
+| `name` | string | Full name (student) or organization name (organizer) |
+| `phone` | string/null | Phone number (organizers only) |
+| `created_at` | datetime/null | Account creation date |
+| `total_events` | integer/null | Number of events (organizers only) |
+| `event_preferences` | array/null | Event preferences (students only) |
+
+*Pagination Object:*
+| Field | Type | Description |
+|-------|------|-------------|
+| `current_page` | integer | Current page number |
+| `total_pages` | integer | Total number of pages |
+| `total_count` | integer | Total number of users matching filter |
+| `page_size` | integer | Items per page |
+| `has_next` | boolean | Whether there's a next page |
+| `has_previous` | boolean | Whether there's a previous page |
+
+**Error Responses:**
+
+*Invalid role (400 Bad Request):*
+```json
+{
+  "error": "Invalid role. Must be 'student', 'organizer', or omit for all."
+}
+```
 
 **Frontend Implementation:**
 ```javascript
-async function getAllOrganisers() {
+async function getUsers({ page = 1, pageSize = 20, role = null } = {}) {
   const token = localStorage.getItem('admin_access_token');
   
-  const response = await fetch('http://localhost:8000/api/admin/organisers/', {
+  // Build query string
+  const params = new URLSearchParams();
+  params.append('page', page);
+  params.append('page_size', pageSize);
+  if (role) {
+    params.append('role', role);
+  }
+  
+  const response = await fetch(
+    `http://localhost:8000/api/admin/users/?${params.toString()}`,
+    {
     method: 'GET',
     headers: {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
-  });
+    }
+  );
   
   const data = await response.json();
-  return data.organisers;
+  return data;
+}
+
+// Usage examples:
+// Get all users (first page)
+const allUsers = await getUsers();
+
+// Get students only
+const students = await getUsers({ role: 'student' });
+
+// Get organizers, page 2
+const organizers = await getUsers({ role: 'organizer', page: 2 });
+
+// Get 50 users per page
+const moreUsers = await getUsers({ pageSize: 50 });
+```
+
+**React Component Example:**
+```tsx
+function UsersTable() {
+  const [users, setUsers] = useState([]);
+  const [pagination, setPagination] = useState(null);
+  const [roleFilter, setRoleFilter] = useState(null);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    fetchUsers();
+  }, [currentPage, roleFilter]);
+
+  const fetchUsers = async () => {
+    const data = await getUsers({ 
+      page: currentPage, 
+      role: roleFilter 
+    });
+    setUsers(data.users);
+    setPagination(data.pagination);
+  };
+
+  return (
+    <div>
+      {/* Role Filter */}
+      <select onChange={(e) => {
+        setRoleFilter(e.target.value || null);
+        setCurrentPage(1); // Reset to page 1 when filter changes
+      }}>
+        <option value="">All Users</option>
+        <option value="student">Students</option>
+        <option value="organizer">Organizers</option>
+      </select>
+
+      {/* Users Table */}
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Created</th>
+          </tr>
+        </thead>
+        <tbody>
+          {users.map(user => (
+            <tr key={user.id}>
+              <td>{user.name}</td>
+              <td>{user.email}</td>
+              <td>{user.role}</td>
+              <td>{new Date(user.created_at).toLocaleDateString()}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+
+      {/* Pagination */}
+      {pagination && (
+        <div>
+          <button 
+            disabled={!pagination.has_previous}
+            onClick={() => setCurrentPage(p => p - 1)}
+          >
+            Previous
+          </button>
+          <span>Page {pagination.current_page} of {pagination.total_pages}</span>
+          <button 
+            disabled={!pagination.has_next}
+            onClick={() => setCurrentPage(p => p + 1)}
+          >
+            Next
+          </button>
+          <span>Total: {pagination.total_count} users</span>
+        </div>
+      )}
+    </div>
+  );
 }
 ```
 
@@ -3717,9 +3967,13 @@ console.log('Total Events:', allEvents.length);
 // 5. Update event status
 await updateEventStatus('event:TE-12345', 'verified');
 
-// 6. Get all organisers
-const organisers = await getAllOrganisers();
-console.log('Total Organisers:', organisers.length);
+// 6. Get all users with pagination
+const usersData = await getUsers({ page: 1, pageSize: 20 });
+console.log('Total Users:', usersData.pagination.total_count);
+
+// 7. Filter users by role
+const students = await getUsers({ role: 'student' });
+const organizers = await getUsers({ role: 'organizer' });
 ```
 
 ---
@@ -3766,7 +4020,7 @@ console.log('Total Organisers:', organisers.length);
 | GET | `/api/admin/dashboard/recent-events/` | Yes (Admin) | Recent events |
 | GET | `/api/admin/events/` | Yes (Admin) | Get all events |
 | PATCH | `/api/admin/events/<event_id>/status/` | Yes (Admin) | Update event status |
-| GET | `/api/admin/organisers/` | Yes (Admin) | Get all organisers |
+| GET | `/api/admin/users/` | Yes (Admin) | Get all users (with filtering & pagination) |
 | **Tickets** |
 | POST | `/tickets/book/` | Yes (Student) | Book ticket |
 | POST | `/tickets/verify-payment/` | No | Verify payment |
