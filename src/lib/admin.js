@@ -60,14 +60,38 @@ export const adminService = {
 
       const response = await api.get(url);
 
-      // Normalize response data:
-      // Some endpoints might return { students: [...] }, { organisers: [...] } or { users: [...] }
-      const data = response.data;
-      if (data.students) return { users: data.students };
-      if (data.organisers) return { users: data.organisers };
-
-      return data;
+      return response.data;
     } catch (error) {
+      // Fallback: If backend returns 500 when filtering by role, fetch all and filter client-side
+      // This handles potential backend bugs with specific filters
+      if (error.response?.status === 500 && params.role) {
+        try {
+          console.warn(
+            `Backend 500 on role=${params.role}, failing back to client-side filtering.`
+          );
+          const { role, ...fallbackParams } = params;
+          const fallbackQuery = new URLSearchParams(fallbackParams).toString();
+          const fallbackUrl = `/api/admin/users/${
+            fallbackQuery ? `?${fallbackQuery}` : ""
+          }`;
+
+          const fallbackResponse = await api.get(fallbackUrl);
+          const allUsers = fallbackResponse.data.users || [];
+
+          // Client-side filter
+          const filteredUsers = allUsers.filter(
+            (u) => u.role && u.role.toLowerCase() === role.toLowerCase()
+          );
+
+          return {
+            ...fallbackResponse.data,
+            users: filteredUsers,
+          };
+        } catch (fallbackError) {
+          console.error("Fallback fetch also failed", fallbackError);
+          throw error; // Throw original error
+        }
+      }
       // If 404, it might mean no users found for this filter
       if (error.response?.status === 404) {
         return { users: [] };
