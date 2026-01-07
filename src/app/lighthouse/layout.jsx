@@ -67,10 +67,13 @@ export default function AdminLayout({ children }) {
         {/* Top Navigation */}
         <header className="h-14 border-b px-4 flex items-center justify-between bg-card">
           <h2 className="font-semibold text-sm">{getTitle()}</h2>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
             <ModeToggle />
-            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold border border-primary/20">
-              A
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-medium">Hi, Admin</span>
+              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold border border-primary/20">
+                A
+              </div>
             </div>
           </div>
         </header>
