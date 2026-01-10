@@ -56,11 +56,15 @@ const LoginPage = () => {
     onSuccess: async (tokenResponse) => {
       setLoading(true);
       try {
-        // For login, we use the general login endpoint that can handle both student and organizer
-        const res = await api.post("/login/google/", {
+        const endpoint = role === "Student" ? "/student/google-signup/" : "/organizer/google-signup/";
+        const res = await api.post(endpoint, {
           token: tokenResponse.access_token,
         });
-        const { user_id, email, access, refresh, role } = res.data;
+        const { user_id, email, access, refresh, is_new_user } = res.data;
+        // Construct role based on the endpoint we just hit if not returned (though login usually returns it)
+        // But api docs say success response checks 'is_new_user', let's check what login() needs.
+        // The store expects (user, access, refresh, role).
+        // Let's use the role state we used to make the request, as Google signup implies that role.
         login({ user_id, email }, access, refresh, role);
         toast.success("Login successful!");
         router.push("/dashboard");
@@ -303,8 +307,7 @@ const LoginPage = () => {
             </div>
 
             {/* Social Login Option */}
-            {role === "Organizer" && (
-                   <Button
+            <Button
                       variant="outline"
                       onClick={() => handleGoogleLogin()}
                       className="w-full h-10 md:h-12 rounded-xl border-gray-800 bg-zinc-900 hover:bg-zinc-800 text-gray-300 transition-all duration-200"
@@ -319,7 +322,7 @@ const LoginPage = () => {
                         <span className="text-sm md:text-base">Continue with Google</span>
                       </div>
                     </Button>
-            )}
+
           </div>
         </div>
       </motion.div>
