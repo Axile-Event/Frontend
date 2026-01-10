@@ -11,7 +11,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "../../../components/ui/select";
+} from "@/components/ui/select-component";
 
 export default function AuditLogsPage() {
   const [loading, setLoading] = useState(true);
