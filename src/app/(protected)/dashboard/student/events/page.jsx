@@ -104,6 +104,19 @@ const EventsPage = () => {
                       {/* Gradient Overlay */}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
 
+                      {/* Badges */}
+                      <div className="absolute top-3 left-3 flex flex-col gap-2">
+                        <div className="px-2 py-1 rounded-lg bg-primary/90 text-white text-[10px] font-bold uppercase tracking-wider shadow-lg shadow-primary/20 w-fit">
+                          {event.event_type}
+                        </div>
+                      </div>
+
+                      <div className="absolute top-3 right-3">
+                         <div className="px-2 py-1 rounded-lg bg-black/60 backdrop-blur-md text-[10px] font-semibold border border-white/10 text-white">
+                           {event.pricing_type === 'free' ? 'Free' : `₦${event.event_price}`}
+                         </div>
+                      </div>
+
                       {/* Content Overlay */}
                       <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
                         <h3 className="text-lg font-bold leading-tight mb-2">
