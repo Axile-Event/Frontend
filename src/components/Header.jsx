@@ -51,6 +51,7 @@ const Header = () => {
             <Logo />
           </Link>
           
+          <nav className="hidden md:flex items-center gap-6">
           {user ? (
             <>
               {!pathname.startsWith('/dashboard') && (
@@ -97,7 +98,6 @@ const Header = () => {
         >
           {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button> */}
-      </div>
 
           {/* Mobile Hamburger Menu Button */}
           <button
