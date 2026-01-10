@@ -6,11 +6,6 @@ const StudentDashboardLayout = ({children}) => {
   return (
    <>
     <section className='flex flex-col md:flex-row min-h-screen'>
-      {/* Mobile Header */}
-      <div className="md:hidden fixed top-0 w-full z-50 bg-black border-b border-gray-800 h-16 px-4 flex items-center">
-         <Logo />
-      </div>
-
       {/* sidebar content - Hidden on mobile, shown on desktop */}
       <nav className='hidden md:block fixed left-0 top-16 w-64 h-[calc(100vh-4rem)] border-r border-gray-800 bg-black z-40 overflow-y-auto py-6'>
         <Sidebar />

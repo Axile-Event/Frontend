@@ -66,9 +66,7 @@ const Sidebar = ({ mobile }) => {
 
   return (
     <div className="flex flex-col h-full px-4">
-      <div className="mb-8 pt-0 mt-0">
-        <Logo />
-      </div>
+
       
       <div className="flex flex-col gap-2 w-full">
         {StudentDashboardNavLinks.map((link) => (
