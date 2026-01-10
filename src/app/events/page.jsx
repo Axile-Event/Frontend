@@ -16,10 +16,10 @@ const PublicEventsPage = () => {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const response = await api.get("/api/create-event/");
+        const response = await api.get("/event/");
         const eventsData = Array.isArray(response.data) ? response.data : (response.data.events || []);
         // Only show verified events to public
-        const verifiedEvents = eventsData.filter(event => event.status === 'verified');
+        const verifiedEvents = eventsData.filter(event => !event.status || event.status === 'verified');
         setEvents(verifiedEvents);
       } catch (error) {
         console.error("Error fetching events:", error);
