@@ -2,10 +2,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, User } from "lucide-react";
+import { Loader2, User, MoreVertical, Trash2, Ban, CheckCircle, ShieldCheck, Mail } from "lucide-react";
 import { adminService } from "../../../lib/admin";
 import { toast } from "react-hot-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
+import { Button } from "../../../components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function UsersPage() {
   const [loading, setLoading] = useState(true);
@@ -18,7 +27,7 @@ export default function UsersPage() {
 
   const fetchUsers = async (role) => {
     setLoading(true);
-    setUsers([]); // Clear current users to avoid confusing state if fetch fails
+    setUsers([]); 
     try {
       const params = {};
       if (role !== "all") {
@@ -27,12 +36,10 @@ export default function UsersPage() {
       
       const usersData = await adminService.getAllUsers(params);
       
-      // API returns { users: [...], pagination: ..., message: ... }
       let combinedUsers = [];
       if (usersData?.users) {
         combinedUsers = usersData.users;
       } else if (Array.isArray(usersData)) {
-         // Fallback in case backend returns array directly
         combinedUsers = usersData;
       }
 
@@ -42,6 +49,47 @@ export default function UsersPage() {
        toast.error("Failed to fetch users");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleToggleStatus = async (user) => {
+    if (!confirm(`Are you sure you want to ${user.is_active ? 'DISABLE' : 'ENABLE'} this user?`)) return;
+    try {
+      const role = user.role || 'student'; // Default fallback
+      await adminService.toggleUserStatus(user.id, role, !user.is_active);
+      toast.success(`User ${user.is_active ? 'disabled' : 'enabled'}`);
+      fetchUsers(filterRole);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to update status");
+    }
+  };
+
+  const handleVerifyOrganizer = async (user) => {
+    if (user.role !== 'organizer') return;
+    if (!confirm(`Are you sure you want to ${user.is_verified ? 'UNVERIFY' : 'VERIFY'} this organizer?`)) return;
+
+    try {
+      await adminService.verifyOrganizer(user.id, !user.is_verified);
+      toast.success(`Organizer ${user.is_verified ? 'unverified' : 'verified'}`);
+      fetchUsers(filterRole);
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to update verification");
+    }
+  };
+
+  const handleDeleteUser = async (user) => {
+    if (!confirm("Are you sure you want to PERMANENTLY DELETE this user? This action cannot be undone.")) return;
+    
+    try {
+      const role = user.role || 'student';
+      await adminService.deleteUser(user.id, role);
+      toast.success("User deleted successfully");
+      fetchUsers(filterRole);
+    } catch (error) {
+       console.error(error);
+       toast.error("Failed to delete user");
     }
   };
 
@@ -60,7 +108,6 @@ export default function UsersPage() {
         </p>
       </div>
 
-       {/* Role Filters */}
        <div className="flex p-1 bg-muted/40 rounded-lg w-fit border border-border">
           {tabs.map((tab) => (
             <button
@@ -96,13 +143,15 @@ export default function UsersPage() {
                    <th className="p-3 font-medium whitespace-nowrap">User</th>
                    <th className="p-3 font-medium whitespace-nowrap">Email</th>
                    <th className="p-3 font-medium whitespace-nowrap hidden md:table-cell">Role</th>
+                   <th className="p-3 font-medium whitespace-nowrap hidden lg:table-cell">Status</th>
                    <th className="p-3 font-medium whitespace-nowrap hidden lg:table-cell">Joined</th>
+                   <th className="p-3 font-medium whitespace-nowrap text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
                 {loading ? (
                   <tr>
-                    <td colSpan={4} className="p-10 text-center">
+                    <td colSpan={6} className="p-10 text-center">
                       <div className="flex flex-col items-center justify-center gap-2">
                         <Loader2 className="w-6 h-6 animate-spin text-primary" />
                         <span className="text-xs text-muted-foreground">Loading users...</span>
@@ -111,7 +160,7 @@ export default function UsersPage() {
                   </tr>
                 ) : users.length === 0 ? (
                   <tr>
-                    <td colSpan={4} className="p-6 text-center text-xs text-muted-foreground">
+                    <td colSpan={6} className="p-6 text-center text-xs text-muted-foreground">
                       No users found.
                     </td>
                   </tr>
@@ -124,14 +173,18 @@ export default function UsersPage() {
                                 <User className="h-4 w-4 text-gray-500" />
                             </div>
                             <div>
-                                <div className="font-medium truncate max-w-[120px] md:max-w-none">
+                                <div className="font-medium truncate max-w-[120px] md:max-w-none flex items-center gap-1">
                                   {user.name || "Unknown User"}
+                                  {user.role === 'organizer' && user.is_verified && (
+                                    <ShieldCheck className="w-3 h-3 text-blue-500 fill-blue-100" />
+                                  )}
                                 </div>
                             </div>
                          </div>
                       </td>
                       <td className="p-3 whitespace-nowrap">
-                        <div className="max-w-[150px] md:max-w-none truncate" title={user.email}>
+                        <div className="max-w-[150px] md:max-w-none truncate flex items-center gap-1" title={user.email}>
+                          <Mail className="w-3 h-3 text-muted-foreground" />
                           {user.email}
                         </div>
                       </td>
@@ -144,8 +197,59 @@ export default function UsersPage() {
                           {user.role ? (user.role.charAt(0).toUpperCase() + user.role.slice(1)) : "Student"}
                         </span>
                       </td>
+                      <td className="p-3 hidden lg:table-cell">
+                         {user.is_active === false ? (
+                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] bg-red-50 text-red-700 border border-red-100">
+                             Disabled
+                           </span>
+                         ) : (
+                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] bg-green-50 text-green-700 border border-green-100">
+                             Active
+                           </span>
+                         )}
+                      </td>
                       <td className="p-3 text-muted-foreground hidden lg:table-cell whitespace-nowrap">
                          {new Date(user.created_at).toLocaleDateString()}
+                      </td>
+                      <td className="p-3 text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <span className="sr-only">Open menu</span>
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            
+                            <DropdownMenuItem onClick={() => handleToggleStatus(user)}>
+                              {user.is_active === false ? (
+                                <>
+                                  <CheckCircle className="mr-2 h-4 w-4 text-green-600" />
+                                  Enable Account
+                                </>
+                              ) : (
+                                <>
+                                  <Ban className="mr-2 h-4 w-4 text-orange-600" />
+                                  Disable Account
+                                </>
+                              )}
+                            </DropdownMenuItem>
+                            
+                            {user.role === 'organizer' && (
+                              <DropdownMenuItem onClick={() => handleVerifyOrganizer(user)}>
+                                <ShieldCheck className="mr-2 h-4 w-4 text-blue-600" />
+                                {user.is_verified ? 'Unverify Organizer' : 'Verify Organizer'}
+                              </DropdownMenuItem>
+                            )}
+                            
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={() => handleDeleteUser(user)} className="text-red-600 focus:text-red-700 focus:bg-red-50">
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete Account
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </td>
                     </tr>
                   ))

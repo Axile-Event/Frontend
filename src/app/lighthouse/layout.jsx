@@ -57,6 +57,9 @@ export default function AdminLayout({ children }) {
     if (pathname.includes("/events")) return "Events";
     if (pathname.includes("/revenue")) return "Revenue & Analytics";
     if (pathname.includes("/tickets")) return "Tickets";
+    if (pathname.includes("/withdrawals")) return "Withdrawals";
+    if (pathname.includes("/settings")) return "System Settings";
+    if (pathname.includes("/audit-logs")) return "Audit Logs";
     return "Admin";
   };
 

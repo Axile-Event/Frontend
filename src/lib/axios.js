@@ -4,7 +4,8 @@ import useAuthStore from "../store/authStore";
 
 const api = axios.create({
   // Prefer NEXT_PUBLIC_API_URL from environment; fall back to the provided endpoint
-  baseURL: process.env.NEXT_PUBLIC_API_URL || "https://radar-ufvb.onrender.com",
+  baseURL:
+    process.env.NEXT_PUBLIC_API_URL || "https://radar-ufvb.onrender.com/",
   headers: {
     "Content-Type": "application/json", // Axios will override if FormData is used
   },
@@ -45,7 +46,8 @@ function getRefreshToken() {
 api.interceptors.request.use(
   (config) => {
     const token = getToken();
-    if (token) {
+    // Do not attach token for public endpoints (like /event/)
+    if (token && !config.url?.includes("/event/")) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;

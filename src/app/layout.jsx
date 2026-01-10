@@ -5,6 +5,8 @@ import { Toaster } from "react-hot-toast";
 // import Header from "@/components/Header";
 // import Footer from "@/components/Footer";
 
+import { ThemeProvider } from "@/components/theme-provider";
+
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta-sans",
   subsets: ["latin"],
@@ -31,12 +33,17 @@ export default function RootLayout({ children }) {
         className={`${plusJakartaSans.variable} ${geistMono.variable} antialiased bg-background text-foreground flex flex-col min-h-screen`}
       >
         <GoogleAuthProvider>
-          <Toaster position="top-center" />
-          {/* <Header /> */}
-          <main className="grow">
-            {children}
-          </main>
-          {/* <Footer /> */}
+          <ThemeProvider
+             attribute="class"
+             defaultTheme="system"
+             enableSystem
+             disableTransitionOnChange
+          >
+            <Toaster position="top-center" />
+            <main className="grow">
+              {children}
+            </main>
+          </ThemeProvider>
         </GoogleAuthProvider>
       </body>
     </html>

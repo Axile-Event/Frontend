@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import useAuthStore from "../../store/authStore";
 import { useRouter } from "next/navigation";
 import { Loader2 } from 'lucide-react'
-import { GoogleAuthProvider } from "../../components/GoogleAuthProvider";
+
 
 
 const authLayout = ({children}) => {
@@ -16,19 +16,17 @@ const authLayout = ({children}) => {
 
     },[user, router])
 
-     if (user) return (
-        <>
-         <div className="animate-spin">
-            <Loader2 />
-         </div>
-        </>
-     )
-    return (
-        <GoogleAuthProvider>
-            {children}
-        </GoogleAuthProvider>
+    if (user) return (
+       <div className="flex items-center justify-center min-h-screen">
+          <Loader2 className="animate-spin w-8 h-8 text-primary" />
+       </div>
     )
 
+    return (
+        <>
+            {children}
+        </>
+    )
 }
 
 export default authLayout;

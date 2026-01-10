@@ -1,4 +1,5 @@
 "use client";
+// Force rebuild login page
 
 import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'

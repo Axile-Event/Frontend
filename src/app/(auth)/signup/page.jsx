@@ -173,7 +173,7 @@ const SignUp = () => {
         } else {
           toast.success('Login Successful', { id: toastId });
         }
-        router.push("/dashboard");
+        router.push("/dashboard/org");
       } catch (err) {
         console.error('Google signup error object:', err);
         console.log('Error Response Data:', err.response?.data);

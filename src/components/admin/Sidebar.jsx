@@ -8,7 +8,10 @@ import {
   CalendarDays, 
   Ticket, 
   BarChart3, 
-  LogOut 
+  LogOut,
+  CreditCard,
+  Settings,
+  History
 } from "lucide-react";
 import useAuthStore from "../../store/authStore";
 
@@ -34,9 +37,24 @@ const sidebarItems = [
     icon: Ticket,
   },
   {
+    title: "Withdrawals",
+    href: "/lighthouse/withdrawals",
+    icon: CreditCard,
+  },
+  {
     title: "Revenue",
     href: "/lighthouse/revenue",
     icon: BarChart3,
+  },
+  {
+    title: "System Settings",
+    href: "/lighthouse/settings",
+    icon: Settings,
+  },
+  {
+    title: "Audit Logs",
+    href: "/lighthouse/audit-logs",
+    icon: History,
   },
 ];
 

@@ -21,8 +21,8 @@ const organizersDashboardLayout = ({children}) => {
           {children}
         </div>
       </main>
-      </section>
-    </>
+    </section>
+   </>
   )
 }
 

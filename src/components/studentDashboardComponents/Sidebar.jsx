@@ -45,10 +45,9 @@ const Sidebar = () => {
 
   return (
     <div className="flex flex-col h-full px-4">
-      {/* Logo is now in the global header, so we might not need it here, 
-          but keeping it or removing it depends on design. 
-          Since Header is sticky top, Sidebar starts below it. 
-          So we don't need Logo in Sidebar anymore. */}
+      <div className="mb-8 pt-0 mt-0">
+        <Logo />
+      </div>
       
       <div className="flex flex-col gap-2 w-full">
         {StudentDashboardNavLinks.map((link) => (

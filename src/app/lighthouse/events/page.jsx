@@ -2,10 +2,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, Calendar, MapPin, DollarSign, CheckCircle, XCircle } from "lucide-react";
+import Link from "next/link";
+import { Loader2, Calendar, MapPin, DollarSign, CheckCircle, XCircle, Star, Trash2 } from "lucide-react";
 import { adminService } from "../../../lib/admin";
 import { toast } from "react-hot-toast";
-import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
+import { Card, CardContent } from "../../../components/ui/card";
 import { Button } from "../../../components/ui/button";
 
 export default function EventsPage() {
@@ -35,10 +36,34 @@ export default function EventsPage() {
     try {
       await adminService.updateEventStatus(eventId, newStatus);
       toast.success(`Event marked as ${newStatus}`);
-      fetchEvents(); // Refresh list
+      fetchEvents(); 
     } catch (error) {
       console.error(error);
       toast.error("Failed to update event status");
+    }
+  };
+
+  const handleToggleFeatured = async (eventId, currentStatus) => {
+    try {
+      await adminService.toggleEventFeatured(eventId, !currentStatus);
+      toast.success(currentStatus ? "Removed from featured" : "Added to featured");
+      fetchEvents();
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to update featured status");
+    }
+  };
+
+  const handleDeleteEvent = async (eventId) => {
+    if (!window.confirm("Are you sure you want to DELETE this event? This action cannot be undone.")) return;
+
+    try {
+      await adminService.deleteEvent(eventId);
+      toast.success("Event deleted successfully");
+      fetchEvents();
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to delete event");
     }
   };
 
@@ -80,9 +105,9 @@ export default function EventsPage() {
         </div>
       </div>
 
-      <Card className="shadow-sm">
+      <Card className="shadow-sm border-border">
         <CardContent className="p-0">
-          <div className="border border-t-0">
+          <div className="border-t-0 overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="bg-muted/40 text-muted-foreground text-xs uppercase tracking-wide">
                 <tr>
@@ -104,7 +129,14 @@ export default function EventsPage() {
                   filteredEvents.map((event) => (
                     <tr key={event.event_id} className="hover:bg-muted/30 transition-colors text-xs">
                       <td className="p-3">
-                        <div className="font-medium">{event.event_name}</div>
+                        <div className="flex items-center gap-2">
+                           {event.is_featured && <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />}
+                           <div className="font-medium">
+                              <Link href={`/dashboard/student/events/${event.event_id}`} className="hover:underline hover:text-primary transition-colors">
+                                {event.event_name}
+                              </Link>
+                           </div>
+                        </div>
                         <div className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
                           <DollarSign className="w-3 h-3" /> 
                           {event.pricing_type === 'free' ? 'Free' : `₦${event.price}`}
@@ -134,51 +166,72 @@ export default function EventsPage() {
                           {event.status}
                         </span>
                       </td>
-                      <td className="p-3 text-right space-x-1">
-                        {event.status === 'pending' && (
-                          <>
-                            <Button 
-                              size="sm" 
-                              variant="ghost"
-                              className="text-green-600 hover:text-green-700 hover:bg-green-50 h-7 w-7 p-0"
-                              onClick={() => handleStatusUpdate(event.event_id, 'verified')}
-                              title="Approve"
-                            >
-                              <CheckCircle className="w-4 h-4" />
-                            </Button>
-                            <Button 
-                              size="sm" 
-                              variant="ghost"
-                              className="text-red-500 hover:text-red-600 hover:bg-red-50 h-7 w-7 p-0"
-                              onClick={() => handleStatusUpdate(event.event_id, 'denied')}
-                              title="Deny"
-                            >
-                              <XCircle className="w-4 h-4" />
-                            </Button>
-                          </>
-                        )}
-                        {event.status === 'verified' && (
-                           <Button 
-                              size="sm" 
-                              variant="ghost"
-                              className="text-red-500 hover:text-red-600 hover:bg-red-50 h-7 w-7 p-0"
-                              onClick={() => handleStatusUpdate(event.event_id, 'denied')}
-                              title="Revoke Verification"
-                            >
-                              <XCircle className="w-4 h-4" />
-                            </Button>
-                        )}
-                        {event.status === 'denied' && (
-                           <Button 
-                              size="sm" 
-                              variant="ghost"
-                              className="text-green-600 hover:text-green-700 hover:bg-green-50 h-7 w-7 p-0"
-                              onClick={() => handleStatusUpdate(event.event_id, 'verified')}
-                              title="Re-approve"
-                            >
-                              <CheckCircle className="w-4 h-4" />
-                            </Button>
-                        )}
+                      <td className="p-3 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button 
+                             size="sm" 
+                             variant="ghost"
+                             className={`h-7 w-7 p-0 ${event.is_featured ? 'text-yellow-600 bg-yellow-50' : 'text-gray-400 hover:text-yellow-600'}`}
+                             onClick={() => handleToggleFeatured(event.event_id, event.is_featured)}
+                             title={event.is_featured ? "Unfeature" : "Feature"}
+                           >
+                             <Star className={`w-4 h-4 ${event.is_featured ? 'fill-current' : ''}`} />
+                           </Button>
+
+                          {event.status === 'pending' && (
+                            <>
+                              <Button 
+                                size="sm" 
+                                variant="ghost"
+                                className="text-green-600 hover:text-green-700 hover:bg-green-50 h-7 w-7 p-0"
+                                onClick={() => handleStatusUpdate(event.event_id, 'verified')}
+                                title="Approve"
+                              >
+                                <CheckCircle className="w-4 h-4" />
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="ghost"
+                                className="text-red-500 hover:text-red-600 hover:bg-red-50 h-7 w-7 p-0"
+                                onClick={() => handleStatusUpdate(event.event_id, 'denied')}
+                                title="Deny"
+                              >
+                                <XCircle className="w-4 h-4" />
+                              </Button>
+                            </>
+                          )}
+                           {event.status === 'verified' && (
+                             <Button 
+                                size="sm" 
+                                variant="ghost"
+                                className="text-red-500 hover:text-red-600 hover:bg-red-50 h-7 w-7 p-0"
+                                onClick={() => handleStatusUpdate(event.event_id, 'denied')}
+                                title="Revoke Verification"
+                              >
+                                <XCircle className="w-4 h-4" />
+                              </Button>
+                          )}
+                          {event.status === 'denied' && (
+                             <Button 
+                                size="sm" 
+                                variant="ghost"
+                                className="text-green-600 hover:text-green-700 hover:bg-green-50 h-7 w-7 p-0"
+                                onClick={() => handleStatusUpdate(event.event_id, 'verified')}
+                                title="Re-approve"
+                              >
+                                <CheckCircle className="w-4 h-4" />
+                              </Button>
+                          )}
+                          <Button 
+                             size="sm" 
+                             variant="ghost"
+                             className="text-red-600 hover:text-red-700 hover:bg-red-50 h-7 w-7 p-0"
+                             onClick={() => handleDeleteEvent(event.event_id)}
+                             title="Delete Event"
+                           >
+                             <Trash2 className="w-4 h-4" />
+                           </Button>
+                        </div>
                       </td>
                     </tr>
                   ))
