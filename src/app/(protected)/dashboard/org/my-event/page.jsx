@@ -56,30 +56,24 @@ const MyEvent = () => {
     }
   };
 
-  
+
 
   return (
-    <main
-      className="min-h-screen text-slate-100"
-      style={{
-        background: "linear-gradient(180deg,#020205 0%, #000 100%)",
-        color: "#e6eef8",
-      }}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div className="w-full text-slate-100">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div
           className="rounded-2xl overflow-hidden shadow-2xl border"
           style={{
-            borderColor: "rgba(148,163,184,0.04)",
+            borderColor: "var(--sidebar-accent, rgba(148,163,184,0.06))",
             background:
-              "linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.01))",
+              "linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))",
             backdropFilter: "blur(6px)",
           }}
         >
           <div className="p-6 sm:p-8 lg:p-10">
             <header className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
-                <h1 className="text-3xl font-semibold tracking-tight text-slate-100">
+                <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-slate-100">
                   Your Events
                 </h1>
                 <p className="mt-1 text-sm text-slate-400">
@@ -111,9 +105,9 @@ const MyEvent = () => {
             )}
 
             {loading ? (
-             <div className="flex items-center justify-center">
-              <Loader2 className="animate-spin"/>
-             </div>
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="animate-spin h-8 w-8 text-slate-500" />
+              </div>
             ) : events.length === 0 ? (
               <div className="rounded-xl border border-slate-800/60 p-10 text-center text-slate-400">
                 <p className="text-lg font-semibold">No events yet</p>
@@ -130,84 +124,67 @@ const MyEvent = () => {
                       key={id}
                       role="link"
                       tabIndex={0}
-                      className="rounded-xl overflow-hidden border border-slate-800 bg-slate-900 shadow-sm hover:shadow-md transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-var(--sidebar-accent,#7c3aed)"
+                      className="rounded-xl overflow-hidden border border-slate-800 bg-slate-900/50 hover:bg-slate-900 shadow-sm hover:shadow-md transition cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--sidebar-accent,#7c3aed)] group"
                       aria-label={`Open event ${ev.name}`}
                       onClick={() => router.push(`/dashboard/org/my-event/${id}`)}
                     >
                       <div className="relative h-48 w-full overflow-hidden bg-slate-800">
                         <img
-                          src={ev.image || ""}
+                          src={ev.image || null}
                           alt={ev.name}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
                           onError={(e) => {
                             e.currentTarget.src = "";
                           }}
                         />
-                        <div className="absolute inset-0 bg-linear-to-t from-black/50 to-transparent" />
+                        <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent" />
                         <div className="absolute left-4 bottom-3 text-white">
-                          <div className="text-sm font-semibold drop-shadow">
+                          <h3 className="text-base font-semibold drop-shadow line-clamp-1">
                             {ev.name}
-                          </div>
-                          <div className="text-xs text-slate-200 mt-1 drop-shadow-sm">
+                          </h3>
+                          <p className="text-xs text-slate-200 mt-0.5 drop-shadow-sm flex items-center gap-1">
                             {ev.location || "TBD"}
-                          </div>
+                          </p>
                         </div>
-                        <div className="absolute right-4 top-3 bg-black/40 px-3 py-1 rounded-full text-xs text-slate-200 border border-slate-800">
+                        <div className="absolute right-4 top-3 bg-black/40 backdrop-blur-md px-3 py-1 rounded-full text-xs font-medium text-white border border-white/10">
                           {ev.pricing_type === "paid" && ev.price
                             ? `₦${ev.price}`
                             : "Free"}
                         </div>
                       </div>
 
-                      <div className="p-4 flex flex-col gap-3 min-h-[170px]">
-                        <div className="flex items-start justify-between gap-3">
+                      <div className="p-4 flex flex-col gap-3 min-h-[160px]">
+                        <div className="flex items-start justify-between gap-2">
                           <div className="flex-1 min-w-0">
-                            <h3 className="text-base font-semibold text-slate-100 truncate">
-                              {ev.name}
-                            </h3>
-                            <p className="text-xs text-slate-400 truncate">
-                              {(ev.event_type &&
-                                ev.event_type.charAt(0).toUpperCase() +
-                                  ev.event_type.slice(1)) ||
-                                "Event"}{" "}
-                              • {formattedDate(ev.date)}
+                            <p className="text-xs font-medium text-[var(--sidebar-accent,#a78bfa)] uppercase tracking-wider mb-1">
+                              {(ev.event_type && ev.event_type.replace('_', ' ')) || "Event"}
                             </p>
-                          </div>
-
-                          <div className="text-right text-sm">
-                            <div className="text-sm font-medium text-slate-100">
-                              {ev.pricing_type === "paid" && ev.price
-                                ? `₦${ev.price}`
-                                : "Free"}
-                            </div>
-                            <div className="text-xs text-slate-400">
-                              {ev.capacity ?? "Unlimited"}
-                            </div>
+                            <p className="text-sm text-slate-400 flex items-center gap-1">
+                              {formattedDate(ev.date)}
+                            </p>
                           </div>
                         </div>
 
-                        <p className="text-sm text-slate-300 line-clamp-3 wrap-break-word">
-                          {ev.description}
+                        <p className="text-sm text-slate-300 line-clamp-2">
+                          {ev.description || "No description provided."}
                         </p>
 
-                        <div className="mt-auto grid grid-cols-2 gap-2 text-xs text-slate-300">
-                          <div>
-                            <strong className="text-slate-200">Sold:</strong>{" "}
-                            {ev.ticket_stats?.confirmed_tickets ?? 0}
+                        <div className="mt-auto pt-3 border-t border-slate-800/50 grid grid-cols-2 gap-y-2 gap-x-4 text-xs text-slate-400">
+                          <div className="flex justify-between">
+                            <span>Sold</span>
+                            <span className="text-slate-200 font-medium">{ev.ticket_stats?.confirmed_tickets ?? 0}</span>
                           </div>
-                          <div>
-                            <strong className="text-slate-200">Pending:</strong>{" "}
-                            {ev.ticket_stats?.pending_tickets ?? 0}
+                          <div className="flex justify-between">
+                            <span>Pending</span>
+                            <span className="text-slate-200 font-medium">{ev.ticket_stats?.pending_tickets ?? 0}</span>
                           </div>
-                          <div>
-                            <strong className="text-slate-200">
-                              Available:
-                            </strong>{" "}
-                            {ev.ticket_stats?.available_spots ?? "-"}
+                          <div className="flex justify-between">
+                            <span>Avail</span>
+                            <span className="text-slate-200 font-medium">{ev.ticket_stats?.available_spots ?? "-"}</span>
                           </div>
-                          <div>
-                            <strong className="text-slate-200">Revenue:</strong>{" "}
-                            ₦{ev.ticket_stats?.total_revenue ?? 0}
+                          <div className="flex justify-between">
+                            <span>Rev</span>
+                            <span className="text-emerald-400 font-medium">₦{ev.ticket_stats?.total_revenue ?? 0}</span>
                           </div>
                         </div>
                       </div>
@@ -219,7 +196,7 @@ const MyEvent = () => {
           </div>
         </div>
       </div>
-    </main>
+    </div>
   );
 };
 

@@ -183,7 +183,7 @@ export default function CreateEvent() {
         formData.append("image", imageFile);
       }
 
-      const res = await api.post("/create-event/", formData);
+      const res = await api.post("/event/", formData);
 
       if (res && res.status >= 200 && res.status < 300) {
         toast.success("Event created successfully");
@@ -222,14 +222,7 @@ export default function CreateEvent() {
   }
 
   return (
-    <main
-      className="min-h-screen text-slate-100"
-      style={{
-        background:
-          "var(--sidebar-bg, linear-gradient(180deg,#05060a 0%, #000 100%))",
-        color: "var(--text-color, #e6eef8)",
-      }}
-    >
+    <div className="w-full text-slate-100">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div
           className="rounded-2xl overflow-hidden shadow-2xl border"
@@ -338,8 +331,8 @@ export default function CreateEvent() {
                       label=""
                       value={form.event_type}
                       onChange={(value) => {
-                          setForm(s => ({ ...s, event_type: value }));
-                          setErrors(p => ({ ...p, event_type: undefined }));
+                        setForm(s => ({ ...s, event_type: value }));
+                        setErrors(p => ({ ...p, event_type: undefined }));
                       }}
                       options={eventTypes}
                       className="mt-2"
@@ -593,6 +586,6 @@ export default function CreateEvent() {
           </div>
         </div>
       </div>
-    </main>
+    </div>
   );
 }
