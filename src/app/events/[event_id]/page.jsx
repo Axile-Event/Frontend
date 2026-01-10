@@ -5,8 +5,14 @@ import { useParams, useRouter } from "next/navigation";
 import api from "@/lib/axios";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select-component";
 import { Loader2, MapPin, Calendar, Clock, Ticket, Info } from "lucide-react";
 import toast from "react-hot-toast";
 import PublicNavbar from "@/components/PublicNavbar";
@@ -192,15 +198,21 @@ const EventDetailsPage = () => {
                     {/* Quantity Selector */}
                     <div className="space-y-2">
                         <Label htmlFor="quantity" className="text-xs md:text-sm">Quantity</Label>
-                        <Input 
-                        id="quantity"
-                        type="number" 
-                        min="1" 
-                        max="10"
-                        value={quantity}
-                        onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                        className="h-9 md:h-10 text-sm md:text-base"
-                        />
+                        <Select 
+                          value={quantity.toString()} 
+                          onValueChange={(val) => setQuantity(parseInt(val))}
+                        >
+                          <SelectTrigger id="quantity" className="h-9 md:h-10 text-sm md:text-base w-full">
+                            <SelectValue placeholder="Select quantity" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((num) => (
+                              <SelectItem key={num} value={num.toString()}>
+                                {num} {num === 1 ? 'Ticket' : 'Tickets'}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                     </div>
 
                     {/* Seat Selection */}
