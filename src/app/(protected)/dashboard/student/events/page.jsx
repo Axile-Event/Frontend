@@ -15,7 +15,7 @@ const EventsPage = () => {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const response = await api.get("/event/");
+        const response = await api.get("/events/");
         const eventsData = Array.isArray(response.data) ? response.data : (response.data.events || []);
         // Only show verified events to students
         const verifiedEvents = eventsData.filter(event => !event.status || event.status === 'verified'); 
