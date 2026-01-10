@@ -38,7 +38,7 @@ const OrganizerHeader = () => {
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         {/* Logo - Hidden on desktop as it's in the sidebar */}
         <Link href="/" onClick={closeMenu} className="md:hidden">
-          <Logo />
+          <Logo className="text-white" />
         </Link>
 
         {/* Desktop Navigation */}
