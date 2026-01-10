@@ -33,17 +33,12 @@ export default function RootLayout({ children }) {
         className={`${plusJakartaSans.variable} ${geistMono.variable} antialiased bg-background text-foreground flex flex-col min-h-screen`}
       >
         <GoogleAuthProvider>
-          <ThemeProvider
-             attribute="class"
-             defaultTheme="system"
-             enableSystem
-             disableTransitionOnChange
-          >
-            <Toaster position="top-center" />
-            <main className="grow">
-              {children}
-            </main>
-          </ThemeProvider>
+          <Toaster position="top-center" />
+          <Header />
+          <main className="flex-grow">
+            {children}
+          </main>
+          <Footer />
         </GoogleAuthProvider>
       </body>
     </html>
