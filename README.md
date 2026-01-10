@@ -17,55 +17,6 @@ Radar is a comprehensive event ticketing platform designed to streamline event m
 - **Notifications:** [React Hot Toast](https://react-hot-toast.com/)
 - **Theme:** Dark/Light mode with [next-themes](https://github.com/pacocoursey/next-themes)
 
-## 🛠️ Getting Started
-
-### Prerequisites
-
-- Node.js 18.x or higher
-- npm or yarn
-
-### Installation
-
-1. Clone the repository
-```bash
-git clone <repository-url>
-cd Frontend
-```
-
-2. Install dependencies
-```bash
-npm install
-```
-
-3. Set up environment variables
-
-Create a `.env.local` file in the root directory:
-
-```env
-# API Configuration
-NEXT_PUBLIC_API_URL=https://radar-ufvb.onrender.com/
-
-# Google OAuth (optional - for Google Sign-in)
-NEXT_PUBLIC_GOOGLE_CLIENT_ID=your_google_client_id_here
-
-# App URL (for metadata and SEO)
-NEXT_PUBLIC_APP_URL=http://localhost:3000
-```
-
-4. Run the development server
-```bash
-npm run dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-### Build for Production
-
-```bash
-npm run build
-npm start
-```
-
 ## 📂 Project Structure
 
 ```
@@ -131,10 +82,10 @@ src/
 ## 🔐 Security Features
 
 - JWT-based authentication with automatic token refresh
-- Secure HTTP-only cookies approach (token stored in localStorage with secure handling)
 - Protected routes with authentication middleware
 - Security headers (CSP, X-Frame-Options, etc.)
 - Input validation and sanitization
+- Error boundaries for graceful error handling
 
 ## 🎨 Design System
 
@@ -166,15 +117,6 @@ Routes are protected based on user roles:
 - Code splitting with dynamic imports
 - Route prefetching
 - Optimized bundle with tree shaking
-- Error boundaries for graceful error handling
-
-## 🌐 API Integration
-
-The frontend communicates with a Django REST Framework backend:
-- Base URL: `https://radar-ufvb.onrender.com/`
-- Axios interceptors handle authentication
-- Automatic token refresh on 401 errors
-- Proper error handling and user feedback
 
 ## 👥 Contributors
 
