@@ -56,7 +56,7 @@ const Sidebar = () => {
     <>
       {/* Mobile Bottom Nav */}
       <div className="flex flex-row justify-around fixed bottom-0 left-0 right-0 bg-black border border-gray-900 py-1 rounded-t-xl items-center md:hidden">
-        {OrganizationDashboardNavLinks.map((link) => (
+        {OrganizationDashboardNavLinks.filter(link => link.name !== "Payout").map((link) => (
           <Link
             href={link.link}
             key={link.name}
