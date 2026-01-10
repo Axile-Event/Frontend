@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import api from "../../../../../lib/axios";
 import toast from "react-hot-toast";
 import useOrganizerStore from "../../../../../store/orgStore";
-import Select from "../../../../../components/ui/Select";
+import Select from "@/components/ui/custom-select";
 import Loading from "@/components/ui/Loading";
 
 const FALLBACK_EVENT_TYPES = [
@@ -18,7 +18,8 @@ const FALLBACK_EVENT_TYPES = [
 
 export default function CreateEvent() {
   const router = useRouter();
-  const { triggerRefetch } = useOrganizerStore();
+  // const { triggerRefetch } = useOrganizerStore(); // triggerRefetch is not in the store definition
+  const { addEvent } = useOrganizerStore();
 
   const [configLoading, setConfigLoading] = useState(true);
   const [eventTypes, setEventTypes] = useState(FALLBACK_EVENT_TYPES);
@@ -208,7 +209,7 @@ export default function CreateEvent() {
 
       if (res && res.status >= 200 && res.status < 300) {
         toast.success("Event created successfully");
-        triggerRefetch(); // Trigger overview data refetch
+        // triggerRefetch(); 
         resetForm();
         router.push('/dashboard/org/my-event');
       } else {

@@ -1093,7 +1093,6 @@ const eventTypes = config.event_types; // Array of {value, label}
 ---
 
 ### 2. List All Events
-
 **Endpoint:** `GET /create-event/`
 
 **Description:** Get all events with preference-based prioritization. Events matching user preferences appear more frequently.

@@ -1,4 +1,4 @@
-"use client";
+"use client"; // Validated import
 
 import React, { useEffect, useState, useRef } from "react";
 import { Camera, RotateCw, Trash2, CheckSquare, X, Check, AlertCircle, QrCode as QrIcon } from "lucide-react";

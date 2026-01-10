@@ -20,7 +20,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import Select from '../../../../../components/ui/Select';
+import Select from '@/components/ui/custom-select';
 import Loading from '@/components/ui/Loading';
 
 export default function Settings() {
