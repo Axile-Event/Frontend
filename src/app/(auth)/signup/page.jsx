@@ -166,7 +166,7 @@ const SignUp = () => {
 
         const { email, access, refresh, is_new_user } = res.data;
         // The backend likely returns the user role or we infer it from the context
-        loginUser({ email }, access, refresh, role);
+        loginUser({ ...res.data }, access, refresh, role);
 
         if (is_new_user) {
           toast.success('Account Created Successfully', { id: toastId });

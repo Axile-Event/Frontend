@@ -1,86 +1,34 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { Menu, X, User, LogOut, Settings, Home, Calendar, Plus, Wallet } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { LogOut, Settings, Wallet } from "lucide-react";
 import Logo from "./Logo";
 import { Button } from "./ui/button";
 import useAuthStore from "@/store/authStore";
-import { motion, AnimatePresence } from "framer-motion";
 
 const OrganizerHeader = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const pathname = usePathname();
   const router = useRouter();
-  const { user, role, logout } = useAuthStore();
+  const { logout } = useAuthStore();
 
   const handleLogout = () => {
     logout();
     router.push('/login');
   };
 
-  const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
-  const closeMenu = () => setIsMenuOpen(false);
-
-  // Capitalize role for display
-  const displayRole = role ? role.charAt(0).toUpperCase() + role.slice(1).toLowerCase() : "User";
-
-  const organizerLinks = [
-    { name: "Overview", href: "/dashboard/org", icon: <Home className="h-5 w-5" /> },
-    { name: "My Events", href: "/dashboard/org/my-event", icon: <Calendar className="h-5 w-5" /> },
-    { name: "Create Event", href: "/dashboard/org/create-event", icon: <Plus className="h-5 w-5" /> },
-    { name: "Profile", href: "/dashboard/org/profile", icon: <User className="h-5 w-5" /> },
-  ];
-
   return (
-    <header className="sticky top-0 z-50 w-full bg-black border-b border-gray-900 backdrop-blur-md">
-      <div className="px-4 md:px-8 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-8">
+    <header className="sticky top-0 z-50 w-full bg-black border-b border-gray-900 backdrop-blur-md md:hidden">
+      <div className="px-4 h-16 flex items-center justify-between">
+        <div className="flex items-center gap-2">
           {/* Logo */}
-          <Link href="/" onClick={closeMenu}>
-            <Logo className="text-white" />
+          <Link href="/">
+            <Logo className="text-white" textSize="text-lg" iconSize="h-5 w-5" />
           </Link>
-
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-6">
-            <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-              Home
-            </Link>
-            <Link href="/events" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-              Discover Events
-            </Link>
-          </nav>
         </div>
 
-        <div className="flex items-center gap-4">
-          {user && (
-            <div className="hidden md:flex items-center gap-4">
-              <span className="text-sm text-muted-foreground">Hi, {user.email?.split('@')[0]}</span>
-              <Link href="/dashboard/org/settings">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="text-gray-400 hover:text-white hover:bg-gray-800"
-                >
-                  <Settings className="h-4 w-4 mr-2" />
-                  Settings
-                </Button>
-              </Link>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleLogout}
-                className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
-              </Button>
-            </div>
-          )}
-
-          {/* Mobile Actions */}
-          <div className="md:hidden flex items-center gap-2">
+        {/* Mobile Actions */}
+        <div className="flex items-center gap-1">
           <Link href="/dashboard/org/payout">
             <Button
               variant="ghost"
@@ -107,7 +55,6 @@ const OrganizerHeader = () => {
           >
             <LogOut className="h-5 w-5" />
           </Button>
-        </div>
         </div>
       </div>
     </header>

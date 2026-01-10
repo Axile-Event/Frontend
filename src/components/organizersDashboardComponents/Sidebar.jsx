@@ -75,8 +75,11 @@ const Sidebar = () => {
       </div>
 
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex flex-col w-64 h-[calc(100vh-4rem)] bg-black border-r border-gray-900 text-white px-6 py-2 fixed left-0 top-16">
-        <nav className="flex-1 flex flex-col gap-4 mt-4">
+      <aside className="hidden md:flex flex-col w-64 h-screen bg-black border-r border-gray-900 text-white px-6 py-8 fixed left-0 top-0">
+        <div className="mb-8 flex items-center px-2">
+          <Logo className="text-white" textSize="text-2xl" />
+        </div>
+        <nav className="flex-1 flex flex-col gap-4">
           {OrganizationDashboardNavLinks.map((link) => (
             <Link
               key={link.name}

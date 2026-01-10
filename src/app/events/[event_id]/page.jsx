@@ -5,9 +5,15 @@ import { useParams, useRouter } from "next/navigation";
 import api from "@/lib/axios";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, MapPin, Calendar, Clock, Ticket, Info } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select-component";
+import { Loader2, MapPin, Calendar, Clock, Ticket, Info, Share2, Copy, Check } from "lucide-react";
 import toast from "react-hot-toast";
 import PublicNavbar from "@/components/PublicNavbar";
 import useAuthStore from "@/store/authStore";
@@ -28,6 +34,16 @@ const EventDetailsPage = () => {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [selectedSeat, setSelectedSeat] = useState(null);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyLink = () => {
+    const link = window.location.href;
+    navigator.clipboard.writeText(link).then(() => {
+      setCopied(true);
+      toast.success("Link copied to clipboard!");
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
 
   useEffect(() => {
     const fetchEventDetails = async () => {

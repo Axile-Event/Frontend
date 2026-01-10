@@ -8,7 +8,7 @@ const organizersDashboardLayout = ({ children }) => {
       <OrganizerHeader />
       <section className='flex flex-col md:flex-row min-h-screen  bg-black border-r border-gray-900 md:p-5 text-foreground gap-6'>
         {/* sidebar content */}
-        <nav className='fixed bottom-0 w-full mt-20 p-2 rounded-xl md:mt-4 md:left-0 md:w-64 border-border md:min-h-screen order-1 z-10'>
+        <nav className='fixed bottom-0 w-full p-2 rounded-xl md:mt-0 md:left-0 md:w-64 border-border md:min-h-screen order-1 z-10'>
           <Sidebar />
         </nav>
 

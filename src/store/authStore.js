@@ -27,6 +27,10 @@ const useAuthStore = create(
           isAuthenticated: false,
         }),
       setHydrated: () => set({ hydrated: true }),
+      setUser: (userData) =>
+        set((state) => ({
+          user: { ...state.user, ...userData },
+        })),
     }),
     {
       name: "auth-storage", // name of the item in the storage (e need dey unique)

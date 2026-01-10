@@ -65,7 +65,7 @@ const LoginPage = () => {
         // But api docs say success response checks 'is_new_user', let's check what login() needs.
         // The store expects (user, access, refresh, role).
         // Let's use the role state we used to make the request, as Google signup implies that role.
-        login({ user_id, email }, access, refresh, role);
+        login({ ...res.data }, access, refresh, role);
         toast.success("Login successful!");
         router.push("/dashboard");
       } catch (err) {
@@ -114,7 +114,7 @@ const LoginPage = () => {
           }
       }
 
-      login({ user_id, email }, access, refresh, userRole)
+      login({ ...response.data }, access, refresh, userRole)
       toast.success('Login successful! Redirecting...', { id: toastId })
       router.push('/dashboard')
     } catch (err) {

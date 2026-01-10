@@ -7,8 +7,9 @@ import Logo from "@/components/Logo";
 import useAuthStore from "@/store/authStore";
 
 const PublicNavbar = () => {
-  const { token, userType } = useAuthStore();
+  const { token, role } = useAuthStore();
   const [isScrolled, setIsScrolled] = useState(false);
+  const userType = role; // Map role to userType for existing logic
 
   // Handle scroll effect for transparency/blur
   useEffect(() => {

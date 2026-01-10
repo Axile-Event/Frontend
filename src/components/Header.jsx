@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import api from "@/lib/axios";
 import { Menu, X, User, LogOut, LayoutDashboard, Home, Calendar, Ticket } from "lucide-react";
 import Logo from "./Logo";
 import { Button } from "./ui/button";
@@ -13,7 +14,23 @@ const Header = () => {
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname();
-  const { user, role, logout, isAuthenticated } = useAuthStore();
+  const { user, role, logout, isAuthenticated, setUser } = useAuthStore();
+
+  React.useEffect(() => {
+    if (isAuthenticated && user && !user.firstname && !user.Firstname && !user.Preferred_name && !user.Organization_Name) {
+      const fetchUserData = async () => {
+        try {
+          const endpoint = role?.toLowerCase() === 'organizer' ? '/organizer/profile/' : '/student/profile/';
+          const response = await api.get(endpoint);
+          const data = response.data.profile || response.data.Org_profile || response.data;
+          setUser(data);
+        } catch (e) {
+          console.error("Failed to fetch user data for header", e);
+        }
+      };
+      fetchUserData();
+    }
+  }, [isAuthenticated, user, role, setUser]);
 
   if (pathname.startsWith('/dashboard/org')) return null;
 
@@ -65,7 +82,9 @@ const Header = () => {
                   </Link>
                 )}
                 <div className="flex items-center gap-4">
-                  <span className="text-sm text-muted-foreground">Hi, {user.email?.split('@')[0]}</span>
+                  <span className="text-sm text-muted-foreground">
+                    Hi, {user.Preferred_name || user.firstname || user.Firstname || user.Organization_Name || user.email?.split('@')[0]}
+                  </span>
                   {!pathname.startsWith('/dashboard') && (
                     <Button
                       variant="ghost"
@@ -173,7 +192,10 @@ const Header = () => {
                           {user.email?.charAt(0).toUpperCase() || 'U'}
                         </div>
                         <div className="flex flex-col overflow-hidden">
-                          <span className="text-sm font-medium text-white truncate">{user.email}</span>
+                          <span className="text-sm font-medium text-white truncate">
+                            {user.Preferred_name || user.firstname || user.Firstname || user.Organization_Name || user.email}
+                          </span>
+                          <span className="text-xs text-gray-500">{user.email}</span>
                           <span className="text-xs text-gray-500">{displayRole}</span>
                         </div>
                       </div>
