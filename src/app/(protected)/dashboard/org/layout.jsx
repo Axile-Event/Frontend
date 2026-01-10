@@ -1,4 +1,4 @@
-import Sidebar from "@/components/organizersDashboardComponents/sidebar"
+import Sidebar from "@/components/organizersDashboardComponents/Sidebar"
 import OrganizerHeader from "@/components/OrganizerHeader"
 import React from 'react'
 
@@ -21,7 +21,8 @@ const organizersDashboardLayout = ({children}) => {
           {children}
         </div>
       </main>
-    </div>
+    </section>
+   </>
   )
 }
 
