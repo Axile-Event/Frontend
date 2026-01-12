@@ -56,6 +56,10 @@ export const metadata = {
     apple: "/apple-touch-icon.png",
   },
   manifest: "/site.webmanifest",
+
+};
+
+export const viewport = {
   themeColor: [
     { media: "(prefers-color-scheme: light)", color: "#ffffff" },
     { media: "(prefers-color-scheme: dark)", color: "#0a0a14" },
