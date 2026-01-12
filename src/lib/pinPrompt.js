@@ -87,13 +87,13 @@ export async function hashPin(pin, salt) {
 	return toHex(digest);
 }
 
-export function getStoredPinSalt() {
-	const STORAGE_KEYS = getStorageKeys();
+export function getStoredPinSalt(storageKeys = null) {
+	const STORAGE_KEYS = storageKeys || getStorageKeys();
 	return readLocalStorage(STORAGE_KEYS.pinSalt);
 }
 
-export function getStoredPinHash() {
-	const STORAGE_KEYS = getStorageKeys();
+export function getStoredPinHash(storageKeys = null) {
+	const STORAGE_KEYS = storageKeys || getStorageKeys();
 	return readLocalStorage(STORAGE_KEYS.pinHash);
 }
 
