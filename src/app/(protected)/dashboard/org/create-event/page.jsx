@@ -53,7 +53,6 @@ export default function CreateEvent() {
     date: "",
     capacity: "",
     price: "",
-    allows_seat_selection: false,
   });
 
   const [categories, setCategories] = useState([]);
@@ -219,7 +218,6 @@ export default function CreateEvent() {
       date: "",
       capacity: "",
       price: "",
-      allows_seat_selection: false,
     });
     setImageFile(null);
     setPreview(null);
@@ -265,11 +263,6 @@ export default function CreateEvent() {
       } else {
         formData.append("price", "0.00");
       }
-
-      formData.append(
-        "allows_seat_selection",
-        form.allows_seat_selection ? "true" : "false"
-      );
 
       if (imageFile) {
         formData.append("image", imageFile);
@@ -577,33 +570,6 @@ export default function CreateEvent() {
                     </button>
                   </div>
                 )}
-              </div>
-
-              <div className="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/5">
-                <div className="relative flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={form.allows_seat_selection}
-                    onChange={handleChange("allows_seat_selection")}
-                    id="seat-selection"
-                    className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-white/20 bg-white/5 checked:border-rose-500 checked:bg-rose-500 transition-all"
-                  />
-                  <svg
-                    className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white pointer-events-none opacity-0 peer-checked:opacity-100"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  >
-                    <path d="M20 6L9 17l-5-5" />
-                  </svg>
-                </div>
-                <label
-                  htmlFor="seat-selection"
-                  className="text-sm text-gray-300 font-medium cursor-pointer select-none"
-                >
-                  Enable seat selection for this event
-                </label>
               </div>
 
               {/* Ticket Categories Section */}

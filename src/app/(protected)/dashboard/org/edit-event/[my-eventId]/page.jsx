@@ -25,7 +25,6 @@ export default function EditEventPage() {
     pricing_type: "",
     price: "",
     capacity: "",
-    allows_seat_selection: false,
   });
   const [imageFile, setImageFile] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -66,7 +65,6 @@ export default function EditEventPage() {
             pricing_type: eventData.pricing_type || "",
             price: eventData.price || "",
             capacity: eventData.capacity || "",
-            allows_seat_selection: eventData.allows_seat_selection || false,
           });
 
           if (eventData.image) {
@@ -135,8 +133,6 @@ export default function EditEventPage() {
       if (form.capacity) {
         formData.append("capacity", parseInt(form.capacity, 10));
       }
-
-      formData.append("allows_seat_selection", form.allows_seat_selection);
 
       // Append new image if selected
       if (imageFile) {
@@ -372,24 +368,6 @@ export default function EditEventPage() {
               <p className="text-xs text-gray-500">
                 Upload a new image to replace the current one
               </p>
-            </div>
-          </div>
-
-          {/* Settings */}
-          <div className="bg-[#0A0A0A] border border-white/5 rounded-2xl p-6 md:p-8 space-y-6">
-            <h2 className="text-xl font-bold">Settings</h2>
-
-            <div className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                id="seat-selection"
-                checked={form.allows_seat_selection}
-                onChange={handleChange("allows_seat_selection")}
-                className="w-5 h-5 rounded border-white/20 bg-white/5 text-rose-500"
-              />
-              <label htmlFor="seat-selection" className="text-sm">
-                Enable seat selection for this event
-              </label>
             </div>
           </div>
 

@@ -305,7 +305,7 @@ const LandingPage = () => {
             <FeatureCard 
               icon={<Zap className="h-10 w-10" />}
               title="Lightning Setup"
-              description="Create and publish your event in under 5 minutes. Customize everything from ticket tiers to seat selection."
+              description="Create and publish your event in under 5 minutes. Customize everything from ticket tiers to pricing."
               color="text-yellow-500"
             />
           </div>
