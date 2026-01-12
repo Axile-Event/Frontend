@@ -1,8 +1,35 @@
-const STORAGE_KEYS = {
-	hasPin: "radar_has_pin",
-	pinSalt: "radar_pin_salt",
-	pinHash: "radar_pin_hash",
-};
+function getUserEmail() {
+	if (!canUseStorage()) return null;
+	try {
+		// Get email from auth storage (Zustand persist)
+		const authStorage = window.localStorage.getItem('auth-storage');
+		if (authStorage) {
+			const parsed = JSON.parse(authStorage);
+			return parsed?.state?.user?.email || null;
+		}
+		return null;
+	} catch {
+		return null;
+	}
+}
+
+function getStorageKeys() {
+	const email = getUserEmail();
+	if (!email) {
+		// Fallback to global keys if no email found
+		return {
+			hasPin: "radar_has_pin",
+			pinSalt: "radar_pin_salt",
+			pinHash: "radar_pin_hash",
+		};
+	}
+	// User-specific keys
+	return {
+		hasPin: `radar_has_pin:${email.toLowerCase()}`,
+		pinSalt: `radar_pin_salt:${email.toLowerCase()}`,
+		pinHash: `radar_pin_hash:${email.toLowerCase()}`,
+	};
+}
 
 function canUseStorage() {
 	return typeof window !== "undefined";
@@ -45,6 +72,7 @@ function generateSaltHex() {
 }
 
 export function hasPinSet() {
+	const STORAGE_KEYS = getStorageKeys();
 	const flag = readLocalStorage(STORAGE_KEYS.hasPin) === "true";
 	const salt = readLocalStorage(STORAGE_KEYS.pinSalt);
 	const hash = readLocalStorage(STORAGE_KEYS.pinHash);
@@ -60,15 +88,18 @@ export async function hashPin(pin, salt) {
 }
 
 export function getStoredPinSalt() {
+	const STORAGE_KEYS = getStorageKeys();
 	return readLocalStorage(STORAGE_KEYS.pinSalt);
 }
 
 export function getStoredPinHash() {
+	const STORAGE_KEYS = getStorageKeys();
 	return readLocalStorage(STORAGE_KEYS.pinHash);
 }
 
 export async function storePinLocally(pin) {
 	if (!canUseStorage()) return;
+	const STORAGE_KEYS = getStorageKeys();
 	const salt = generateSaltHex();
 	const pinHash = await hashPin(pin, salt);
 	writeLocalStorage(STORAGE_KEYS.pinSalt, salt);
@@ -79,6 +110,7 @@ export async function storePinLocally(pin) {
 export async function updateLocalPin(pin) {
 	// Reuse existing salt if present to avoid changing salt unless needed
 	if (!canUseStorage()) return;
+	const STORAGE_KEYS = getStorageKeys();
 	const existingSalt = getStoredPinSalt();
 	const salt = existingSalt || generateSaltHex();
 	const pinHash = await hashPin(pin, salt);

@@ -6,6 +6,7 @@ const useOrganizerStore = create(
     (set) => ({
       organization: null,
       events: [],
+      lastUpdate: null,
 
       setOrganization: (organization) => set({ organization }),
 
@@ -28,7 +29,7 @@ const useOrganizerStore = create(
           events: state.events.filter((event) => event.id !== eventId),
         })),
 
-      clearStore: () => set({ organization: null, events: [] }),
+      clearStore: () => set({ organization: null, events: [], lastUpdate: null }),
       hydrated: false,
       setHydrated: () => set({ hydrated: true }),
     }),

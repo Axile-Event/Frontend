@@ -51,16 +51,23 @@ const Sidebar = () => {
     logout();
     clearOrgStore();
     
-    // Selectively clear localStorage, preserving PIN data and welcome flags
+    // Selectively clear localStorage, preserving user-specific PIN data
     if (typeof window !== 'undefined') {
-      const keysToPreserve = ['radar_pin_salt', 'radar_pin_hash', 'radar_has_pin'];
-      // Also preserve welcome flags for all users
+      // Preserve email-specific PIN keys (radar_pin_*:email) and welcome flags
       const allKeys = Object.keys(localStorage);
-      const welcomeKeys = allKeys.filter(key => key.startsWith('radar_org_first_welcome:'));
-      const preserveKeys = [...keysToPreserve, ...welcomeKeys];
+      const keysToPreserve = allKeys.filter(key => 
+        key.startsWith('radar_pin_salt:') || 
+        key.startsWith('radar_pin_hash:') || 
+        key.startsWith('radar_has_pin:') ||
+        key.startsWith('radar_org_first_welcome:')
+      );
       
-      const keysToRemove = allKeys.filter(key => !preserveKeys.includes(key));
+      const keysToRemove = allKeys.filter(key => !keysToPreserve.includes(key));
       keysToRemove.forEach(key => localStorage.removeItem(key));
+      
+      // Ensure stores are cleared
+      localStorage.removeItem('auth-storage');
+      localStorage.removeItem('organizer-storage');
     }
     
     router.push("/login");
