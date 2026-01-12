@@ -26,7 +26,7 @@ const useAuthStore = create(
           
           storedPinKeys.forEach(key => {
             const emailInKey = key.split(':')[1];
-            if (emailInKey && emailInKey !== userData.email) {
+            if (emailInKey && emailInKey.toLowerCase() !== userData.email.toLowerCase()) {
               localStorage.removeItem(key);
             }
           });
