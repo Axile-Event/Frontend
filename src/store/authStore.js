@@ -17,11 +17,11 @@ const useAuthStore = create(
           localStorage.removeItem('organizer-storage');
           
           // Clear welcome flags for different users
-          const storedPinKeys = Object.keys(localStorage).filter(key => 
+          const storedWelcomeKeys = Object.keys(localStorage).filter(key => 
             key.startsWith('radar_org_first_welcome:')
           );
           
-          storedPinKeys.forEach(key => {
+          storedWelcomeKeys.forEach(key => {
             const parts = key.split(':');
             // Guard against unexpected key formats (e.g., missing email segment)
             if (parts.length < 2) {
