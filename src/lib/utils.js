@@ -45,19 +45,32 @@ export function getImageUrl(path) {
 
   // Handle case where path might be an object or have different property names
   let imagePath = path;
-  if (typeof path === 'object') {
-    imagePath = path.url || path.secure_url || path.image || path.event_image || path.profile_image;
+  if (typeof path === "object") {
+    imagePath =
+      path.url ||
+      path.secure_url ||
+      path.image ||
+      path.event_image ||
+      path.profile_image;
   }
-  
-  if (!imagePath || typeof imagePath !== 'string') return null;
+
+  // Ensure we have a string
+  if (typeof imagePath !== "string") return null;
+
+  // Handle Cloudinary URLs explicitly if they don't have protocol
+  if (imagePath.includes("cloudinary.com") && !imagePath.startsWith("http")) {
+    return `https://${imagePath}`;
+  }
 
   // If it's already a full URL, return it
-  if (imagePath.startsWith("http")) return imagePath;
+  if (imagePath.startsWith("http") || imagePath.startsWith("//"))
+    return imagePath;
 
   // Use dynamic base URL from environment or fallback
-  const apiBase = process.env.NEXT_PUBLIC_API_URL || "https://radar-ufvb.onrender.com";
+  const apiBase =
+    process.env.NEXT_PUBLIC_API_URL || "https://radar-ufvb.onrender.com";
   const baseUrl = apiBase.endsWith("/") ? apiBase.slice(0, -1) : apiBase;
-  
+
   // Ensure we don't have double slashes
   const cleanPath = imagePath.startsWith("/") ? imagePath : `/${imagePath}`;
   return `${baseUrl}${cleanPath}`;

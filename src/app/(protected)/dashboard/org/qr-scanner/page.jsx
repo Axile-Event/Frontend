@@ -171,7 +171,13 @@ export default function QrScanner() {
           );
         } catch (err) {
           console.error("Camera start failed", err);
-          toast.error("Could not access camera.");
+          if (err?.name === "NotAllowedError" || err?.name === "PermissionDeniedError") {
+              toast.error("Camera permission denied. Please allow camera access in your browser settings.", { duration: 5000 });
+          } else if (err?.name === "NotFoundError" || err?.name === "DevicesNotFoundError") {
+              toast.error("No camera found on your device.");
+          } else {
+              toast.error("Could not access camera. Please reset permissions.");
+          }
           setIsScanning(false);
         }
       } 

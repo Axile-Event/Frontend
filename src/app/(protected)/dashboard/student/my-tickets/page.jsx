@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Calendar, MapPin, Ticket, QrCode, Armchair } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { QRCodeSVG } from "qrcode.react";
 
 const MyTicketsPage = () => {
   const [tickets, setTickets] = useState([]);
@@ -198,10 +199,12 @@ const MyTicketsPage = () => {
                     {/* QR Code Area - Bright and Big */}
                     {selectedTicket.status === "confirmed" && selectedTicket.qr_code ? (
                         <div className="bg-white p-4 rounded-2xl shadow-inner w-64 h-64 md:w-72 md:h-72 flex items-center justify-center">
-                            <img 
-                                src={`https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${selectedTicket.qr_code}`}
-                                alt="Ticket QR Code"
-                                className="w-full h-full object-contain"
+                            <QRCodeSVG
+                                value={selectedTicket.qr_code}
+                                size={256}
+                                className="w-full h-full"
+                                level={"H"}
+                                marginSize={0}
                             />
                         </div>
                     ) : (
