@@ -111,7 +111,7 @@ export async function updateLocalPin(pin) {
 	// Reuse existing salt if present to avoid changing salt unless needed
 	if (!canUseStorage()) return;
 	const STORAGE_KEYS = getStorageKeys();
-	const existingSalt = getStoredPinSalt();
+	const existingSalt = readLocalStorage(STORAGE_KEYS.pinSalt);
 	const salt = existingSalt || generateSaltHex();
 	const pinHash = await hashPin(pin, salt);
 	writeLocalStorage(STORAGE_KEYS.pinSalt, salt);
