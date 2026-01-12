@@ -64,10 +64,6 @@ const Sidebar = () => {
       
       const keysToRemove = allKeys.filter(key => !keysToPreserve.includes(key));
       keysToRemove.forEach(key => localStorage.removeItem(key));
-      
-      // Ensure stores are cleared
-      localStorage.removeItem('auth-storage');
-      localStorage.removeItem('organizer-storage');
     }
     
     router.push("/login");
