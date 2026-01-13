@@ -35,7 +35,7 @@ const LandingPage = () => {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const response = await api.get('/events/');
+        const response = await api.get('/event/');
         const eventsData = Array.isArray(response.data) ? response.data : (response.data.events || []);
         const verifiedEvents = eventsData.filter(event => !event.status || event.status === 'verified');
         setEvents(verifiedEvents.slice(0, 6)); 
