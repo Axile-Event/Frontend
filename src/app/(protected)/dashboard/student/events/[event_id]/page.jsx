@@ -55,6 +55,9 @@ const EventDetailsPage = () => {
           if (activeCategories.length > 0) {
             setSelectedCategory(activeCategories[0]);
           }
+        } else if (response.data.ticket_categories?.length > 0) {
+           // If no active/unsold categories, select the first one anyway so we can show it's sold out
+           setSelectedCategory(response.data.ticket_categories[0]);
         }
       } catch (error) {
         console.error("Error fetching event details:", error);
@@ -98,7 +101,11 @@ const EventDetailsPage = () => {
       
     } catch (error) {
       console.error("Booking error:", error);
-      const errorMessage = error.response?.data?.error || "Failed to book ticket";
+      let errorMessage = error.response?.data?.error || "Failed to book ticket";
+      
+      if (errorMessage.toLowerCase().includes("only 0 tickets remaining")) {
+         errorMessage = "No more tickets available";
+      }
       
       toast.error(errorMessage, { id: toastId });
     } finally {
@@ -125,6 +132,7 @@ const EventDetailsPage = () => {
   }
 
   const eventDate = new Date(event.date);
+  const isSoldOut = selectedCategory?.is_sold_out;
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 md:space-y-8 pb-20">
@@ -189,12 +197,22 @@ const EventDetailsPage = () => {
                     <CardTitle className="text-lg md:text-xl">Book Tickets</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4 md:space-y-6 p-4 md:p-6 pt-0 md:pt-0">
+                    {/* Sold Out Banner */}
+                    {isSoldOut && (
+                      <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-sm font-medium text-center animate-in fade-in zoom-in-95 duration-300">
+                        😔 No more tickets available for this category
+                      </div>
+                    )}
+                    
                     {/* Quantity Selector - RESTRICTED TO 1 */}
                     <div className="space-y-2">
                       <Label className="text-xs md:text-sm text-muted-foreground">Quantity</Label>
                       <div className="h-9 md:h-10 w-full flex items-center px-3 border rounded-md bg-muted/50 text-muted-foreground text-sm md:text-base cursor-not-allowed">
-                        1 Ticket (Maximum per student)
+                        1 Ticket (Maximum per transaction)
                       </div>
+                      <p className="text-[10px] md:text-xs text-muted-foreground/80 italic">
+                        💡 Need more tickets? You can make another booking after this one.
+                      </p>
                     </div>
 
                     {/* Category Selector */}
@@ -252,12 +270,17 @@ const EventDetailsPage = () => {
                       className="w-full h-10 md:h-11 text-sm md:text-base" 
                       size="lg" 
                       onClick={handleBookTicket}
-                      disabled={bookingLoading}
+                      disabled={bookingLoading || isSoldOut}
                     >
                       {bookingLoading ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           Processing...
+                        </>
+                      ) : isSoldOut ? (
+                        <>
+                           <Ticket className="mr-2 h-4 w-4" />
+                           Sold Out
                         </>
                       ) : (
                         <>

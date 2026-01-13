@@ -122,7 +122,11 @@ const EventDetailsPage = () => {
 
     } catch (error) {
       console.error("Booking error:", error);
-      const errorMessage = error.response?.data?.error || "Failed to book ticket";
+      let errorMessage = error.response?.data?.error || "Failed to book ticket";
+
+      if (errorMessage.toLowerCase().includes("only 0 tickets remaining")) {
+         errorMessage = "No more tickets available";
+      }
 
       toast.error(errorMessage, { id: toastId });
     } finally {
@@ -301,8 +305,11 @@ const EventDetailsPage = () => {
                     <div className="space-y-2">
                       <Label className="text-xs md:text-sm text-muted-foreground">Quantity</Label>
                       <div className="h-9 md:h-10 w-full flex items-center px-3 border border-white/10 rounded-md bg-white/5 text-gray-400 text-sm md:text-base cursor-not-allowed">
-                        1 Ticket (Maximum per person)
+                        1 Ticket (Maximum per transaction)
                       </div>
+                      <p className="text-[10px] md:text-xs text-muted-foreground/80 italic">
+                        💡 Need more tickets? You can make another booking after this one.
+                      </p>
                     </div>
 
                     {/* Price Summary */}
