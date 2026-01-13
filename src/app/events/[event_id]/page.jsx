@@ -68,8 +68,10 @@ const EventDetailsPage = () => {
         setCategories(cats);
 
         if (cats.length > 0) {
-          const regular = cats.find(c => c.name.toLowerCase() === 'regular');
-          setSelectedCategory(regular || cats[0]);
+          // Priority: Regular (if available) -> First Available -> First (fallback)
+          const regular = cats.find(c => c.name.toLowerCase().includes('regular') && !c.is_sold_out);
+          const firstAvailable = cats.find(c => !c.is_sold_out);
+          setSelectedCategory(regular || firstAvailable || cats[0]);
         }
       } catch (error) {
         console.error("Error fetching event details:", error);
@@ -193,6 +195,7 @@ const EventDetailsPage = () => {
   }
 
   const eventDate = new Date(event.date);
+  const isSoldOut = selectedCategory?.is_sold_out;
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -259,6 +262,13 @@ const EventDetailsPage = () => {
                     <CardTitle className="text-lg md:text-xl">Book Tickets</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4 md:space-y-6 p-4 md:p-6 pt-0 md:pt-0">
+                    {/* Sold Out Banner */}
+                    {isSoldOut && (
+                      <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-sm font-medium text-center animate-in fade-in zoom-in-95 duration-300">
+                        😔 This ticket category is sold out
+                      </div>
+                    )}
+
                     {/* Category Selector */}
                     {categories.length > 0 && (
                       <div className="space-y-3">
@@ -301,7 +311,8 @@ const EventDetailsPage = () => {
                           const max = selectedCategory?.max_quantity_per_booking || 10;
                           setQuantity(Math.min(val, max));
                         }}
-                        className="h-9 md:h-10 text-sm md:text-base border-white/10 bg-white/5 text-white"
+                        className="h-9 md:h-10 text-sm md:text-base border-white/10 bg-white/5 text-white disabled:opacity-50"
+                        disabled={isSoldOut}
                       />
                     </div>
 
@@ -330,12 +341,17 @@ const EventDetailsPage = () => {
                       className="w-full h-10 md:h-11 text-sm md:text-base"
                       size="lg"
                       onClick={handleBookTicket}
-                      disabled={bookingLoading}
+                      disabled={bookingLoading || isSoldOut}
                     >
                       {bookingLoading ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           Processing...
+                        </>
+                      ) : isSoldOut ? (
+                        <>
+                           <Ticket className="mr-2 h-4 w-4" />
+                           Sold Out
                         </>
                       ) : (
                         <>
