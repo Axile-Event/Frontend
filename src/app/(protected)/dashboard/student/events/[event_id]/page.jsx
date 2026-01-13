@@ -78,7 +78,7 @@ const EventDetailsPage = () => {
 
     try {
       const payload = {
-        event_id: event.event_id || event.id || eventId, // Use the ID from the fetched event object if available
+        event_id: event.event_id || event.id || eventId,
         quantity: parseInt(quantity),
         category_name: selectedCategory?.name,
       };
