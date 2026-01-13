@@ -40,11 +40,46 @@ function getRefreshToken() {
   }
 }
 
+function isTokenNotValidResponse(response) {
+  const detail = response?.data?.detail;
+  const code = response?.data?.code;
+  return (
+    response?.status === 401 &&
+    (detail === "Given token not valid for any token type" || code === "token_not_valid")
+  );
+}
+
 // --------------------
 // Request interceptor
 // --------------------
 api.interceptors.request.use(
   (config) => {
+    // If sending FormData, don't force a JSON/multipart content-type.
+    // The browser will set the correct multipart boundary.
+    if (typeof FormData !== "undefined" && config?.data instanceof FormData) {
+      const headers = config.headers;
+      if (headers) {
+        // Axios v1 may use AxiosHeaders (has .delete/.set).
+        if (typeof headers.delete === "function") {
+          headers.delete("Content-Type");
+          headers.delete("content-type");
+        }
+        if (typeof headers.set === "function") {
+          // Ensure nothing re-adds it later in the pipeline.
+          headers.set("Content-Type", undefined);
+          headers.set("content-type", undefined);
+        }
+
+        // Also handle plain object headers.
+        try {
+          delete headers["Content-Type"];
+          delete headers["content-type"];
+        } catch {
+          // ignore
+        }
+      }
+    }
+
     const token = getToken();
     // Do not attach token for auth endpoints
     const isAuthEndpoint =
@@ -85,11 +120,7 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       // Check if the error is specifically about the token being invalid
-      const errorMessage =
-        error.response.data?.detail || error.response.data?.code;
-      const isTokenInvalid =
-        errorMessage === "Given token not valid for any token type" ||
-        errorMessage === "token_not_valid";
+      const isTokenInvalid = isTokenNotValidResponse(error.response);
 
       // If token is explicitly invalid, logout and redirect
       if (isTokenInvalid) {
@@ -132,7 +163,6 @@ api.interceptors.response.use(
       const refreshToken = getRefreshToken();
 
       if (!refreshToken) {
-        localStorage.removeItem("auth-storage");
         isRefreshing = false;
         return Promise.reject(error);
       }
@@ -161,7 +191,7 @@ api.interceptors.response.use(
             } catch {}
 
             // Update default header for future requests
-            api.defaults.headers.Authorization = `Bearer ${newAccess}`;
+            api.defaults.headers.common.Authorization = `Bearer ${newAccess}`;
 
             // Process queued requests
             processQueue(null, newAccess);
@@ -173,25 +203,11 @@ api.interceptors.response.use(
           .catch((err) => {
             processQueue(err, null);
 
-            // If refresh fails, logout and redirect
-            useAuthStore.getState().logout();
-            localStorage.removeItem("auth-storage");
-
-            const publicPaths = [
-              "/",
-              "/events",
-              "/login",
-              "/signup",
-              "/verify-otp",
-            ];
-            const currentPath =
-              typeof window !== "undefined" ? window.location.pathname : "";
-            const isPublicPath =
-              publicPaths.includes(currentPath) ||
-              currentPath.startsWith("/events/");
-
-            if (typeof window !== "undefined" && !isPublicPath) {
-              window.location.href = "/login";
+            // If refresh fails due to an invalid refresh token, logout.
+            // Otherwise, do NOT force logout/redirect here (prevents surprise logout on transient failures).
+            if (isTokenNotValidResponse(err?.response)) {
+              useAuthStore.getState().logout();
+              localStorage.removeItem("auth-storage");
             }
 
             reject(err);

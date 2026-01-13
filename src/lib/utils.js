@@ -57,9 +57,27 @@ export function getImageUrl(path) {
   // Ensure we have a string
   if (typeof imagePath !== "string") return null;
 
+  // Normalize common insecure URLs to https so they work with CSP and avoid mixed content.
+  // Cloudinary supports https; some backends accidentally return http links.
+  if (imagePath.startsWith("http://res.cloudinary.com/")) {
+    imagePath = imagePath.replace("http://", "https://");
+  }
+  if (imagePath.startsWith("http://") && imagePath.includes("cloudinary.com")) {
+    imagePath = imagePath.replace("http://", "https://");
+  }
+
   // Handle Cloudinary URLs explicitly if they don't have protocol
   if (imagePath.includes("cloudinary.com") && !imagePath.startsWith("http")) {
     return `https://${imagePath}`;
+  }
+
+  // Detect Cloudinary path pattern (missing domain but has Cloudinary structure)
+  // Pattern: /image/upload/... or /video/upload/... or starts with image/upload or video/upload
+  if (imagePath.match(/^\/?(?:image|video)\/upload\//)) {
+    // Use the Cloudinary cloud name from environment or default
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "dyup8vl0j";
+    const cleanPath = imagePath.startsWith("/") ? imagePath.substring(1) : imagePath;
+    return `https://res.cloudinary.com/${cloudName}/${cleanPath}`;
   }
 
   // If it's already a full URL, return it

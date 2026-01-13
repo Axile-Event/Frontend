@@ -68,17 +68,7 @@ const LoginPage = () => {
         login({ user_id, email }, access, refresh, role);
 
         // Show one-time "Welcome {name}" after first signup/verification.
-        try {
-          const isOrganizer = `${role}`.toLowerCase().trim() === "organizer";
-          if (isOrganizer && is_new_user && email) {
-            window.localStorage.setItem(
-              `radar_org_first_welcome:${email.toLowerCase()}`,
-              "true"
-            );
-          }
-        } catch {
-          // ignore
-        }
+        // first-welcome logic removed
         toast.success("Login successful!");
         router.push("/dashboard");
       } catch (err) {
@@ -187,7 +177,7 @@ const LoginPage = () => {
               onClick={() => setRole("Student")}
            className={`flex-1 py-2 md:py-3 px-4 md:px-6 rounded-full font-semibold text-sm md:text-base transition-all duration-200 ${
                 role === "Student"
-                  ? "bg-yellow-400 text-black border-yellow-400"
+                  ? "bg-rose-600 text-white border-rose-600"
                   : "border-gray-600 border text-gray-300 hover:border-gray-500"
               }`}
               >
@@ -198,7 +188,7 @@ const LoginPage = () => {
               onClick={() => setRole("Organizer")}
               className={`flex-1 py-2 md:py-3 px-4 md:px-6 rounded-full font-semibold text-sm md:text-base transition-all duration-200 ${
                 role === "Organizer"
-                  ? "bg-yellow-400 text-black border-yellow-400"
+                  ? "bg-rose-600 text-white border-rose-600"
                   : "border-gray-600 border text-gray-300 hover:border-gray-500"
               }`}
             >

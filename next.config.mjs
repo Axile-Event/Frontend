@@ -1,4 +1,4 @@
-/** @type {import('next').NextConfig} */
+  /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Security headers
   async headers() {
@@ -20,12 +20,12 @@ const nextConfig = {
           },
           {
             key: "Permissions-Policy",
-            value: "camera=(), microphone=(), geolocation=()",
+            value: "camera=(self), microphone=(self), geolocation=(self)",
           },
           {
             key: "Content-Security-Policy",
             value:
-              "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://accounts.google.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://radar-ufvb.onrender.com https://*.googleusercontent.com; connect-src 'self' https://radar-ufvb.onrender.com https://accounts.google.com; frame-src https://accounts.google.com;",
+              "default-src 'self'; script-src 'self' 'unsafe-eval' 'unsafe-inline' https://accounts.google.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://radar-ufvb.onrender.com https://*.googleusercontent.com https://res.cloudinary.com https://*.cloudinary.com; connect-src 'self' https://radar-ufvb.onrender.com https://accounts.google.com; frame-src https://accounts.google.com;",
           },
         ],
       },
@@ -43,6 +43,11 @@ const nextConfig = {
       {
         protocol: "https",
         hostname: "*.googleusercontent.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
+        hostname: "res.cloudinary.com",
         pathname: "/**",
       },
     ],

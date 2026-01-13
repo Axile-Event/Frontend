@@ -70,6 +70,9 @@ export const viewport = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <meta httpEquiv="Permissions-Policy" content="camera=(self), microphone=(self)" />
+      </head>
       <body
         suppressHydrationWarning
         className={`${plusJakartaSans.variable} ${geistMono.variable} antialiased bg-background text-foreground flex flex-col min-h-screen`}
@@ -86,7 +89,7 @@ export default function RootLayout({ children }) {
             </Suspense>
             <Toaster position="top-center" />
             <Header />
-            <main className="flex-grow">
+            <main className="grow">
               {children}
             </main>
             <Footer />

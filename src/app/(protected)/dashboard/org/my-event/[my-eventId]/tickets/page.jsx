@@ -19,7 +19,6 @@ export default function ManageTicketsPage() {
     const [newCategory, setNewCategory] = useState({
         name: "",
         price: "",
-        description: "",
         max_tickets: "",
         max_quantity_per_booking: "",
     });
@@ -62,14 +61,13 @@ export default function ManageTicketsPage() {
                 event_id: event?.event_id || id,
                 name: newCategory.name,
                 price: parseFloat(newCategory.price),
-                description: newCategory.description,
                 max_tickets: newCategory.max_tickets ? parseInt(newCategory.max_tickets) : null,
                 max_quantity_per_booking: newCategory.max_quantity_per_booking ? parseInt(newCategory.max_quantity_per_booking) : null,
             };
 
             await api.post("/tickets/categories/create/", payload);
             toast.success("Ticket category created!");
-            setNewCategory({ name: "", price: "", description: "", max_tickets: "", max_quantity_per_booking: "" });
+            setNewCategory({ name: "", price: "", max_tickets: "", max_quantity_per_booking: "" });
             fetchEventAndCategories();
         } catch (err) {
             const errors = err?.response?.data;
@@ -171,15 +169,6 @@ export default function ManageTicketsPage() {
                             onChange={(e) => setNewCategory({ ...newCategory, max_tickets: e.target.value })}
                             placeholder="Unlimited"
                             className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-rose-500 transition-colors"
-                        />
-                    </div>
-                    <div className="space-y-1.5 md:col-span-2">
-                        <label className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">Description (Optional)</label>
-                        <textarea
-                            value={newCategory.description}
-                            onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
-                            placeholder="Include perks for this category..."
-                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-rose-500 transition-colors h-24 resize-none"
                         />
                     </div>
                     <div className="md:col-span-2">

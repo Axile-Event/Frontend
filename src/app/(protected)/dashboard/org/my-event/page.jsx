@@ -11,6 +11,8 @@ const MyEvent = () => {
   const router = useRouter();
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [localImages, setLocalImages] = useState({});
+  const [brokenImages, setBrokenImages] = useState({});
   const isMountedRef = useRef(true);
 
   const fetchEvents = useCallback(async () => {
@@ -24,7 +26,15 @@ const MyEvent = () => {
       else if (Array.isArray(payload?.events)) list = payload.events;
       else if (Array.isArray(payload?.data)) list = payload.data;
       else list = [];
-      if (isMountedRef.current) setEvents(list);
+      
+      // Sort events by created_at in descending order (latest created first)
+      const sortedList = [...list].sort((a, b) => {
+        const dateA = new Date(a.created_at || a.date);
+        const dateB = new Date(b.created_at || b.date);
+        return dateB - dateA;
+      });
+      
+      if (isMountedRef.current) setEvents(sortedList);
     } catch (err) {
       const msg =
         err?.response?.data?.detail ||
@@ -48,6 +58,30 @@ const MyEvent = () => {
       isMountedRef.current = false;
     };
   }, [fetchEvents]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const map = {};
+    for (const ev of events) {
+      const id = ev?.event_id ?? ev?.id;
+      if (!id) continue;
+
+      const hasServerImage = Boolean(ev?.event_image || ev?.image);
+      const storageKey = `created-event-image:${id}`;
+
+      try {
+        if (hasServerImage) {
+          sessionStorage.removeItem(storageKey);
+          continue;
+        }
+        const stored = sessionStorage.getItem(storageKey);
+        if (stored) map[id] = stored;
+      } catch {
+        // ignore
+      }
+    }
+    setLocalImages(map);
+  }, [events]);
 
   const formattedDate = (iso) => {
     if (!iso) return "TBD";
@@ -119,24 +153,48 @@ const MyEvent = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
-          {events.map((ev) => {
+          {events.map((ev, index) => {
             const id = ev.event_id ?? ev.id;
+            const key = id ?? `${ev?.name ?? "event"}-${ev?.date ?? "no-date"}-${index}`;
+            const rawImage = ev?.event_image ?? ev?.image;
+            const resolvedImage = getImageUrl(rawImage);
+            const sessionPreview = id ? localImages[id] : null;
+            const imageSrc = resolvedImage
+              ? `${resolvedImage}${resolvedImage.includes("?") ? "&" : "?"}v=${encodeURIComponent(
+                  String(id ?? index)
+                )}`
+              : sessionPreview;
+
+            const isBroken = id ? Boolean(brokenImages[id]) : false;
+            const showImage = Boolean(imageSrc) && !isBroken;
             return (
               <article
-                key={id}
+                key={key}
                 onClick={() => router.push(`/dashboard/org/my-event/${id}`)}
                 className="group relative bg-[#0A0A0A] border border-white/5 rounded-[2rem] overflow-hidden hover:border-rose-500/30 transition-all duration-500 shadow-xl hover:shadow-rose-600/5 cursor-pointer flex flex-col"
               >
                 {/* Image Section */}
                 <div className="relative h-48 overflow-hidden">
-                  <img
-                    src={getImageUrl(ev.image)}
-                    alt={ev.name}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
-                    onError={(e) => {
-                      e.currentTarget.src = "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?auto=format&fit=crop&q=80&w=1000";
-                    }}
-                  />
+                  {showImage ? (
+                    <img
+                      key={imageSrc}
+                      src={imageSrc}
+                      alt={ev.name}
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-out"
+                      onError={(e) => {
+                        e.stopPropagation();
+                        if (!id) return;
+                        setBrokenImages((prev) => ({ ...prev, [id]: true }));
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center text-gray-700 gap-2 bg-white/5">
+                      <Plus className="w-10 h-10" />
+                      <span className="text-xs font-bold uppercase tracking-wider">
+                        {imageSrc ? "Image Failed To Load" : "No Cover Image"}
+                      </span>
+                    </div>
+                  )}
                   
                   {/* Glass Overlays */}
                   <div className="absolute inset-x-3 top-3 flex items-center justify-between">

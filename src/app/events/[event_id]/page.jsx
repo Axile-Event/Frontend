@@ -34,7 +34,6 @@ const EventDetailsPage = () => {
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [quantity, setQuantity] = useState(1);
-  const [selectedSeat, setSelectedSeat] = useState(null);
   const [copied, setCopied] = useState(false);
 
   const handleCopyLink = () => {
@@ -82,11 +81,6 @@ const EventDetailsPage = () => {
       return;
     }
 
-    if (event.allows_seat_selection && !selectedSeat) {
-      toast.error("Please select a seat");
-      return;
-    }
-
     if (quantity < 1) {
       toast.error("Please select at least one ticket");
       return;
@@ -99,7 +93,6 @@ const EventDetailsPage = () => {
       const payload = {
         event_id: eventId,
         quantity: parseInt(quantity),
-        seat_number: selectedSeat,
         category_name: selectedCategory ? selectedCategory.name : undefined
       };
 
@@ -116,9 +109,7 @@ const EventDetailsPage = () => {
 
     } catch (error) {
       console.error("Booking error:", error);
-      const errorMessage = error.response?.data?.seat_number
-        ? error.response.data.seat_number[0]
-        : (error.response?.data?.error || "Failed to book ticket");
+      const errorMessage = error.response?.data?.error || "Failed to book ticket";
 
       toast.error(errorMessage, { id: toastId });
     } finally {
@@ -264,36 +255,6 @@ const EventDetailsPage = () => {
                     />
                   </div>
 
-                  {/* Seat Selection */}
-                  {event.allows_seat_selection && (
-                    <div className="space-y-3">
-                      <Label className="text-xs md:text-sm">Select a Seat</Label>
-                      {event.available_seats && event.available_seats.length > 0 ? (
-                        <div className="grid grid-cols-4 gap-2 max-h-[200px] overflow-y-auto p-1">
-                          {event.available_seats.map((seat) => (
-                            <button
-                              key={seat}
-                              onClick={() => setSelectedSeat(seat === selectedSeat ? null : seat)}
-                              className={`p-2 text-xs md:text-sm rounded-md border transition-colors ${selectedSeat === seat
-                                  ? "bg-primary text-primary-foreground border-primary"
-                                  : "hover:bg-secondary border-input"
-                                }`}
-                            >
-                              {seat}
-                            </button>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-xs md:text-sm text-red-500">No seats available</p>
-                      )}
-                      {selectedSeat && (
-                        <p className="text-xs md:text-sm text-muted-foreground">
-                          Selected Seat: <span className="font-bold text-foreground">{selectedSeat}</span>
-                        </p>
-                      )}
-                    </div>
-                  )}
-
                   {/* Price Summary */}
                   <div className="pt-4 border-t border-white/10 space-y-2">
                     <div className="flex justify-between text-xs md:text-sm text-gray-400">
@@ -319,7 +280,7 @@ const EventDetailsPage = () => {
                     className="w-full h-10 md:h-11 text-sm md:text-base"
                     size="lg"
                     onClick={handleBookTicket}
-                    disabled={bookingLoading || (event.allows_seat_selection && !selectedSeat)}
+                    disabled={bookingLoading}
                   >
                     {bookingLoading ? (
                       <>

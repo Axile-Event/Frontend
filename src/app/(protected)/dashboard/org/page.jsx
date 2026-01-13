@@ -8,8 +8,9 @@ import useAuthStore from "../../../../store/authStore";
 import { toast } from "react-hot-toast";
 import useOrganizerStore from "../../../../store/orgStore";
 import Loading from "@/components/ui/Loading";
+import OtpPinInput from "@/components/OtpPinInput";
 import { getImageUrl } from "../../../../lib/utils";
-import { hasPinSet } from "@/lib/pinPrompt";
+import { hasPinSet, storePinLocally } from "@/lib/pinPrompt";
 import { AnimatePresence,motion } from "framer-motion";
 
 
@@ -18,7 +19,6 @@ export default function Overview() {
   const [eventsSummary, setEventsSummary] = useState(null);
   const [recentEvents, setRecentEvents] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [isFirstWelcome, setIsFirstWelcome] = useState(false);
   const [showPinReminder, setShowPinReminder] = useState(false);
   const [showSetPinModal, setShowSetPinModal] = useState(false);
   const [pinValue, setPinValue] = useState('');
@@ -51,8 +51,6 @@ export default function Overview() {
           api.get("/organizer/events/"),
           api.get("/organizer/profile/"),
         ]);
-          // this part sorts events by date in descending order
-        const sortedEvents = [...eventsRes.value.data.events].sort((a, b) => new Date(b.date) - new Date(a.date));
 
         if (analyticsRes.status === "fulfilled") {
           setAnalytics(analyticsRes.value.data.analytics);
@@ -65,6 +63,12 @@ export default function Overview() {
         if (eventsRes.status === "fulfilled") {
           const eventsData = eventsRes.value.data.events || [];
           setEvents(eventsData);
+          // Sort events by created_at in descending order (latest created first) and take the first 3
+          const sortedEvents = [...eventsData].sort((a, b) => {
+            const dateA = new Date(a.created_at || a.date);
+            const dateB = new Date(b.created_at || b.date);
+            return dateB - dateA;
+          });
           setRecentEvents(sortedEvents.slice(0, 3));
         }
 
@@ -88,21 +92,7 @@ export default function Overview() {
   const { organization } = useOrganizerStore();
   organization && console.log("Organization Name:", organization.Organization_Name);
 
-  useEffect(() => {
-    // One-time welcome message for newly verified organizers
-    try {
-      const orgEmail = organization?.Email?.toLowerCase?.();
-      if (!orgEmail) return;
-      const key = `radar_org_first_welcome:${orgEmail}`;
-      const shouldShow = window.localStorage.getItem(key) === "true";
-      if (shouldShow) {
-        setIsFirstWelcome(true);
-        window.localStorage.removeItem(key);
-      }
-    } catch {
-      // ignore
-    }
-  }, [organization?.Email]);
+  // Removed first-welcome logic (no longer needed)
   
   // Check if PIN reminder should be shown
   useEffect(() => {
@@ -229,7 +219,7 @@ export default function Overview() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-xl md:text-2xl font-bold mb-1">
-            {isFirstWelcome ? "Welcome" : "Welcome back"}, {organization?.Organization_Name || 'Organizer'}!
+            Welcome, {organization?.Organization_Name || 'Organizer'}!
           </h1>
           <p className="text-gray-400 text-xs">Overview of your event performance and analytics.</p>
         </div>
@@ -321,32 +311,20 @@ export default function Overview() {
                 </div>
               )}
 
-              <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1.5">Enter PIN</label>
-                <input
-                  type="password"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  maxLength="4"
+              <div className="space-y-4">
+                <OtpPinInput
+                  label="PIN"
                   value={pinValue}
-                  onChange={(e) => setPinValue(e.target.value.replace(/\D/g, ''))}
-                  placeholder="4 digits"
-                  autoFocus
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white text-center text-xl tracking-widest focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500"
+                  onChange={setPinValue}
+                  disabled={pinLoading}
+                  autoFocus={true}
                 />
-              </div>
 
-              <div>
-                <label className="block text-xs font-bold text-gray-500 mb-1.5">Confirm PIN</label>
-                <input
-                  type="password"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  maxLength="4"
+                <OtpPinInput
+                  label="Confirm PIN"
                   value={confirmPinValue}
-                  onChange={(e) => setConfirmPinValue(e.target.value.replace(/\D/g, ''))}
-                  placeholder="Re-enter"
-                  className="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white text-center text-xl tracking-widest focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500"
+                  onChange={setConfirmPinValue}
+                  disabled={pinLoading}
                 />
               </div>
 

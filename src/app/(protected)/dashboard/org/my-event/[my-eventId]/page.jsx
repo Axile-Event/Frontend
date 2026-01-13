@@ -29,6 +29,7 @@ export default function EventDetailsPage() {
 
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [coverBroken, setCoverBroken] = useState(false);
   const isMountedRef = useRef(true);
 
   const formattedDate = (iso) => {
@@ -65,7 +66,8 @@ export default function EventDetailsPage() {
     }
     setLoading(true);
     try {
-      const res = await api.get(`/events/${id}/details`);
+      // Use the canonical trailing-slash endpoint (matches API docs and other pages).
+      const res = await api.get(`/events/${id}/details/`);
       if (isMountedRef.current) setEvent(res?.data ?? null);
     } catch (err) {
       // Fallback for organizers
@@ -93,6 +95,41 @@ export default function EventDetailsPage() {
     return () => { isMountedRef.current = false; };
   }, [fetchEvent]);
 
+  // --- Cover image resolution (must be computed before early returns so hooks stay in order) ---
+  const rawCoverImage =
+    event?.event_image ??
+    event?.cover_image ??
+    event?.banner_image ??
+    event?.image;
+  const resolvedCoverImage = getImageUrl(rawCoverImage);
+
+  const isCloudinaryUrl = (url) =>
+    typeof url === "string" && url.includes("cloudinary.com");
+
+  let sessionPreview = null;
+  if (!resolvedCoverImage && typeof window !== "undefined" && id) {
+    try {
+      sessionPreview = sessionStorage.getItem(`created-event-image:${id}`);
+    } catch {
+      sessionPreview = null;
+    }
+  }
+
+  // Some CDNs (including Cloudinary) can behave unexpectedly with arbitrary query params.
+  // Only apply our cache-buster to non-Cloudinary URLs.
+  const coverSrc = resolvedCoverImage
+    ? isCloudinaryUrl(resolvedCoverImage)
+      ? resolvedCoverImage
+      : `${resolvedCoverImage}${resolvedCoverImage.includes("?") ? "&" : "?"}v=${encodeURIComponent(
+          String(id ?? "")
+        )}`
+    : sessionPreview;
+
+  useEffect(() => {
+    // Reset if image source changes (prevents a previous error from hiding a newly loaded cover).
+    setCoverBroken(false);
+  }, [coverSrc]);
+
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-black">
@@ -101,6 +138,8 @@ export default function EventDetailsPage() {
   );
 
   if (!event) return null;
+
+  const showCover = Boolean(coverSrc) && !coverBroken;
 
   const stats = [
     { label: "Bookings", value: event.ticket_stats?.confirmed_tickets ?? 0, icon: <Ticket className="w-5 h-5 text-rose-500" />, color: "rose" },
@@ -164,12 +203,25 @@ export default function EventDetailsPage() {
         <div className="lg:col-span-8 space-y-12">
           {/* Cover Image */}
           <div className="relative aspect-[16/9] w-full rounded-[2.5rem] overflow-hidden group shadow-2xl">
-            <img
-              src={getImageUrl(event.image)}
-              alt={event.name}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
-              onError={(e) => (e.currentTarget.src = "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?auto=format&fit=crop&q=80&w=2000")}
-            />
+            {showCover ? (
+              <img
+                key={coverSrc}
+                src={coverSrc}
+                alt={event.name}
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
+                onError={(e) => {
+                  e.stopPropagation();
+                  setCoverBroken(true);
+                }}
+              />
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center text-gray-700 gap-2 bg-white/5">
+                <FileText className="w-10 h-10" />
+                <span className="text-xs font-bold uppercase tracking-wider">
+                  {coverSrc ? "Image Failed To Load" : "No Cover Image"}
+                </span>
+              </div>
+            )}
             <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent" />
           </div>
 

@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import api from "@/lib/axios";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Calendar, MapPin, Ticket, QrCode, Armchair } from "lucide-react";
+import { Loader2, Calendar, MapPin, Ticket, QrCode } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
@@ -125,12 +125,6 @@ const MyTicketsPage = () => {
                       <MapPin className="h-4 w-4 shrink-0" />
                       <span className="line-clamp-1">{ticket.event_location}</span>
                     </div>
-                    {ticket.seat_number && (
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Armchair className="h-4 w-4 shrink-0" />
-                        <span>Seat: {ticket.seat_number}</span>
-                      </div>
-                    )}
                   </div>
 
                   {/* Small QR Code Preview */}
@@ -179,7 +173,7 @@ const MyTicketsPage = () => {
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-x"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                 </button>
 
-                <div className="p-6 md:p-8 flex flex-col items-center text-center space-y-6 bg-gradient-to-b from-primary/5 to-transparent">
+                <div className="p-6 md:p-8 flex flex-col items-center text-center space-y-6 bg-linear-to-b from-primary/5 to-transparent">
                     
                     {/* Event Details */}
                     <div className="space-y-2">
@@ -213,15 +207,11 @@ const MyTicketsPage = () => {
                         </div>
                     )}
 
-                    {/* Ticket Code & Seat */}
-                    <div className="w-full grid grid-cols-2 gap-4">
+                    {/* Ticket Code */}
+                    <div className="w-full">
                         <div className="bg-muted/10 p-3 rounded-xl border border-border/50">
                             <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Ticket ID</p>
                             <p className="text-lg font-mono font-bold">{selectedTicket.ticket_id.split(":")[1] || "N/A"}</p>
-                        </div>
-                         <div className="bg-muted/10 p-3 rounded-xl border border-border/50">
-                            <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Seat</p>
-                            <p className="text-lg font-bold">{selectedTicket.seat_number || "General"}</p>
                         </div>
                     </div>
 

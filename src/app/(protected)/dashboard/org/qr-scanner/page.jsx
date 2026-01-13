@@ -154,27 +154,53 @@ export default function QrScanner() {
          const reader = document.getElementById(regionId);
          if (!reader) return;
 
+        // Check if element exists
+        const element = document.getElementById(regionId);
+        if (!element) {
+          console.error("Scanner element not found in DOM");
+          toast.error("Scanner element not ready. Please try again.");
+          setIsScanning(false);
+          return;
+        }
+
+        console.log("Initializing camera...");
         try {
           const scanner = new Html5Qrcode(regionId);
-  scannerRef.current = scanner;
-
-  await scanner.start(
-    { facingMode: cameraFacingMode },
-    { fps: 15, qrbox: 250 },
-    (text) => handleScan(text),
-    () => {}
-  );
+          scannerRef.current = scanner;
           
+          console.log("Starting Html5Qrcode scanner...");
+          // Use simple constraints - just environment camera
+          await scanner.start(
+            { facingMode: "environment" },
+            { 
+              fps: 10, 
+              qrbox: { width: 250, height: 250 }
+            },
+            (text) => {
+              console.log("QR code detected:", text);
+              handleScan(text);
+            },
+            (errorMessage) => {
+              // Scan errors are normal, don't log them
+            }
+          );
+          console.log("✓ Camera started successfully and displaying");
+
         } catch (err) {
-          console.error("Camera start failed", err);
+          console.error("❌ Html5Qrcode initialization failed:", err);
           if (err?.name === "NotAllowedError" || err?.name === "PermissionDeniedError") {
-              toast.error("Camera permission denied. Please allow camera access in your browser settings.", { duration: 5000 });
+              toast.error("Camera permission denied during initialization. Please refresh the page and allow access.", { duration: 6000 });
           } else if (err?.name === "NotFoundError" || err?.name === "DevicesNotFoundError") {
               toast.error("No camera found on your device.");
+          } else if (err?.name === "NotReadableError") {
+              toast.error("Camera is already in use. Please close other apps and try again.");
+          } else if (err?.message?.includes("Permission")) {
+              toast.error("Camera access is blocked. Please check your browser settings.", { duration: 6000 });
           } else {
-              toast.error("Could not access camera. Please reset permissions.");
+              toast.error("Could not start camera: " + (err?.message || "Unknown error"));
           }
           setIsScanning(false);
+          scannerRef.current = null;
         }
       } 
       // 2. If we are scanning but switched tabs or turned it off
@@ -193,21 +219,66 @@ export default function QrScanner() {
       return;
     }
 
-    // Explicitly request permission on user click to ensure prompt appears
+    console.log("Requesting camera access...");
+    console.log("Current URL:", window.location.href);
+    console.log("Protocol:", window.location.protocol);
+    
+    // Check if we're on a secure context
+    if (window.location.protocol !== 'https:' && !window.location.hostname.includes('localhost')) {
+      toast.error("Camera requires HTTPS or localhost. Current site is not secure.", { duration: 8000 });
+      return;
+    }
+    
+    // Check if getUserMedia is available
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      toast.error("Camera API not available in this browser. Please use a modern browser.");
+      return;
+    }
+
+    // Request camera access directly with basic constraints
     try {
+        // Try with just video: true first (simplest constraint)
         const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        console.log("✓ Camera permission granted, stream obtained:", stream);
+        console.log("Video tracks:", stream.getVideoTracks());
+        
         // Permission granted! Stop this stream so Html5Qrcode can take over
-        stream.getTracks().forEach(track => track.stop());
+        stream.getTracks().forEach(track => {
+            console.log("Stopping track:", track.label);
+            track.stop();
+        });
+        
         setIsScanning(true);
         setScanResult(null);
+        console.log("✓ isScanning set to true");
     } catch (err) {
-        console.error("Permission check failed", err);
+        console.error("❌ Camera access failed:", err.name, err.message, err);
+        
         if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
-            toast.error("Camera access denied. Please reset permissions in your browser URL bar.", { duration: 5000 });
+            // Provide detailed instructions
+            const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+            const isWindows = navigator.platform.toUpperCase().indexOf('WIN') >= 0;
+            
+            let instructions = "Camera permission denied. ";
+            
+            if (isWindows) {
+                instructions += "Windows: 1) Press Windows key + I → Privacy → Camera → Allow apps to access camera. 2) In your browser, click the lock/camera icon in address bar → Camera → Allow. 3) Refresh page (F5).";
+            } else if (isMac) {
+                instructions += "Mac: 1) System Preferences → Security & Privacy → Camera → Enable for your browser. 2) In browser, click the lock icon → Camera → Allow. 3) Refresh page.";
+            } else {
+                instructions += "1) Check system settings to allow camera access for your browser. 2) In browser, click lock/camera icon in address bar → Camera → Allow. 3) Refresh page.";
+            }
+            
+            console.error("PERMISSION DENIED - Follow these steps:", instructions);
+            toast.error(instructions, { duration: 10000 });
         } else if (err.name === "NotFoundError" || err.name === "DevicesNotFoundError") {
-            toast.error("No camera found.");
+            toast.error("No camera detected on this device.");
+        } else if (err.name === "NotReadableError") {
+            toast.error("Camera is in use by another app. Please close other apps and refresh the page.");
+        } else if (err.name === "TypeError") {
+            toast.error("Camera API not available. Make sure you're using HTTPS or localhost.");
         } else {
-            toast.error("Could not access camera. " + err.message);
+            toast.error("Camera error: " + err.message + " (See console for details)");
         }
     }
   };
@@ -406,7 +477,18 @@ export default function QrScanner() {
                         </button>
                       </div>
                     ) : (
-                      <div id={regionId} className="w-full h-full flex items-center justify-center overflow-hidden" />
+                      <div className="w-full h-full min-h-[400px] md:min-h-[500px]">
+                        <div 
+                          id={regionId} 
+                          className="w-full h-full"
+                          style={{ 
+                            minHeight: '400px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }} 
+                        />
+                      </div>
                     )}
 
                     {/* Scanning Overlay (only when scanning & no result) */}

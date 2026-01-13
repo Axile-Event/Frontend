@@ -26,10 +26,9 @@ const OrganizerHeader = () => {
       const keysToPreserve = allKeys.filter(key => 
         key.startsWith('radar_pin_salt:') || 
         key.startsWith('radar_pin_hash:') || 
-        key.startsWith('radar_has_pin:') ||
-        key.startsWith('radar_org_first_welcome:')
+        key.startsWith('radar_has_pin:')
       );
-      
+            
       const keysToRemove = allKeys.filter(key => !keysToPreserve.includes(key));
       keysToRemove.forEach(key => localStorage.removeItem(key));
     }

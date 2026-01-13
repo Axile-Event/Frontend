@@ -16,23 +16,6 @@ const useAuthStore = create(
           // Clear the organizer Zustand store
           localStorage.removeItem('organizer-storage');
           
-          // Clear welcome flags for different users
-          const storedWelcomeKeys = Object.keys(localStorage).filter(key => 
-            key.startsWith('radar_org_first_welcome:')
-          );
-          
-          storedWelcomeKeys.forEach(key => {
-            const parts = key.split(':');
-            // Guard against unexpected key formats (e.g., missing email segment)
-            if (parts.length < 2) {
-              return;
-            }
-            const emailInKey = parts[1];
-            if (emailInKey && emailInKey.toLowerCase() !== userData.email.toLowerCase()) {
-              localStorage.removeItem(key);
-            }
-          });
-          
           // IMPORTANT: Clear PIN reminder dismissal so new users see it
           localStorage.removeItem('radar_pin_reminder_dismissed');
         }

@@ -6,6 +6,8 @@ import toast from "react-hot-toast";
 import useOrganizerStore from "../../../../../store/orgStore";
 import CustomDropdown from "@/components/ui/CustomDropdown";
 import Loading from "@/components/ui/Loading";
+import PinPromptModal from "@/components/PinPromptModal";
+import { hasPinSet } from "@/lib/pinPrompt";
 import {
   MapPin,
   Calendar,
@@ -53,7 +55,6 @@ export default function CreateEvent() {
     date: "",
     capacity: "",
     price: "",
-    allows_seat_selection: false,
   });
 
   const [categories, setCategories] = useState([]);
@@ -64,6 +65,8 @@ export default function CreateEvent() {
   const [loading, setLoading] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [createdEventId, setCreatedEventId] = useState(null);
+  const [showPinPrompt, setShowPinPrompt] = useState(false);
+  const [pendingSubmit, setPendingSubmit] = useState(false);
 
   // Fetch config (GET /config/) and populate eventTypes/pricingTypes.
   useEffect(() => {
@@ -105,18 +108,30 @@ export default function CreateEvent() {
       setPreview(null);
       return;
     }
-    try {
-      const url = URL.createObjectURL(imageFile);
-      console.log("Image preview URL created:", url);
-      setPreview(url);
-      return () => {
-        URL.revokeObjectURL(url);
-        console.log("Image preview URL revoked");
-      };
-    } catch (err) {
-      console.error("Error creating image preview:", err);
-      toast.error("Failed to preview image");
+    // Use a data: URL for preview so it works even when CSP blocks blob:.
+    if (!(imageFile instanceof File)) {
+      setPreview(null);
+      return;
     }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result;
+      setPreview(typeof result === "string" ? result : null);
+    };
+    reader.onerror = () => {
+      setPreview(null);
+      toast.error("Failed to preview image");
+    };
+
+    reader.readAsDataURL(imageFile);
+    return () => {
+      try {
+        reader.abort();
+      } catch {
+        // ignore
+      }
+    };
   }, [imageFile]);
 
   const handleChange = (key) => (e) => {
@@ -126,35 +141,52 @@ export default function CreateEvent() {
     setErrors((p) => ({ ...p, [key]: undefined }));
   };
 
+  // const handleImage = (e) => {
+  //   const file = e.target.files?.[0];
+  //   console.log("File selected:", file);
+    
+  //   if (!file) {
+  //     console.log("No file selected");
+  //     setImageFile(null);
+  //     return;
+  //   }
+
+  //   // Validate file type
+  //   if (!file.type.startsWith('image/')) {
+  //     toast.error("Please select an image file");
+  //     console.error("Invalid file type:", file.type);
+  //     e.target.value = ''; // Reset input
+  //     return;
+  //   }
+
+  //   // Validate file size (max 5MB)
+  //   const maxSize = 5 * 1024 * 1024; // 5MB
+  //   if (file.size > maxSize) {
+  //     toast.error("Image size must be less than 5MB");
+  //     console.error("File too large:", file.size);
+  //     e.target.value = ''; // Reset input
+  //     return;
+  //   }
+
+  //   console.log("Valid image file:", file.name, file.type, file.size);
+  //   setImageFile(file);
+  // };
+
+
   const handleImage = (e) => {
     const file = e.target.files?.[0];
-    console.log("File selected:", file);
-    
-    if (!file) {
-      console.log("No file selected");
-      setImageFile(null);
-      return;
-    }
+    if (!file) return;
 
-    // Validate file type
-    if (!file.type.startsWith('image/')) {
+    if (!file.type?.startsWith("image/")) {
       toast.error("Please select an image file");
-      console.error("Invalid file type:", file.type);
-      e.target.value = ''; // Reset input
+      e.target.value = "";
       return;
     }
 
-    // Validate file size (max 5MB)
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    if (file.size > maxSize) {
-      toast.error("Image size must be less than 5MB");
-      console.error("File too large:", file.size);
-      e.target.value = ''; // Reset input
-      return;
-    }
-
-    console.log("Valid image file:", file.name, file.type, file.size);
     setImageFile(file);
+
+    // allow re-selecting same file again
+    e.target.value = "";
   };
 
   const addCategory = () => {
@@ -219,7 +251,6 @@ export default function CreateEvent() {
       date: "",
       capacity: "",
       price: "",
-      allows_seat_selection: false,
     });
     setImageFile(null);
     setPreview(null);
@@ -233,7 +264,22 @@ export default function CreateEvent() {
       toast.error("Please fill in all required fields correctly.");
       return;
     }
+
+    // Check if PIN is set and require verification before creating event
+    if (!hasPinSet()) {
+      setPendingSubmit(true);
+      setShowPinPrompt(true);
+      return;
+    }
+
+    // Require PIN verification before creating event
+    setPendingSubmit(true);
+    setShowPinPrompt(true);
+  };
+
+  const executeCreateEvent = async () => {
     setLoading(true);
+    setPendingSubmit(false);
 
     try {
       const formData = new FormData();
@@ -255,30 +301,37 @@ export default function CreateEvent() {
         }
       }
 
-      // Explicitly parse price as float with 2 decimals
+      // Parse price as number (avoid toFixed to prevent rounding issues)
       if (form.pricing_type === "paid") {
         const priceVal = parseFloat(String(form.price).replace(/,/g, ""));
         formData.append(
           "price",
-          !isNaN(priceVal) ? priceVal.toFixed(2) : "0.00"
+          !isNaN(priceVal) ? String(priceVal) : "0"
         );
       } else {
-        formData.append("price", "0.00");
+        formData.append("price", "0");
       }
-
-      formData.append(
-        "allows_seat_selection",
-        form.allows_seat_selection ? "true" : "false"
-      );
 
       if (imageFile) {
         formData.append("image", imageFile);
       }
 
+      // IMPORTANT: don't set Content-Type for FormData; the browser will add the correct boundary.
       const res = await api.post("/event/", formData);
+
 
       if (res && res.status >= 200 && res.status < 300) {
         const newId = res.data.event_id || res.data.id;
+
+        // If backend hasn't propagated the image URL yet, keep the selected image
+        // so the organizer can still see the correct cover immediately in My Events.
+        if (newId && preview) {
+          try {
+            sessionStorage.setItem(`created-event-image:${newId}`, preview);
+          } catch {
+            // ignore storage failures (private mode, quota, etc.)
+          }
+        }
 
         // Create categories if any
         if (categories.length > 0) {
@@ -322,7 +375,7 @@ export default function CreateEvent() {
 
         setCreatedEventId(newId);
         setShowSuccessModal(true);
-        resetForm();
+        // resetForm();
       } else {
         toast.error(`Unexpected server response: ${res?.status}`);
       }
@@ -577,33 +630,6 @@ export default function CreateEvent() {
                     </button>
                   </div>
                 )}
-              </div>
-
-              <div className="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/5">
-                <div className="relative flex items-center">
-                  <input
-                    type="checkbox"
-                    checked={form.allows_seat_selection}
-                    onChange={handleChange("allows_seat_selection")}
-                    id="seat-selection"
-                    className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-white/20 bg-white/5 checked:border-rose-500 checked:bg-rose-500 transition-all"
-                  />
-                  <svg
-                    className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white pointer-events-none opacity-0 peer-checked:opacity-100"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  >
-                    <path d="M20 6L9 17l-5-5" />
-                  </svg>
-                </div>
-                <label
-                  htmlFor="seat-selection"
-                  className="text-sm text-gray-300 font-medium cursor-pointer select-none"
-                >
-                  Enable seat selection for this event
-                </label>
               </div>
 
               {/* Ticket Categories Section */}
@@ -889,7 +915,10 @@ export default function CreateEvent() {
 
             <div className="space-y-4">
               <button
-                onClick={() => router.push("/dashboard/org/my-event")}
+                onClick={() => {
+                  resetForm();
+                  router.push("/dashboard/org/my-event");
+                }}
                 className="w-full bg-rose-600 hover:bg-rose-700 text-white py-3.5 rounded-2xl font-bold transition-all shadow-lg shadow-rose-600/20 flex items-center justify-center gap-2"
               >
                 Go to My Events
@@ -899,6 +928,21 @@ export default function CreateEvent() {
           </div>
         </div>
       )}
+
+      {/* PIN Prompt Modal */}
+      <PinPromptModal
+        isOpen={showPinPrompt}
+        onClose={() => {
+          setShowPinPrompt(false);
+          setPendingSubmit(false);
+        }}
+        onSuccess={() => {
+          setShowPinPrompt(false);
+          executeCreateEvent();
+        }}
+        action="create event"
+        requireSetup={true}
+      />
     </div>
   );
 }
