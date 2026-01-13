@@ -119,7 +119,11 @@ export default function AdminDashboardPage() {
                 recentEvents.map((event) => (
                   <div key={event.event_id} className="flex items-center text-sm">
                     <div className="space-y-0.5">
-                      <p className="font-medium leading-none">{event.event_name}</p>
+                      <p className="font-medium leading-none">
+                        <Link href={`/lighthouse/events/${event.event_id}`} className="hover:underline hover:text-primary transition-colors">
+                          {event.event_name}
+                        </Link>
+                      </p>
                       <p className="text-[10px] text-muted-foreground">{event.organisation_name}</p>
                     </div>
                     <div className="ml-auto font-medium">

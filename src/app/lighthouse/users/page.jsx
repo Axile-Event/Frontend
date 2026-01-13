@@ -2,11 +2,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, User, MoreVertical, Trash2, Ban, CheckCircle, ShieldCheck, Mail } from "lucide-react";
+import { Loader2, User, MoreVertical, Trash2, Ban, CheckCircle, ShieldCheck, Mail, Search } from "lucide-react";
 import { adminService } from "../../../lib/admin";
 import { toast } from "react-hot-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import { Button } from "../../../components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,6 +21,7 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [users, setUsers] = useState([]);
   const [filterRole, setFilterRole] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
 
@@ -101,10 +103,18 @@ export default function UsersPage() {
     { id: "organizer", label: "Organizers" },
   ];
 
+  const filteredUsers = users.filter((user) => {
+    const query = searchQuery.toLowerCase();
+    return (
+      (user.name && user.name.toLowerCase().includes(query)) ||
+      (user.email && user.email.toLowerCase().includes(query))
+    );
+  });
+
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = users.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(users.length / itemsPerPage);
+  const currentItems = filteredUsers.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
 
   const handlePageChange = (page) => {
     setCurrentPage(page);
@@ -112,15 +122,28 @@ export default function UsersPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterRole]);
+  }, [filterRole, searchQuery]);
 
   return (
     <div className="space-y-4">
-       <div>
-        <h2 className="text-2xl font-bold tracking-tight">Users</h2>
-        <p className="text-sm text-muted-foreground">
-          View and manage registered users.
-        </p>
+       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+         <div>
+            <h2 className="text-2xl font-bold tracking-tight">Users</h2>
+            <p className="text-sm text-muted-foreground">
+            View and manage registered users.
+            </p>
+         </div>
+
+         {/* Search Input */}
+         <div className="relative w-full sm:w-64">
+             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+             <Input
+                 placeholder="Search users..."
+                 className="pl-8 h-9 bg-background"
+                 value={searchQuery}
+                 onChange={(e) => setSearchQuery(e.target.value)}
+             />
+         </div>
       </div>
 
        <div className="flex p-1 bg-muted/40 rounded-lg w-fit border border-border">

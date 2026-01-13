@@ -3,8 +3,9 @@
 import React, { useEffect, useState } from "react";
 import api from "@/lib/axios";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, Calendar, MapPin, Ticket, QrCode } from "lucide-react";
+import { Loader2, Calendar, MapPin, Ticket, QrCode, Search } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
@@ -12,6 +13,7 @@ import { QRCodeSVG } from "qrcode.react";
 const MyTicketsPage = () => {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState(""); // Add search state
 
   useEffect(() => {
     const fetchTickets = async () => {
@@ -43,6 +45,11 @@ const MyTicketsPage = () => {
     }
   };
 
+  const filteredTickets = tickets.filter(ticket => 
+    ticket.event_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    ticket.ticket_id.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   const [selectedTicket, setSelectedTicket] = useState(null);
 
   // ... (existing getStatusColor function) ...
@@ -57,11 +64,24 @@ const MyTicketsPage = () => {
 
   return (
     <div className="space-y-4 md:space-y-6 pb-20 md:pb-0 relative">
-      <div className="flex flex-col gap-1 md:gap-2">
-        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">My Tickets</h1>
-        <p className="text-sm md:text-base text-muted-foreground">
-          View and manage your booked tickets. Click on a ticket to view it full screen.
-        </p>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col gap-1 md:gap-2">
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight">My Tickets</h1>
+          <p className="text-sm md:text-base text-muted-foreground">
+            View and manage your booked tickets. Click on a ticket to view it full screen.
+          </p>
+        </div>
+        
+        {/* Search Bar */}
+        <div className="relative w-full md:w-72">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input 
+            placeholder="Search tickets..." 
+            className="pl-9 bg-background"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
       </div>
 
       {tickets.length === 0 ? (
@@ -79,9 +99,14 @@ const MyTicketsPage = () => {
             <Button className="h-9 md:h-10 text-sm md:text-base">Explore Events</Button>
           </Link>
         </div>
+      ) : filteredTickets.length === 0 ? (
+         <div className="text-center py-12 border rounded-xl bg-muted/5 border-dashed">
+            <p className="text-muted-foreground">No tickets found matching "{searchQuery}"</p>
+            <Button variant="link" onClick={() => setSearchQuery("")} className="mt-2 text-primary">Clear Search</Button>
+         </div>
       ) : (
         <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-          {tickets.map((ticket, index) => (
+          {filteredTickets.map((ticket, index) => (
             <motion.div
               key={ticket.ticket_id}
               initial={{ opacity: 0, y: 20 }}

@@ -2,15 +2,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, Mail, Phone, Building2 } from "lucide-react";
+import { Loader2, Mail, Phone, Building2, Search } from "lucide-react";
 import { adminService } from "../../../lib/admin";
 import { toast } from "react-hot-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import { Button } from "../../../components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export default function OrganizationsPage() {
   const [loading, setLoading] = useState(true);
   const [organizers, setOrganizers] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
 
@@ -31,14 +33,26 @@ export default function OrganizationsPage() {
     }
   };
 
+  const filteredOrganizers = organizers.filter((org) => {
+    const query = searchQuery.toLowerCase();
+    return (
+        (org.name && org.name.toLowerCase().includes(query)) ||
+        (org.email && org.email.toLowerCase().includes(query))
+    );
+  });
+
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = organizers.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(organizers.length / itemsPerPage);
+  const currentItems = filteredOrganizers.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredOrganizers.length / itemsPerPage);
 
   const handlePageChange = (page) => {
     setCurrentPage(page);
   };
+
+  useEffect(() => {
+      setCurrentPage(1);
+  }, [searchQuery]);
 
   if (loading) {
     return (
@@ -50,13 +64,24 @@ export default function OrganizationsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold tracking-tight">Organizations</h2>
           <p className="text-sm text-muted-foreground">
             Manage organizer accounts and view their performance.
           </p>
         </div>
+
+         {/* Search Input */}
+         <div className="relative w-full sm:w-64">
+             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+             <Input
+                 placeholder="Search organizations..."
+                 className="pl-8 h-9 bg-background"
+                 value={searchQuery}
+                 onChange={(e) => setSearchQuery(e.target.value)}
+             />
+         </div>
       </div>
 
       <Card className="shadow-sm">

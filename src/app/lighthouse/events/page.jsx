@@ -3,16 +3,18 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Loader2, Calendar, MapPin, DollarSign, CheckCircle, XCircle, Star, Trash2 } from "lucide-react";
+import { Loader2, Calendar, MapPin, DollarSign, CheckCircle, XCircle, Star, Trash2, Search } from "lucide-react";
 import { adminService } from "../../../lib/admin";
 import { toast } from "react-hot-toast";
 import { Card, CardContent } from "../../../components/ui/card";
 import { Button } from "../../../components/ui/button";
+import { Input } from "@/components/ui/input";
 
 export default function EventsPage() {
   const [loading, setLoading] = useState(true);
   const [events, setEvents] = useState([]);
   const [filter, setFilter] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
 
@@ -60,9 +62,16 @@ export default function EventsPage() {
     }
   };
 
-  const filteredEvents = events.filter(event => 
-    filter === "all" ? true : event.status === filter
-  );
+  const filteredEvents = events.filter(event => {
+    const matchesStatus = filter === "all" ? true : event.status === filter;
+    const lowerQuery = searchQuery.toLowerCase();
+    const matchesSearch = 
+        (event.event_name && event.event_name.toLowerCase().includes(lowerQuery)) ||
+        (event.organisation_name && event.organisation_name.toLowerCase().includes(lowerQuery)) ||
+        (event.location && event.location.toLowerCase().includes(lowerQuery));
+    
+    return matchesStatus && matchesSearch;
+  });
 
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
@@ -75,7 +84,7 @@ export default function EventsPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [filter]);
+  }, [filter, searchQuery]);
 
   if (loading) {
     return (
@@ -94,20 +103,34 @@ export default function EventsPage() {
             Monitor and moderate all events on the platform.
           </p>
         </div>
-        <div className="flex gap-2 bg-muted p-1 rounded-lg self-start">
-          {["all", "pending", "verified", "denied"].map((status) => (
-            <button
-              key={status}
-              onClick={() => setFilter(status)}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
-                filter === status 
-                  ? "bg-primary text-primary-foreground shadow" 
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {status.charAt(0).toUpperCase() + status.slice(1)}
-            </button>
-          ))}
+        
+        <div className="flex flex-col sm:flex-row gap-3 items-end sm:items-center">
+            {/* Search Input */}
+            <div className="relative w-full sm:w-64">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                    placeholder="Search events..."
+                    className="pl-8 h-8 text-xs bg-background"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                />
+            </div>
+
+            <div className="flex gap-2 bg-muted p-1 rounded-lg self-start sm:self-auto">
+            {["all", "pending", "verified", "denied"].map((status) => (
+                <button
+                key={status}
+                onClick={() => setFilter(status)}
+                className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
+                    filter === status 
+                    ? "bg-primary text-primary-foreground shadow" 
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+                >
+                {status.charAt(0).toUpperCase() + status.slice(1)}
+                </button>
+            ))}
+            </div>
         </div>
       </div>
 
