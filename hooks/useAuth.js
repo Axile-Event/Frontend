@@ -13,7 +13,7 @@ export function useAuth() {
   const hydrated = useAuthStore((s) => s.hydrated);
 
  useEffect(() => {
-  if (!hydrated) return; // Wait until the store is hydrated
+  if (!hydrated) return; // Waitt until the store is hydrated
 
       if (!token) {
         setAuthenticated(false);
