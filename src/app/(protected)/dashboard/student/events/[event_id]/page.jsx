@@ -208,62 +208,54 @@ const EventDetailsPage = () => {
                     {/* Quantity Selector */}
                     <div className="space-y-2">
                       <Label className="text-xs md:text-sm text-muted-foreground">Quantity</Label>
-                      <div className="flex items-center gap-3">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          className="h-10 w-10"
-                          onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                          disabled={quantity <= 1 || bookingLoading}
-                        >
-                          -
-                        </Button>
-                        <Input
-                          type="number"
-                          min="1"
-                          max={event?.max_quantity_per_booking || 10}
-                          value={quantity}
-                          onChange={(e) => {
-                            const val = parseInt(e.target.value) || 1;
-                            const maxQty = event?.max_quantity_per_booking || 10;
-                            setQuantity(Math.min(Math.max(1, val), maxQty));
-                          }}
-                          className="text-center h-10"
-                          disabled={bookingLoading}
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          className="h-10 w-10"
-                          onClick={() => setQuantity(Math.min((event?.max_quantity_per_booking || 10), quantity + 1))}
-                          disabled={quantity >= (event?.max_quantity_per_booking || 10) || bookingLoading}
-                        >
-                          +
-                        </Button>
-                      </div>
+                      <Select
+                        value={quantity.toString()}
+                        onValueChange={(val) => setQuantity(parseInt(val))}
+                        disabled={bookingLoading}
+                      >
+                        <SelectTrigger className="h-10">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: event?.max_quantity_per_booking || 10 }, (_, i) => i + 1).map((num) => (
+                            <SelectItem key={num} value={num.toString()}>
+                              {num} {num === 1 ? 'Ticket' : 'Tickets'}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <p className="text-[10px] md:text-xs text-muted-foreground/80">
                         Maximum {event?.max_quantity_per_booking || 10} tickets per booking. Each ticket gets a unique QR code.
                       </p>
                     </div>
 
                     {/* Category Selector */}
-                    {event.ticket_categories && event.ticket_categories.length > 0 && (
+                    {(event.ticket_categories?.length > 0 || event.pricing_type === 'paid') && (
                       <div className="space-y-2">
                         <Label htmlFor="category" className="text-xs md:text-sm">Ticket Category</Label>
                         <Select 
-                          value={selectedCategory?.name || ""} 
+                          value={selectedCategory?.name || "regular"} 
                           onValueChange={(val) => {
-                            const cat = event.ticket_categories.find(c => c.name === val);
-                            setSelectedCategory(cat);
+                            if (val === "regular") {
+                              setSelectedCategory(null);
+                            } else {
+                              const cat = event.ticket_categories.find(c => c.name === val);
+                              setSelectedCategory(cat);
+                            }
                           }}
                         >
                           <SelectTrigger id="category" className="h-9 md:h-10 text-sm md:text-base w-full">
                             <SelectValue placeholder="Select category" />
                           </SelectTrigger>
                           <SelectContent>
-                            {event.ticket_categories.map((cat) => (
+                            {/* Regular/Base Price Option */}
+                            {event.pricing_type === 'paid' && (
+                              <SelectItem value="regular">
+                                Regular - ₦{parseFloat(event.price).toLocaleString()}
+                              </SelectItem>
+                            )}
+                            
+                            {event.ticket_categories?.map((cat) => (
                               <SelectItem 
                                 key={cat.category_id} 
                                 value={cat.name}
@@ -277,6 +269,11 @@ const EventDetailsPage = () => {
                         {selectedCategory?.description && (
                           <p className="text-[10px] md:text-xs text-muted-foreground italic">
                             {selectedCategory.description}
+                          </p>
+                        )}
+                        {!selectedCategory && event.pricing_type === 'paid' && (
+                          <p className="text-[10px] md:text-xs text-muted-foreground italic">
+                            Standard ticket
                           </p>
                         )}
                       </div>

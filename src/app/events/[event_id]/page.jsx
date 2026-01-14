@@ -274,10 +274,29 @@ const EventDetailsPage = () => {
                     )}
 
                     {/* Category Selector */}
-                    {categories.length > 0 && (
+                    {(categories.length > 0 || event.pricing_type === 'paid') && (
                       <div className="space-y-3">
                         <Label className="text-xs md:text-sm">Ticket Category</Label>
                         <div className="grid grid-cols-1 gap-2">
+                          {/* Regular/Base Price Option */}
+                          {event.pricing_type === 'paid' && (
+                            <button
+                              onClick={() => setSelectedCategory(null)}
+                              className={`flex flex-col p-3 rounded-xl border text-left transition-all ${!selectedCategory
+                                  ? "border-rose-600 bg-rose-600/5 ring-1 ring-rose-600"
+                                  : "border-gray-600 bg-gray-600/5 hover:border-gray-500"
+                                }`}
+                            >
+                              <div className="flex justify-between items-center mb-1">
+                                <span className={`text-sm font-bold ${!selectedCategory ? "text-rose-500" : "text-white"}`}>
+                                  Regular
+                                </span>
+                                <span className="text-xs font-bold text-white">₦{parseFloat(event.price).toLocaleString()}</span>
+                              </div>
+                              <p className="text-[10px] text-gray-500 line-clamp-1">Standard ticket</p>
+                            </button>
+                          )}
+                          
                           {categories.map((cat) => (
                             <button
                               key={cat.category_id}
@@ -292,7 +311,7 @@ const EventDetailsPage = () => {
                                 <span className={`text-sm font-bold ${selectedCategory?.category_id === cat.category_id ? "text-rose-500" : "text-white"}`}>
                                   {cat.name}
                                 </span>
-                                <span className="text-xs font-bold text-white">₦{cat.price}</span>
+                                <span className="text-xs font-bold text-white">₦{parseFloat(cat.price).toLocaleString()}</span>
                               </div>
                               {cat.description && <p className="text-[10px] text-gray-500 line-clamp-1">{cat.description}</p>}
                               {cat.is_sold_out && <span className="text-[10px] text-rose-500 font-bold uppercase mt-1">Sold Out</span>}
@@ -304,41 +323,22 @@ const EventDetailsPage = () => {
 
                     <div className="space-y-2">
                       <Label className="text-xs md:text-sm text-muted-foreground">Quantity</Label>
-                      <div className="flex items-center gap-3">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          className="h-10 w-10"
-                          onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                          disabled={quantity <= 1 || bookingLoading}
-                        >
-                          -
-                        </Button>
-                        <Input
-                          type="number"
-                          min="1"
-                          max={event?.max_quantity_per_booking || 10}
-                          value={quantity}
-                          onChange={(e) => {
-                            const val = parseInt(e.target.value) || 1;
-                            const maxQty = event?.max_quantity_per_booking || 10;
-                            setQuantity(Math.min(Math.max(1, val), maxQty));
-                          }}
-                          className="text-center border-gray-600 bg-gray-600/5 h-10"
-                          disabled={bookingLoading}
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="icon"
-                          className="h-10 w-10"
-                          onClick={() => setQuantity(Math.min((event?.max_quantity_per_booking || 10), quantity + 1))}
-                          disabled={quantity >= (event?.max_quantity_per_booking || 10) || bookingLoading}
-                        >
-                          +
-                        </Button>
-                      </div>
+                      <Select
+                        value={quantity.toString()}
+                        onValueChange={(val) => setQuantity(parseInt(val))}
+                        disabled={bookingLoading}
+                      >
+                        <SelectTrigger className="h-10 border-gray-600 bg-gray-600/5">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: event?.max_quantity_per_booking || 10 }, (_, i) => i + 1).map((num) => (
+                            <SelectItem key={num} value={num.toString()}>
+                              {num} {num === 1 ? 'Ticket' : 'Tickets'}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <p className="text-[10px] md:text-xs text-muted-foreground/80">
                         Maximum {event?.max_quantity_per_booking || 10} tickets per booking. Each ticket gets a unique QR code.
                       </p>
