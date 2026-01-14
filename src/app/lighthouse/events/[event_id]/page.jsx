@@ -215,7 +215,13 @@ export default function AdminEventDetailsPage() {
                          </div>
                          <div>
                             <p className="text-xs text-muted-foreground font-medium uppercase">Pricing</p>
-                            <p className="text-sm font-medium">{event.pricing_type === 'free' ? 'Free Event' : `₦${Number(event.price).toLocaleString()}`}</p>
+                            <p className="text-sm font-medium">
+                              {event.pricing_type === 'free'
+                                ? 'Free Event'
+                                : event.event_price != null
+                                  ? `₦${Number(event.event_price).toLocaleString()}`
+                                  : 'Paid Event'}
+                            </p>
                          </div>
                       </div>
                   </div>

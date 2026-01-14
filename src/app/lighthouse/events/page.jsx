@@ -167,7 +167,11 @@ export default function EventsPage() {
                         </div>
                         <div className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
                           <DollarSign className="w-3 h-3" /> 
-                          {event.pricing_type === 'free' ? 'Free' : `₦${event.price}`}
+                          {event.pricing_type === 'free'
+                            ? 'Free'
+                            : event.event_price != null
+                              ? `₦${Number(event.event_price).toLocaleString()}`
+                              : 'Paid'}
                         </div>
                       </td>
                       <td className="p-3 text-muted-foreground">

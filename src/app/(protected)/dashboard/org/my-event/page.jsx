@@ -241,7 +241,7 @@ const MyEvent = () => {
             <Search className="w-12 h-12 text-gray-700" />
             <div className="space-y-1">
                 <p className="text-white font-semibold text-lg">No events found</p>
-                <p className="text-gray-500 text-sm">No events match your search query "{searchQuery}"</p>
+                <p className="text-gray-500 text-sm">No events match your search query &quot;{searchQuery}&quot;</p>
             </div>
             <button 
                 onClick={() => setSearchQuery("")}
@@ -307,7 +307,7 @@ const MyEvent = () => {
                     </div>
                     
                     <div className="px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest backdrop-blur-xl bg-black/40 border border-white/10 text-white">
-                      {ev.pricing_type === "paid" ? `₦${ev.price}` : "FREE"}
+                      {ev.pricing_type === "paid" ? `₦${Number(ev.event_price ?? 0).toLocaleString()}` : "FREE"}
                     </div>
                   </div>
 
@@ -344,7 +344,7 @@ const MyEvent = () => {
                         <p className="text-[9px] text-gray-600 font-black uppercase tracking-widest mb-0.5">Bookings</p>
                         <p className="text-base font-bold text-white leading-none">
                           {ev.ticket_stats?.confirmed_tickets ?? 0}
-                          <span className="text-[9px] text-gray-500 font-medium ml-1">/ {ev.capacity || '∞'}</span>
+                          <span className="text-[9px] text-gray-500 font-medium ml-1">/ {ev.ticket_stats?.available_spots ?? '∞'}</span>
                         </p>
                       </div>
                       <div>

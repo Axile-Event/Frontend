@@ -104,7 +104,7 @@ const StudentSettings = () => {
                     relative flex items-center justify-center p-4 rounded-xl border text-sm font-medium transition-all duration-200
                     ${isSelected 
                       ? "bg-primary/20 border-primary text-primary" 
-                      : "bg-white/5 border-white/10 text-gray-400 hover:border-white/20 hover:bg-white/10"
+                      : "bg-white/5 border-gray-700/60 text-gray-400 hover:border-gray-600/80 hover:bg-white/10"
                     }
                   `}
                 >
@@ -123,7 +123,7 @@ const StudentSettings = () => {
             })}
           </div>
 
-          <div className="flex justify-end pt-4 border-t border-white/5">
+          <div className="flex justify-end pt-4 border-t border-gray-700/40">
             <Button onClick={handleSave} disabled={saving}>
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Save Preferences

@@ -54,7 +54,6 @@ export default function CreateEvent() {
     location: "",
     date: "",
     capacity: "",
-    price: "",
   });
 
   const [categories, setCategories] = useState([]);
@@ -194,9 +193,7 @@ export default function CreateEvent() {
       {
         name: "",
         price: "",
-        description: "",
         max_tickets: "",
-        max_quantity_per_booking: "",
       },
     ]);
   };
@@ -220,16 +217,33 @@ export default function CreateEvent() {
     if (!form.event_type) e.event_type = "Event type is required";
     if (!form.location.trim()) e.location = "Location is required";
     if (!form.date) e.date = "Date & time is required";
-    if (form.pricing_type === "paid") {
-      if (!form.price || Number(form.price) <= 0)
-        e.price = "Price must be greater than 0";
+
+    // New behavior requested:
+    // - Free events MUST have a capacity
+    // - Paid events use ticket categories for capacity and pricing
+    if (form.pricing_type === "free") {
+      const capVal = parseInt(String(form.capacity).replace(/,/g, ""), 10);
+      if (!form.capacity || isNaN(capVal) || capVal < 1) {
+        e.capacity = "Capacity is required for free events";
+      }
+    } else {
+      // Paid event: require at least one category with a valid price
+      const nonEmptyCategories = categories.filter((c) => (c?.name || "").trim());
+      if (nonEmptyCategories.length === 0) {
+        e.categories = "At least one ticket category is required for paid events";
+      } else {
+        const invalidCategory = nonEmptyCategories.find((c) => {
+          const rawPrice = String(c?.price ?? "").trim();
+          const parsedPrice = rawPrice === "" ? NaN : Number(rawPrice);
+          return !Number.isFinite(parsedPrice) || parsedPrice <= 0;
+        });
+
+        if (invalidCategory) {
+          e.categories = "Each category must have a price greater than 0";
+        }
+      }
     }
-    if (
-      form.capacity !== "" &&
-      (isNaN(Number(form.capacity)) || Number(form.capacity) < 1)
-    ) {
-      e.capacity = "Capacity must be at least 1";
-    }
+
     // length checks per docs
     if (form.name && form.name.length > 200)
       e.name = "Name must be ≤ 200 characters";
@@ -249,7 +263,6 @@ export default function CreateEvent() {
       location: "",
       date: "",
       capacity: "",
-      price: "",
     });
     setImageFile(null);
     setPreview(null);
@@ -293,25 +306,6 @@ export default function CreateEvent() {
       const isoDate = form.date ? new Date(form.date).toISOString() : "";
       formData.append("date", isoDate);
 
-      // Explicitly parse capacity as integer
-      if (form.capacity !== "" && form.capacity !== null) {
-        const capVal = parseInt(String(form.capacity).replace(/,/g, ""), 10);
-        if (!isNaN(capVal)) {
-          formData.append("capacity", capVal);
-        }
-      }
-
-      // Parse price as number (avoid toFixed to prevent rounding issues)
-      if (form.pricing_type === "paid") {
-        const priceVal = parseFloat(String(form.price).replace(/,/g, ""));
-        formData.append(
-          "price",
-          !isNaN(priceVal) ? String(priceVal) : "0"
-        );
-      } else {
-        formData.append("price", "0");
-      }
-
       if (imageFile) {
         formData.append("image", imageFile);
       }
@@ -333,35 +327,34 @@ export default function CreateEvent() {
           }
         }
 
-        // Create categories if any
-        if (categories.length > 0) {
+        // Create categories (required by migration)
+          const categoriesToCreate =
+            form.pricing_type === "free"
+              ? [
+                  {
+                    name: "General",
+                    price: 0,
+                    max_tickets: form.capacity,
+                  },
+                ]
+              : categories;
+
+          if (categoriesToCreate.length > 0) {
           try {
             await Promise.all(
-              categories.map((cat) => {
-                if (!cat.name || cat.price === "") return Promise.resolve();
+                categoriesToCreate.map((cat) => {
+                  if (!cat.name) return Promise.resolve();
 
-                const catPrice = parseFloat(
-                  String(cat.price).replace(/,/g, "")
-                );
+                const rawPrice = String(cat.price ?? "").trim();
+                const catPrice = rawPrice === "" ? 0 : parseFloat(String(cat.price).replace(/,/g, ""));
                 const catMaxTickets = cat.max_tickets
                   ? parseInt(String(cat.max_tickets).replace(/,/g, ""), 10)
                   : null;
-                const catMaxPerBooking = cat.max_quantity_per_booking
-                  ? parseInt(
-                      String(cat.max_quantity_per_booking).replace(/,/g, ""),
-                      10
-                    )
-                  : null;
-
                 return api.post("/tickets/categories/create/", {
                   event_id: newId,
                   name: cat.name,
                   price: !isNaN(catPrice) ? catPrice : 0,
-                  description: cat.description,
                   max_tickets: !isNaN(catMaxTickets) ? catMaxTickets : null,
-                  max_quantity_per_booking: !isNaN(catMaxPerBooking)
-                    ? catMaxPerBooking
-                    : null,
                 });
               })
             );
@@ -479,11 +472,24 @@ export default function CreateEvent() {
                       key={p.value}
                       type="button"
                       onClick={() =>
-                        setForm((s) => ({
-                          ...s,
-                          pricing_type: p.value,
-                          price: p.value === "free" ? "" : s.price,
-                        }))
+                        {
+                          setForm((s) => ({
+                            ...s,
+                            pricing_type: p.value,
+                            // Capacity is only for free events
+                            capacity: p.value === "paid" ? "" : s.capacity,
+                          }));
+                          setErrors((prev) => ({
+                            ...prev,
+                            pricing_type: undefined,
+                            capacity: undefined,
+                            categories: undefined,
+                          }));
+                          if (p.value === "free") {
+                            // Simplify free event flow: capacity-driven single category
+                            setCategories([]);
+                          }
+                        }
                       }
                       className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${form.pricing_type === p.value ? "bg-rose-600 text-white shadow-lg" : "text-gray-400 hover:text-white"}`}
                     >
@@ -549,47 +555,29 @@ export default function CreateEvent() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                  Capacity
-                </label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={form.capacity}
-                  onChange={handleChange("capacity")}
-                  placeholder="Unlimited"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-rose-500 transition-all"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                  Price{" "}
-                  {form.pricing_type === "paid" && (
-                    <span className="text-rose-500">*</span>
-                  )}
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500">
-                    ₦
-                  </span>
+              {form.pricing_type === "free" && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                    Capacity <span className="text-rose-500">*</span>
+                  </label>
                   <input
                     type="text"
-                    inputMode="decimal"
-                    value={form.price}
-                    onChange={handleChange("price")}
-                    placeholder="0.00"
-                    disabled={form.pricing_type === "free"}
-                    className={`w-full pl-8 bg-white/5 border ${errors.price ? "border-rose-500/50 focus:border-rose-500" : "border-white/10 focus:border-rose-500"} rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-rose-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed`}
+                    inputMode="numeric"
+                    value={form.capacity}
+                    onChange={handleChange("capacity")}
+                    placeholder="e.g. 100"
+                    className={`w-full bg-white/5 border ${errors.capacity ? "border-rose-500/50 focus:border-rose-500" : "border-white/10 focus:border-rose-500"} rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-rose-500 transition-all`}
                   />
-                </div>
-                {errors.price && (
-                  <p className="text-[10px] text-rose-500 font-bold">
-                    {errors.price}
+                  {errors.capacity && (
+                    <p className="text-[10px] text-rose-500 font-bold">
+                      {errors.capacity}
+                    </p>
+                  )}
+                  <p className="text-[10px] text-gray-500 font-medium">
+                    Free events require a capacity. This becomes the max tickets for the default “General” category.
                   </p>
-                )}
-              </div>
+                </div>
+              )}
             </div>
 
             <div className="space-y-4 pt-2">
@@ -633,7 +621,8 @@ export default function CreateEvent() {
               </div>
 
               {/* Ticket Categories Section */}
-              <div className="space-y-4 pt-4 border-t border-white/5">
+              {form.pricing_type === "paid" && (
+                <div className="space-y-4 pt-4 border-t border-white/5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Ticket className="w-4 h-4 text-rose-500" />
@@ -654,9 +643,13 @@ export default function CreateEvent() {
                 {categories.length === 0 ? (
                   <div className="bg-white/5 border border-white/5 rounded-xl p-6 text-center">
                     <p className="text-[10px] text-gray-500 font-medium">
-                      No ticket categories added. The event will use the base
-                      price.
+                      No ticket categories added. Events must have at least one ticket category.
                     </p>
+                    {errors.categories && (
+                      <p className="text-[10px] text-rose-500 font-bold mt-2">
+                        {errors.categories}
+                      </p>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -723,44 +716,13 @@ export default function CreateEvent() {
                               className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500 transition-all"
                             />
                           </div>
-                          <div className="space-y-1.5">
-                            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
-                              Tickets Per Booking
-                            </label>
-                            <input
-                              type="number"
-                              value={cat.max_quantity_per_booking}
-                              onChange={(e) =>
-                                updateCategory(
-                                  idx,
-                                  "max_quantity_per_booking",
-                                  e.target.value
-                                )
-                              }
-                              placeholder="No Limit"
-                              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500 transition-all"
-                            />
-                          </div>
-                        </div>
-
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
-                            Description
-                          </label>
-                          <textarea
-                            value={cat.description}
-                            onChange={(e) =>
-                              updateCategory(idx, "description", e.target.value)
-                            }
-                            placeholder="Perks of this category..."
-                            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500 transition-all h-16 resize-none"
-                          />
                         </div>
                       </div>
                     ))}
                   </div>
                 )}
               </div>
+              )}
             </div>
 
             <button
@@ -852,9 +814,16 @@ export default function CreateEvent() {
                     Price
                   </p>
                   <p className="text-white font-bold text-lg">
-                    {form.pricing_type === "paid" && form.price
-                      ? `₦${form.price}`
-                      : "Free"}
+                    {(() => {
+                      if (form.pricing_type === "free") return "Free";
+                      const prices = categories
+                        .filter((c) => (c?.name || "").trim())
+                        .map((c) => Number(String(c?.price ?? "").trim() || 0))
+                        .filter((n) => Number.isFinite(n) && n >= 0);
+                      if (!prices.length) return "Paid";
+                      const minPrice = Math.min(...prices);
+                      return `From ₦${minPrice.toLocaleString()}`;
+                    })()}
                   </p>
                 </div>
                 <button

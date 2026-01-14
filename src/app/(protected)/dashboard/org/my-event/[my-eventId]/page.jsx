@@ -201,7 +201,9 @@ export default function EventDetailsPage() {
               <span className="text-rose-500 uppercase font-black text-xs tracking-widest">{event.event_type?.replace('_', ' ')}</span>
               <span className="w-1.5 h-1.5 rounded-full bg-white/20" />
               <span className={event.pricing_type === 'paid' ? 'text-blue-400' : 'text-emerald-400'}>
-                {event.pricing_type === "paid" ? `Paid Event (₦${event.price})` : "Free Event"}
+                {event.pricing_type === "paid"
+                  ? `Paid Event (From ₦${Number(event.event_price ?? 0).toLocaleString()})`
+                  : "Free Event"}
               </span>
             </p>
           </div>

@@ -54,13 +54,17 @@ const EventDetailsPage = () => {
         setEvent(response.data);
         
         let cats = [];
-        if (response.data.ticket_categories) {
-           cats = response.data.ticket_categories;
+        if (Array.isArray(response.data.ticket_categories)) {
+          cats = response.data.ticket_categories;
         } else {
            try {
              // Fallback to fetch categories if not present in details response
              const catRes = await api.get(`/tickets/categories/?event_id=${eventId}`);
-             cats = catRes.data.categories || [];
+             if (Array.isArray(catRes.data)) {
+               cats = catRes.data;
+             } else {
+               cats = catRes.data?.categories || [];
+             }
            } catch (err) {
              console.warn("Failed to fetch categories separately", err);
            }
@@ -68,10 +72,12 @@ const EventDetailsPage = () => {
         setCategories(cats);
 
         if (cats.length > 0) {
-          // Priority: Regular (if available) -> First Available -> First (fallback)
-          const regular = cats.find(c => c.name.toLowerCase().includes('regular') && !c.is_sold_out);
-          const firstAvailable = cats.find(c => !c.is_sold_out);
-          setSelectedCategory(regular || firstAvailable || cats[0]);
+          const active = cats.filter((c) => c?.is_active !== false);
+          const regular = active.find(
+            (c) => (c?.name || "").toLowerCase().includes("regular") && !c?.is_sold_out
+          );
+          const firstAvailable = active.find((c) => !c?.is_sold_out);
+          setSelectedCategory(regular || firstAvailable || active[0] || cats[0]);
         }
       } catch (error) {
         console.error("Error fetching event details:", error);
@@ -99,6 +105,12 @@ const EventDetailsPage = () => {
       return;
     }
 
+    // Migration: category_name is REQUIRED for booking
+    if (!selectedCategory?.name) {
+      toast.error("Please select a ticket category");
+      return;
+    }
+
     setBookingLoading(true);
     const toastId = toast.loading("Processing booking...");
 
@@ -106,7 +118,7 @@ const EventDetailsPage = () => {
       const payload = {
         event_id: event?.event_id || event?.id || eventId,
         quantity: parseInt(quantity),
-        category_name: selectedCategory ? selectedCategory.name : undefined
+        category_name: selectedCategory.name,
       };
 
       const response = await api.post("/tickets/book/", payload);
@@ -201,6 +213,16 @@ const EventDetailsPage = () => {
   const eventDate = new Date(event.date);
   const isSoldOut = selectedCategory?.is_sold_out;
 
+  const categoryPrices = categories
+    .filter((c) => c?.is_active !== false)
+    .map((c) => parseFloat(String(c?.price ?? "0")))
+    .filter((n) => Number.isFinite(n) && n >= 0);
+  const minCategoryPrice = categoryPrices.length ? Math.min(...categoryPrices) : 0;
+  const displayEventPrice =
+    typeof event?.event_price !== "undefined" && event?.event_price !== null
+      ? Number(event.event_price)
+      : minCategoryPrice;
+
   return (
     <div className="min-h-screen bg-background pb-20">
       <div className="container mx-auto px-4 pt-24 md:pt-32">
@@ -224,7 +246,7 @@ const EventDetailsPage = () => {
                   ? 'bg-green-500 text-white'
                   : 'bg-primary text-primary-foreground'
                 }`}>
-                {event.pricing_type === 'free' ? 'Free' : `₦${event.price}`}
+                {event.pricing_type === 'free' ? 'Free' : `From ₦${displayEventPrice.toLocaleString()}`}
               </span>
             </div>
           </div>
@@ -318,16 +340,16 @@ const EventDetailsPage = () => {
                         <span>Price per ticket</span>
                         <span className="text-white">
                           {selectedCategory
-                            ? `₦${selectedCategory.price}`
-                            : (event.pricing_type === 'free' ? 'Free' : `₦${event.price}`)}
+                            ? `₦${Number(selectedCategory.price).toLocaleString()}`
+                            : (event.pricing_type === 'free' ? 'Free' : `From ₦${displayEventPrice.toLocaleString()}`)}
                         </span>
                       </div>
                       <div className="flex justify-between font-bold text-base md:text-lg">
                         <span>Total</span>
                         <span className="text-rose-500">
-                          {event.pricing_type === 'free' && !selectedCategory
+                          {event.pricing_type === 'free'
                             ? 'Free'
-                            : `₦${(((selectedCategory ? parseFloat(selectedCategory.price) : parseFloat(event.price)) * quantity)).toLocaleString()}`}
+                            : `₦${(parseFloat(String(selectedCategory?.price ?? displayEventPrice)) * quantity).toLocaleString()}`}
                         </span>
                       </div>
                     </div>
