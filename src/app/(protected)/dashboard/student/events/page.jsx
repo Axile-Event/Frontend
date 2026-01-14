@@ -48,6 +48,13 @@ const EventsPage = () => {
       event.event_name.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
+    // Apply pricing filter
+    if (filter === 'paid') {
+      filtered = filtered.filter(event => event.pricing_type === 'paid');
+    } else if (filter === 'free') {
+      filtered = filtered.filter(event => event.pricing_type === 'free');
+    }
+
     if (filter === 'latest') {
        // Sort by creation date (newest created first)
        // If created_at is available, use it. Otherwise, use event_id as a proxy for creation order (descending)
@@ -94,7 +101,7 @@ const EventsPage = () => {
 
       {/* Filters */}
       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-        {['all', 'latest', 'popular'].map((f) => (
+        {['all', 'latest', 'popular', 'paid', 'free'].map((f) => (
             <button
               key={f}
               onClick={() => {
@@ -103,7 +110,7 @@ const EventsPage = () => {
                   setEvents(prev => shuffleArray([...prev]));
                 }
               }}
-              className={`px-4 py-1.5 rounded-full text-xs md:text-sm font-medium capitalize transition-all duration-300 ${
+              className={`px-4 py-1.5 rounded-full text-xs md:text-sm font-medium capitalize transition-all duration-300 whitespace-nowrap ${
                 filter === f 
                   ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 scale-105" 
                   : "bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground border border-transparent"
