@@ -11,6 +11,7 @@ import {
   Loader2
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
+import { Skeleton } from "../../../components/ui/skeleton";
 import { adminService } from "../../../lib/admin";
 import { toast } from "react-hot-toast";
 
@@ -32,6 +33,77 @@ function MetricCard({ title, value, icon: Icon, description }) {
         )}
       </CardContent>
     </Card>
+  );
+}
+
+function MetricCardSkeleton() {
+  return (
+    <Card className="shadow-sm">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 p-4">
+        <Skeleton className="h-3 w-20" />
+        <Skeleton className="h-4 w-4 rounded" />
+      </CardHeader>
+      <CardContent className="p-4 pt-0">
+        <Skeleton className="h-7 w-16 mb-2" />
+        <Skeleton className="h-3 w-32" />
+      </CardContent>
+    </Card>
+  );
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-4 w-64" />
+        </div>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+        <MetricCardSkeleton />
+        <MetricCardSkeleton />
+        <MetricCardSkeleton />
+        <MetricCardSkeleton />
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-7">
+        <Card className="col-span-4 shadow-sm">
+          <CardHeader className="p-4 pb-2">
+            <Skeleton className="h-5 w-32" />
+          </CardHeader>
+          <CardContent className="p-4">
+            <div className="space-y-3">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="flex items-center justify-between">
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-48" />
+                    <Skeleton className="h-3 w-32" />
+                  </div>
+                  <Skeleton className="h-5 w-16 rounded-full" />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="col-span-3 shadow-sm">
+          <CardHeader className="p-4 pb-2">
+            <Skeleton className="h-5 w-28" />
+          </CardHeader>
+          <CardContent className="p-4 space-y-3">
+            <Skeleton className="h-3 w-full" />
+            <div className="grid grid-cols-2 gap-2">
+              <Skeleton className="h-9 rounded-md" />
+              <Skeleton className="h-9 rounded-md" />
+              <Skeleton className="h-9 rounded-md" />
+              <Skeleton className="h-9 rounded-md" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 }
 
@@ -61,11 +133,7 @@ export default function AdminDashboardPage() {
   }, []);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <Loader2 className="w-6 h-6 animate-spin text-primary" />
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   return (
