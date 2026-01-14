@@ -98,7 +98,7 @@ const VerifyOTPContent = () => {
       toast.success("Email verified successfully! Redirecting...", { id: toastId });
       
       if (callbackUrl) {
-        router.push(decodeURIComponent(callbackUrl));
+        router.push(callbackUrl);
       } else {
         router.push("/dashboard");
       }

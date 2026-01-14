@@ -23,6 +23,7 @@ import {
   Plus,
   Edit2,
   Zap,
+  Users,
 } from "lucide-react";
 
 const FALLBACK_EVENT_TYPES = [
@@ -55,6 +56,7 @@ export default function CreateEvent() {
     date: "",
     capacity: "",
     price: "",
+    max_quantity_per_booking: "",
   });
 
   const [categories, setCategories] = useState([]);
@@ -236,6 +238,13 @@ export default function CreateEvent() {
       e.name = "Name must be ≤ 200 characters";
     if (form.location && form.location.length > 200)
       e.location = "Location must be ≤ 200 characters";
+    if (
+      form.max_quantity_per_booking !== "" &&
+      (isNaN(Number(form.max_quantity_per_booking)) ||
+        Number(form.max_quantity_per_booking) < 1)
+    ) {
+      e.max_quantity_per_booking = "Must be at least 1";
+    }
 
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -251,6 +260,7 @@ export default function CreateEvent() {
       date: "",
       capacity: "",
       price: "",
+      max_quantity_per_booking: "",
     });
     setImageFile(null);
     setPreview(null);
@@ -314,6 +324,16 @@ export default function CreateEvent() {
 
       if (imageFile) {
         formData.append("image", imageFile);
+      }
+
+      if (
+        form.max_quantity_per_booking !== "" &&
+        form.max_quantity_per_booking !== null
+      ) {
+        formData.append(
+          "max_quantity_per_booking",
+          form.max_quantity_per_booking
+        );
       }
 
       // IMPORTANT: don't set Content-Type for FormData; the browser will add the correct boundary.
@@ -547,19 +567,29 @@ export default function CreateEvent() {
               </div>
             </div>
 
+            {/* Capacity and Price Row */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
                   Capacity
                 </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={form.capacity}
-                  onChange={handleChange("capacity")}
-                  placeholder="Unlimited"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-rose-500 transition-all"
-                />
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="1"
+                    value={form.capacity}
+                    onChange={handleChange("capacity")}
+                    placeholder="Unlimited"
+                    className="w-full pl-10 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-rose-500 transition-all appearance-none"
+                    style={{ WebkitAppearance: "none", MozAppearance: "textfield" }}
+                  />
+                  <Users className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                </div>
+                {errors.capacity && (
+                  <p className="text-[10px] text-rose-500 font-bold">
+                    {errors.capacity}
+                  </p>
+                )}
               </div>
 
               <div className="space-y-1.5">
@@ -581,12 +611,39 @@ export default function CreateEvent() {
                     onChange={handleChange("price")}
                     placeholder="0.00"
                     disabled={form.pricing_type === "free"}
-                    className={`w-full pl-8 bg-white/5 border ${errors.price ? "border-rose-500/50 focus:border-rose-500" : "border-white/10 focus:border-rose-500"} rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-rose-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed`}
+                    className={`w-full pl-8 bg-white/5 border ${errors.price ? "border-rose-500/50 focus:border-rose-500" : "border-white/10 focus:border-rose-500"} rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-rose-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed appearance-none`}
+                    style={{ WebkitAppearance: "none", MozAppearance: "textfield" }}
                   />
                 </div>
                 {errors.price && (
                   <p className="text-[10px] text-rose-500 font-bold">
                     {errors.price}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Max Tickets Per User Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                  Max Tickets Per User
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min="1"
+                    value={form.max_quantity_per_booking}
+                    onChange={handleChange("max_quantity_per_booking")}
+                    placeholder="Default (3)"
+                    className="w-full pl-10 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-rose-500 transition-all appearance-none"
+                    style={{ WebkitAppearance: "none", MozAppearance: "textfield" }}
+                  />
+                  <Ticket className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                </div>
+                {errors.max_quantity_per_booking && (
+                  <p className="text-[10px] text-rose-500 font-bold">
+                    {errors.max_quantity_per_booking}
                   </p>
                 )}
               </div>

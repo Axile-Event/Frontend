@@ -180,7 +180,11 @@ const SignUpContent = () => {
         } else {
           toast.success('Login Successful', { id: toastId });
         }
-        router.push("/dashboard/org");
+        if (callbackUrl) {
+          router.push(callbackUrl);
+        } else {
+           router.push("/dashboard");
+        }
       } catch (err) {
         console.error('Google signup error object:', err);
         console.log('Error Response Data:', err.response?.data);

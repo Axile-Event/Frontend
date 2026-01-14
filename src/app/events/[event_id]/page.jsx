@@ -87,7 +87,8 @@ const EventDetailsPage = () => {
   const handleBookTicket = async () => {
     if (!token) {
       toast.error("Please login to book tickets");
-      const callbackUrl = encodeURIComponent(`/events/${eventId}`);
+      // Double encode the eventId so it remains encoded after searchParams decoding
+      const callbackUrl = encodeURIComponent(`/events/${encodeURIComponent(eventId)}`);
       setTimeout(() => {
         router.push(`/login?callbackUrl=${callbackUrl}`);
       }, 1500);
