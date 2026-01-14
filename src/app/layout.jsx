@@ -1,12 +1,12 @@
 import { Plus_Jakarta_Sans, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { GoogleAuthProvider } from "../components/GoogleAuthProvider";
+import { GoogleAuthProvider } from "@/components/GoogleAuthProvider";
 import { Toaster } from "react-hot-toast";
-import NavigationProgressBar from "../components/NavigationProgressBar";
+import NavigationProgressBar from "@/components/NavigationProgressBar";
 import { Suspense } from "react";
-import AdminAwareLayout from "../components/AdminAwareLayout";
+import AdminAwareLayout from "@/components/AdminAwareLayout";
 
-import { ThemeProvider } from "../components/theme-provider";
+import { ThemeProvider } from "@/components/theme-provider";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta-sans",
