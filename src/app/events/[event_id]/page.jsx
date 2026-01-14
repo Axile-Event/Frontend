@@ -285,7 +285,7 @@ const EventDetailsPage = () => {
                               onClick={() => setSelectedCategory(cat)}
                               className={`flex flex-col p-3 rounded-xl border text-left transition-all ${selectedCategory?.category_id === cat.category_id
                                   ? "border-rose-600 bg-rose-600/5 ring-1 ring-rose-600"
-                                  : "border-white/10 bg-white/5 hover:border-white/20"
+                                  : "border-gray-600 bg-gray-600/5 hover:border-gray-500"
                                 } ${cat.is_sold_out ? "opacity-50 cursor-not-allowed grayscale" : ""}`}
                             >
                               <div className="flex justify-between items-center mb-1">
@@ -304,7 +304,7 @@ const EventDetailsPage = () => {
 
                     <div className="space-y-2">
                       <Label className="text-xs md:text-sm text-muted-foreground">Quantity</Label>
-                      <div className="h-9 md:h-10 w-full flex items-center px-3 border border-white/10 rounded-md bg-white/5 text-gray-400 text-sm md:text-base cursor-not-allowed">
+                      <div className="h-9 md:h-10 w-full flex items-center px-3 border border-gray-600 rounded-md bg-gray-600/5 text-gray-400 text-sm md:text-base cursor-not-allowed">
                         1 Ticket (Maximum per transaction)
                       </div>
                       <p className="text-[10px] md:text-xs text-muted-foreground/80 italic">
@@ -313,7 +313,7 @@ const EventDetailsPage = () => {
                     </div>
 
                     {/* Price Summary */}
-                    <div className="pt-4 border-t border-white/10 space-y-2">
+                    <div className="pt-4 border-t border-gray-600 space-y-2">
                       <div className="flex justify-between text-xs md:text-sm text-gray-400">
                         <span>Price per ticket</span>
                         <span className="text-white">
