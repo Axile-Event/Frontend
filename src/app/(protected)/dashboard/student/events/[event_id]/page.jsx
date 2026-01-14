@@ -2,22 +2,22 @@
 
 import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import api from "@/lib/axios";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
+import api from "../../../../../../lib/axios";
+import { Button } from "../../../../../../components/ui/button";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "../../../../../../components/ui/card";
+import { Label } from "../../../../../../components/ui/label";
+import { Input } from "../../../../../../components/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select-component";
+} from "../../../../../../components/ui/select-component";
 import { Loader2, MapPin, Calendar, Clock, Ticket, Info, CheckCircle2, Share2, Copy, Check } from "lucide-react";
 import toast from "react-hot-toast";
 import { motion } from "framer-motion";
-import { getImageUrl } from "@/lib/utils";
+import { getImageUrl } from "../../../../../../lib/utils";
 
 const EventDetailsPage = () => {
   const params = useParams();
