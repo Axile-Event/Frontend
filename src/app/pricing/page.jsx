@@ -4,105 +4,105 @@ import { CheckCircle2, Info } from "lucide-react";
 
 export default function PricingPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-950">
+    <div className="min-h-screen bg-[#0A0A14] text-white">
       <div className="container mx-auto px-4 py-16 max-w-5xl">
         <div className="text-center mb-16">
-          <h1 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900 dark:text-white">
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">
             Simple, transparent pricing
           </h1>
-          <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+          <p className="text-lg text-gray-400 max-w-2xl mx-auto">
             We believe in clear pricing. No surprises, no hidden fees. You only pay when you sell tickets.
           </p>
         </div>
 
         <div className="grid md:grid-cols-2 gap-6 mb-16">
-          <Card className="border-2">
+          <Card className="border-2 border-gray-700 bg-gray-900/50">
             <CardHeader>
-              <CardTitle className="text-2xl">Free Events</CardTitle>
-              <CardDescription className="text-base">Perfect for community gatherings</CardDescription>
+              <CardTitle className="text-2xl text-white">Free Events</CardTitle>
+              <CardDescription className="text-base text-gray-400">Perfect for community gatherings</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-5xl font-bold mb-4 text-gray-900 dark:text-white">₦0</div>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">
+              <div className="text-5xl font-bold mb-4 text-white">₦0</div>
+              <p className="text-gray-400 mb-6">
                 Organize free events without any charges. We don't charge you, and your attendees pay nothing.
               </p>
               <div className="space-y-3">
                 <div className="flex items-start gap-2">
-                  <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">No platform fees</span>
+                  <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                  <span className="text-sm text-gray-300">No platform fees</span>
                 </div>
                 <div className="flex items-start gap-2">
-                  <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">Unlimited tickets</span>
+                  <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                  <span className="text-sm text-gray-300">Unlimited tickets</span>
                 </div>
                 <div className="flex items-start gap-2">
-                  <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">Full event management tools</span>
+                  <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                  <span className="text-sm text-gray-300">Full event management tools</span>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="border-2 border-blue-200 dark:border-blue-900">
+          <Card className="border-2 border-rose-600 bg-rose-950/30">
             <CardHeader>
-              <CardTitle className="text-2xl">Paid Events</CardTitle>
-              <CardDescription className="text-base">When you sell tickets</CardDescription>
+              <CardTitle className="text-2xl text-white">Paid Events</CardTitle>
+              <CardDescription className="text-base text-gray-400">When you sell tickets</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="text-5xl font-bold mb-4 text-gray-900 dark:text-white">6%</div>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">
+              <div className="text-5xl font-bold mb-4 text-white">6%</div>
+              <p className="text-gray-400 mb-6">
                 A small platform fee of 6% plus ₦80 per ticket sold. Deducted automatically when you withdraw your earnings.
               </p>
               <div className="space-y-3">
                 <div className="flex items-start gap-2">
-                  <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">No setup costs</span>
+                  <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                  <span className="text-sm text-gray-300">No setup costs</span>
                 </div>
                 <div className="flex items-start gap-2">
-                  <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">No monthly subscriptions</span>
+                  <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                  <span className="text-sm text-gray-300">No monthly subscriptions</span>
                 </div>
                 <div className="flex items-start gap-2">
-                  <CheckCircle2 className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">Only pay when tickets sell</span>
+                  <CheckCircle2 className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+                  <span className="text-sm text-gray-300">Only pay when tickets sell</span>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
 
-        <Card className="mb-16 bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900">
+        <Card className="mb-16 bg-gray-900/50 border-gray-700">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-xl">
+            <CardTitle className="flex items-center gap-2 text-xl text-white">
               <Info className="w-5 h-5" />
               How it works
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <div>
-              <h3 className="font-semibold mb-3 text-gray-900 dark:text-white">Example breakdown</h3>
-              <div className="bg-white dark:bg-gray-900 rounded-lg p-6 space-y-3">
+              <h3 className="font-semibold mb-3 text-white">Example breakdown</h3>
+              <div className="bg-gray-800/50 rounded-lg p-6 space-y-3 border border-gray-700">
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-700 dark:text-gray-300">Ticket price</span>
-                  <span className="font-semibold text-gray-900 dark:text-white">₦1,000</span>
+                  <span className="text-gray-300">Ticket price</span>
+                  <span className="font-semibold text-white">₦1,000</span>
                 </div>
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-gray-600 dark:text-gray-400">Platform fee (6%)</span>
-                  <span className="text-gray-600 dark:text-gray-400">₦60</span>
+                  <span className="text-gray-400">Platform fee (6%)</span>
+                  <span className="text-gray-400">₦60</span>
                 </div>
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-gray-600 dark:text-gray-400">Additional fee</span>
-                  <span className="text-gray-600 dark:text-gray-400">₦80</span>
+                  <span className="text-gray-400">Additional fee</span>
+                  <span className="text-gray-400">₦80</span>
                 </div>
-                <Separator />
+                <Separator className="bg-gray-700" />
                 <div className="flex justify-between items-center text-lg">
-                  <span className="font-semibold text-gray-900 dark:text-white">You receive</span>
-                  <span className="font-bold text-green-600 dark:text-green-500">₦940</span>
+                  <span className="font-semibold text-white">You receive</span>
+                  <span className="font-bold text-green-500">₦940</span>
                 </div>
               </div>
             </div>
 
-            <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+            <div className="space-y-2 text-sm text-gray-400">
               <p>
                 The customer pays ₦1,080 (ticket price plus ₦80). You receive ₦940 after the platform fee is deducted.
               </p>
@@ -114,39 +114,39 @@ export default function PricingPage() {
         </Card>
 
         <div className="mb-16">
-          <h2 className="text-3xl font-bold text-center mb-4 text-gray-900 dark:text-white">
+          <h2 className="text-3xl font-bold text-center mb-4">
             No hidden charges
           </h2>
-          <p className="text-center text-gray-600 dark:text-gray-400 mb-8 max-w-2xl mx-auto">
+          <p className="text-center text-gray-400 mb-8 max-w-2xl mx-auto">
             What you see is what you get. We're committed to transparency.
           </p>
           <div className="grid md:grid-cols-3 gap-6">
-            <Card>
+            <Card className="bg-gray-900/50 border-gray-700">
               <CardHeader>
-                <CardTitle className="text-lg">No setup fees</CardTitle>
+                <CardTitle className="text-lg text-white">No setup fees</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <p className="text-sm text-gray-400">
                   Create your organizer account and start hosting events immediately. No upfront costs.
                 </p>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="bg-gray-900/50 border-gray-700">
               <CardHeader>
-                <CardTitle className="text-lg">No monthly fees</CardTitle>
+                <CardTitle className="text-lg text-white">No monthly fees</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <p className="text-sm text-gray-400">
                   No subscriptions or recurring charges. Your account stays active whether you host events or not.
                 </p>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="bg-gray-900/50 border-gray-700">
               <CardHeader>
-                <CardTitle className="text-lg">No minimum sales</CardTitle>
+                <CardTitle className="text-lg text-white">No minimum sales</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <p className="text-sm text-gray-400">
                   Sell one ticket or one thousand. There are no quotas or minimum requirements.
                 </p>
               </CardContent>
@@ -154,9 +154,9 @@ export default function PricingPage() {
           </div>
         </div>
 
-        <Card>
+        <Card className="bg-gray-900/50 border-gray-700">
           <CardHeader>
-            <CardTitle className="text-2xl">Common questions</CardTitle>
+            <CardTitle className="text-2xl text-white">Common questions</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <div>
