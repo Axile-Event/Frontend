@@ -346,7 +346,9 @@ export default function CreateEvent() {
                   if (!cat.name) return Promise.resolve();
 
                 const rawPrice = String(cat.price ?? "").trim();
-                const catPrice = rawPrice === "" ? 0 : parseFloat(String(cat.price).replace(/,/g, ""));
+                const parsedPrice = rawPrice === "" ? 0 : parseFloat(String(cat.price).replace(/,/g, ""));
+                // Round to 2 decimal places to avoid floating-point precision issues
+                const catPrice = Math.round(parsedPrice * 100) / 100;
                 const catMaxTickets = cat.max_tickets
                   ? parseInt(String(cat.max_tickets).replace(/,/g, ""), 10)
                   : null;

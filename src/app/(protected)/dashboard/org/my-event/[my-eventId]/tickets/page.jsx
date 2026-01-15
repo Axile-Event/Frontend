@@ -3,8 +3,9 @@
 import React, { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import api from "../../../../../../../lib/axios";
-import { Plus, Trash2, Edit2, ArrowLeft, Loader2, Save, X, Ticket } from "lucide-react";
+import { Plus, Trash2, Edit2, ArrowLeft, Loader2, Save, X, Ticket, AlertTriangle } from "lucide-react";
 import toast from "react-hot-toast";
+import PinPromptModal from "@/components/PinPromptModal";
 
 export default function ManageTicketsPage() {
     const router = useRouter();
@@ -26,18 +27,43 @@ export default function ManageTicketsPage() {
     const [editingId, setEditingId] = useState(null);
     const [editForm, setEditForm] = useState({});
 
+    // Delete confirmation states
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [categoryToDelete, setCategoryToDelete] = useState(null);
+    const [showPinPrompt, setShowPinPrompt] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+
     const fetchEventAndCategories = useCallback(async () => {
         if (!id) return;
         setLoading(true);
         try {
-            const [eventRes, catRes] = await Promise.all([
-                api.get(`/events/${id}/details/`),
-                api.get(`/tickets/categories/?event_id=${id}`)
-            ]);
+            // First get event details (which may include ticket_categories)
+            const eventRes = await api.get(`/events/${id}/details/`);
+            console.log("Event response:", eventRes.data);
             setEvent(eventRes.data);
-            setCategories(catRes.data.categories || []);
+            
+            // Try to get categories from dedicated endpoint first
+            try {
+                const catRes = await api.get(`/tickets/categories/?event_id=${id}`);
+                console.log("Categories response:", catRes.data);
+                // Handle both array and object response formats
+                const categoriesData = Array.isArray(catRes.data) 
+                    ? catRes.data 
+                    : (catRes.data.categories || []);
+                
+                if (categoriesData.length > 0) {
+                    setCategories(categoriesData);
+                } else {
+                    // Fallback to ticket_categories from event details
+                    setCategories(eventRes.data.ticket_categories || []);
+                }
+            } catch (catErr) {
+                console.log("Categories endpoint failed, using event details:", catErr);
+                // Fallback to ticket_categories from event details
+                setCategories(eventRes.data.ticket_categories || []);
+            }
         } catch (err) {
-            // Fallback to simpler ID if prefixed one fails, or just show error
+            console.error("Fetch error:", err);
             toast.error(err?.response?.data?.error || "Failed to load ticket data");
         } finally {
             setLoading(false);
@@ -57,10 +83,13 @@ export default function ManageTicketsPage() {
 
         setCreating(true);
         try {
+            // Round to 2 decimal places to avoid floating-point precision issues
+            const parsedPrice = parseFloat(newCategory.price);
+            const roundedPrice = Math.round(parsedPrice * 100) / 100;
             const payload = {
                 event_id: event?.event_id || id,
                 name: newCategory.name,
-                price: parseFloat(newCategory.price),
+                price: roundedPrice,
                 max_tickets: newCategory.max_tickets ? parseInt(newCategory.max_tickets) : null,
                 max_quantity_per_booking: newCategory.max_quantity_per_booking ? parseInt(newCategory.max_quantity_per_booking) : null,
             };
@@ -82,31 +111,77 @@ export default function ManageTicketsPage() {
         }
     };
 
-    const handleDelete = async (catId) => {
-        if (!confirm("Are you sure you want to delete this category?")) return;
+    const handleDeleteClick = (category) => {
+        setCategoryToDelete(category);
+        setShowDeleteConfirm(true);
+    };
+
+    const handleConfirmDelete = () => {
+        setShowDeleteConfirm(false);
+        setShowPinPrompt(true);
+    };
+
+    const handlePinSuccess = async (pin) => {
+        setShowPinPrompt(false);
+        if (!categoryToDelete) return;
+        
+        setDeleting(true);
         try {
-            await api.delete(`/tickets/categories/${catId}/`);
+            await api.delete(`/tickets/categories/${categoryToDelete.category_id}/`);
             toast.success("Category deleted");
             fetchEventAndCategories();
         } catch (err) {
-            toast.error("Failed to delete category");
+            console.error("Delete error:", err);
+            toast.error(err?.response?.data?.error || "Failed to delete category");
+        } finally {
+            setDeleting(false);
+            setCategoryToDelete(null);
         }
     };
 
     const startEdit = (cat) => {
         setEditingId(cat.category_id);
-        setEditForm({ ...cat });
+        setEditForm({
+            name: cat.name || "",
+            price: cat.price || "",
+            max_tickets: cat.max_tickets || "",
+            description: cat.description || ""
+        });
     };
 
     const handleUpdate = async (e) => {
         e.preventDefault();
         try {
-            await api.patch(`/tickets/categories/${editingId}/`, editForm);
+            // Build payload with proper types
+            const payload = {
+                name: editForm.name,
+            };
+            
+            // Only include price if it's a valid number
+            if (editForm.price !== "" && editForm.price !== null) {
+                const parsedPrice = parseFloat(editForm.price);
+                payload.price = Math.round(parsedPrice * 100) / 100; // Round to 2 decimals
+            }
+            
+            // Only include max_tickets if it's set
+            if (editForm.max_tickets !== "" && editForm.max_tickets !== null) {
+                payload.max_tickets = parseInt(editForm.max_tickets);
+            }
+            
+            // Include description if set
+            if (editForm.description) {
+                payload.description = editForm.description;
+            }
+            
+            console.log("Update payload:", payload);
+            await api.patch(`/tickets/categories/${editingId}/`, payload);
             toast.success("Category updated");
             setEditingId(null);
             fetchEventAndCategories();
         } catch (err) {
-            toast.error("Failed to update category");
+            console.error("Update error:", err?.response?.data || err);
+            const errorMsg = err?.response?.data?.error || err?.response?.data?.detail || "Failed to update category";
+            toast.error(errorMsg);
         }
     };
 
@@ -204,14 +279,16 @@ export default function ManageTicketsPage() {
                                     <form onSubmit={handleUpdate} className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <input
                                             type="text"
-                                            value={editForm.name}
+                                            value={editForm.name ?? ""}
                                             onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                                            placeholder="Category Name"
                                             className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm"
                                         />
                                         <input
                                             type="number"
-                                            value={editForm.price}
+                                            value={editForm.price ?? ""}
                                             onChange={(e) => setEditForm({ ...editForm, price: e.target.value })}
+                                            placeholder="Price"
                                             className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm"
                                         />
                                         <div className="md:col-span-2 flex justify-end gap-2">
@@ -231,18 +308,46 @@ export default function ManageTicketsPage() {
                                                 <span className="text-[10px] font-bold bg-white/5 px-2 py-0.5 rounded-full text-rose-500 uppercase">
                                                     ₦{cat.price}
                                                 </span>
+                                                {(cat.tickets_sold ?? 0) > 0 && (
+                                                    <span className="text-[9px] font-bold bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full text-amber-500 uppercase">
+                                                        Locked
+                                                    </span>
+                                                )}
                                             </div>
                                             <p className="text-xs text-gray-500 max-w-xl">{cat.description || "No description provided."}</p>
                                             <div className="flex gap-4 text-[10px] text-gray-600 font-bold uppercase tracking-wider pt-2">
                                                 <span>Available: {cat.available_tickets ?? "Unlimited"}</span>
                                                 <span>Sold: {cat.tickets_sold ?? 0}</span>
                                             </div>
+                                            {(cat.tickets_sold ?? 0) > 0 && (
+                                                <p className="text-[10px] text-amber-500/70 italic pt-1">
+                                                    Cannot edit or delete — tickets have been sold
+                                                </p>
+                                            )}
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <button onClick={() => startEdit(cat)} className="p-2.5 hover:bg-white/5 rounded-xl transition-colors text-gray-400 hover:text-white">
+                                            <button 
+                                                onClick={() => startEdit(cat)} 
+                                                disabled={(cat.tickets_sold ?? 0) > 0}
+                                                className={`p-2.5 rounded-xl transition-colors ${
+                                                    (cat.tickets_sold ?? 0) > 0 
+                                                        ? "text-gray-700 cursor-not-allowed" 
+                                                        : "hover:bg-white/5 text-gray-400 hover:text-white"
+                                                }`}
+                                                title={(cat.tickets_sold ?? 0) > 0 ? "Cannot edit - tickets have been sold" : "Edit category"}
+                                            >
                                                 <Edit2 className="w-4 h-4" />
                                             </button>
-                                            <button onClick={() => handleDelete(cat.category_id)} className="p-2.5 hover:bg-rose-600/10 rounded-xl transition-colors text-gray-500 hover:text-rose-500">
+                                            <button 
+                                                onClick={() => handleDeleteClick(cat)} 
+                                                disabled={(cat.tickets_sold ?? 0) > 0 || deleting}
+                                                className={`p-2.5 rounded-xl transition-colors ${
+                                                    (cat.tickets_sold ?? 0) > 0 
+                                                        ? "text-gray-700 cursor-not-allowed" 
+                                                        : "hover:bg-rose-600/10 text-gray-500 hover:text-rose-500"
+                                                }`}
+                                                title={(cat.tickets_sold ?? 0) > 0 ? "Cannot delete - tickets have been sold" : "Delete category"}
+                                            >
                                                 <Trash2 className="w-4 h-4" />
                                             </button>
                                         </div>
@@ -253,6 +358,71 @@ export default function ManageTicketsPage() {
                     </div>
                 )}
             </section>
+
+            {/* Delete Confirmation Modal */}
+            {showDeleteConfirm && categoryToDelete && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                    <div className="bg-[#0A0A0A] border border-white/10 rounded-3xl p-8 max-w-md w-full space-y-6 shadow-2xl">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="p-3 bg-rose-500/10 rounded-2xl">
+                                    <AlertTriangle className="w-6 h-6 text-rose-500" />
+                                </div>
+                                <h3 className="text-xl font-bold text-white">Delete Category</h3>
+                            </div>
+                            <button 
+                                onClick={() => {
+                                    setShowDeleteConfirm(false);
+                                    setCategoryToDelete(null);
+                                }}
+                                className="p-2 hover:bg-white/5 rounded-xl transition-colors"
+                            >
+                                <X className="w-5 h-5 text-gray-500" />
+                            </button>
+                        </div>
+
+                        <div className="space-y-4">
+                            <p className="text-gray-400 text-sm leading-relaxed">
+                                Are you sure you want to delete the ticket category{" "}
+                                <span className="text-white font-bold">"{categoryToDelete.name}"</span>?
+                            </p>
+                            <p className="text-rose-400 text-xs">
+                                This action cannot be undone.
+                            </p>
+                        </div>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => {
+                                    setShowDeleteConfirm(false);
+                                    setCategoryToDelete(null);
+                                }}
+                                className="flex-1 py-3.5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 font-bold text-sm transition-all active:scale-95"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleConfirmDelete}
+                                className="flex-1 py-3.5 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm transition-all active:scale-95 flex items-center justify-center gap-2"
+                            >
+                                <Trash2 className="w-4 h-4" /> Delete
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* PIN Prompt Modal */}
+            <PinPromptModal
+                isOpen={showPinPrompt}
+                onClose={() => {
+                    setShowPinPrompt(false);
+                    setCategoryToDelete(null);
+                }}
+                onSuccess={handlePinSuccess}
+                action="delete this ticket category"
+                requireSetup={true}
+            />
         </div>
     );
 }

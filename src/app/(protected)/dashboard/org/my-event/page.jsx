@@ -307,7 +307,19 @@ const MyEvent = () => {
                     </div>
                     
                     <div className="px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest backdrop-blur-xl bg-black/40 border border-white/10 text-white">
-                      {ev.pricing_type === "paid" ? `₦${Number(ev.event_price ?? 0).toLocaleString()}` : "FREE"}
+                      {ev.pricing_type === "paid" 
+                        ? (() => {
+                            // Get price from ticket_categories (lowest price) or fallback to event price
+                            const categories = ev.ticket_categories || [];
+                            const categoryPrices = categories.map(c => parseFloat(c.price) || 0).filter(p => p > 0);
+                            const lowestCategoryPrice = categoryPrices.length > 0 ? Math.min(...categoryPrices) : null;
+                            const eventPrice = ev.price ?? ev.event_price ?? 0;
+                            const displayPrice = lowestCategoryPrice ?? eventPrice;
+                            return displayPrice > 0 
+                              ? `From ₦${Number(displayPrice).toLocaleString()}` 
+                              : "PAID";
+                          })()
+                        : "FREE"}
                     </div>
                   </div>
 
@@ -339,7 +351,7 @@ const MyEvent = () => {
                   </p>
 
                   <div className="mt-auto pt-4 border-t border-white/5 flex items-center justify-between gap-4">
-                    <div className="flex-1 grid grid-cols-2 gap-4">
+                    <div className={`flex-1 grid gap-4 ${ev.pricing_type === "paid" ? "grid-cols-2" : "grid-cols-1"}`}>
                       <div>
                         <p className="text-[9px] text-gray-600 font-black uppercase tracking-widest mb-0.5">Bookings</p>
                         <p className="text-base font-bold text-white leading-none">
@@ -347,12 +359,14 @@ const MyEvent = () => {
                           <span className="text-[9px] text-gray-500 font-medium ml-1">/ {ev.ticket_stats?.available_spots ?? '∞'}</span>
                         </p>
                       </div>
-                      <div>
-                        <p className="text-[9px] text-gray-600 font-black uppercase tracking-widest mb-0.5">Revenue</p>
-                        <p className="text-base font-bold text-emerald-400 leading-none">
-                          ₦{(ev.ticket_stats?.total_revenue ?? 0).toLocaleString()}
-                        </p>
-                      </div>
+                      {ev.pricing_type === "paid" && (
+                        <div>
+                          <p className="text-[9px] text-gray-600 font-black uppercase tracking-widest mb-0.5">Revenue</p>
+                          <p className="text-base font-bold text-emerald-400 leading-none">
+                            ₦{(ev.ticket_stats?.total_revenue ?? 0).toLocaleString()}
+                          </p>
+                        </div>
+                      )}
                     </div>
                     
                     <button
