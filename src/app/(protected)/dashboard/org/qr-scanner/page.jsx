@@ -599,10 +599,10 @@ export default function QrScanner() {
                 >
                   <X className="w-5 h-5" /> Stop
                 </button>
-                <div className="bg-[#0F0F0F] border border-white/5 p-4 rounded-2xl flex items-center justify-center gap-3 font-mono text-gray-500 hidden md:flex">
+                <div className="bg-[#0F0F0F] border border-white/5 p-4 rounded-2xl items-center justify-center gap-3 font-mono text-gray-500 hidden md:flex">
                   <Maximize2 className="w-4 h-4" /> AUTO-FOCUS
                 </div>
-                <div className="bg-[#0F0F0F] border border-white/5 p-4 rounded-2xl flex items-center justify-center gap-3 font-mono text-gray-500 hidden md:flex">
+                <div className="bg-[#0F0F0F] border border-white/5 p-4 rounded-2xl items-center justify-center gap-3 font-mono text-gray-500 hidden md:flex">
                   <CheckSquare className="w-4 h-4" /> VERIFIED-ONLY
                 </div>
               </div>
@@ -635,7 +635,7 @@ export default function QrScanner() {
                       className="group bg-[#0F0F0F] border border-white/5 p-5 rounded-2xl flex items-center gap-5 hover:border-white/10 transition-all relative overflow-hidden"
                     >
                       <div className={cn(
-                        "flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center bg-black border",
+                        "shrink-0 w-12 h-12 rounded-xl flex items-center justify-center bg-black border",
                         entry.status === "success" ? "border-emerald-500/20 text-emerald-500" : "border-rose-500/20 text-rose-500"
                       )}>
                         {entry.status === "success" ? <User className="w-6 h-6" /> : <AlertCircle className="w-6 h-6" />}
