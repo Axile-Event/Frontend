@@ -143,43 +143,59 @@ const SignUpContent = () => {
       setLoading(true);
       const toastId = toast.loading('Authenticating with Google...');
       try {
-        // 1. Fetch User Info using the access token
-        const userInfoResponse = await axios.get('https://www.googleapis.com/oauth2/v3/userinfo', {
-            headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
-        });
-
-        const googleUser = userInfoResponse.data;
-        console.log("Google User Info:", googleUser);
-        const googleId = googleUser.sub; // 'sub' is the unique Google ID
-
         const endpoint = role === "Student" ? '/student/google-signup/' : '/organizer/google-signup/';
         console.log(`Sending request to: ${endpoint}`);
         
-        // REVERTING: Sending access_token because the backend error "Wrong number of segments" 
-        // indicates it wants a JWT. Access tokens from Google aren't JWTs, but ID Tokens are.
-        // Since we can't easily get an ID Token with this custom UI, we send the access_token 
-        // and hope the backend can validate it (or needs to be fixed to do so).
-        // If the backend strictly requires an ID Token, we might need to use the standard Google Login button.
-        const payloadToken = tokenResponse.access_token; 
-        
-        console.log("Payload:", { token: payloadToken }); 
-        
         const res = await api.post(endpoint, {
-          token: payloadToken,
+          token: tokenResponse.access_token,
         });
 
         console.log("Backend Response:", res.data);
 
-        const { email, access, refresh, is_new_user } = res.data;
-        // The backend likely returns the user role or we infer it from the context
-        loginUser({ ...res.data }, access, refresh, role);
+        const { email, access, refresh, is_new_user, role: responseRole } = res.data;
+        
+        // Determine the user role
+        let userRole = responseRole || role;
+        if (!userRole && access) {
+          const decoded = parseJwt(access);
+          userRole = decoded?.role || decoded?.user_type;
+          
+          if (!userRole && decoded?.is_organizer) {
+            userRole = 'Organizer';
+          }
+        }
+        
+        // Fallback: Use the role state if still not determined
+        if (!userRole) {
+          userRole = role;
+        }
+        
+        // Normalize role to match store expectations
+        userRole = userRole.charAt(0).toUpperCase() + userRole.slice(1).toLowerCase();
+        
+        loginUser({ ...res.data }, access, refresh, userRole);
 
         if (is_new_user) {
           toast.success('Account Created Successfully', { id: toastId });
         } else {
           toast.success('Login Successful', { id: toastId });
         }
-        router.push("/dashboard/org");
+        
+        // Redirect based on role and callback URL
+        if (callbackUrl) {
+          const decodedUrl = decodeURIComponent(callbackUrl);
+          router.push(decodedUrl);
+        } else {
+          // Redirect to appropriate dashboard based on role
+          const normalizedRole = userRole.toLowerCase().trim();
+          if (normalizedRole === "organizer" || normalizedRole === "org") {
+            router.push('/dashboard/org');
+          } else if (normalizedRole === "student") {
+            router.push('/dashboard/student');
+          } else {
+            router.push('/dashboard');
+          }
+        }
       } catch (err) {
         console.error('Google signup error object:', err);
         console.log('Error Response Data:', err.response?.data);
@@ -196,6 +212,14 @@ const SignUpContent = () => {
       setLoading(false);
     },
   });
+
+  const parseJwt = (token) => {
+    try {
+      return JSON.parse(atob(token.split(".")[1]));
+    } catch (e) {
+      return null;
+    }
+  };
 
   const handleSocialLogin = (provider) => {
     if (provider === 'Google') {
@@ -468,7 +492,6 @@ const SignUpContent = () => {
 
 
       {/* --- Social Login Buttons --- */}
-            {role === "Organizer" && (
               <>
                 {/* --- OR Separator --- */}
                 <div className="relative my-3 md:my-4 text-center">
@@ -484,6 +507,7 @@ const SignUpContent = () => {
               variant="outline"
               type="button"
               onClick={() => googleLogin()}
+              disabled={loading}
               className="w-full h-10 md:h-12 rounded-xl border-gray-800 bg-zinc-900 hover:bg-zinc-800 text-gray-300 transition-all duration-200"
             >
               <div className="flex items-center justify-center gap-3">
@@ -498,7 +522,6 @@ const SignUpContent = () => {
             </Button>
         </div>
       </>
-    )}
           </form>
 
           {/* Already have an account? Sign in */}

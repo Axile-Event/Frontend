@@ -58,33 +58,55 @@ const LoginContent = () => {
   const handleGoogleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       setLoading(true);
+      const toastId = toast.loading('Signing in with Google...');
       try {
-        const expectedRole = role.toLowerCase(); // "student" or "organizer"
         const endpoint = role === "Student" ? "/student/google-signup/" : "/organizer/google-signup/";
         const res = await api.post(endpoint, {
           token: tokenResponse.access_token,
-          role: expectedRole
         });
-        const { user_id, email, access, refresh, role: responseRole } = res.data;
+        const { user_id, email, access, refresh, is_new_user, role: responseRole } = res.data;
         
-        // Verify the returned role matches what the user selected
-        const actualRole = responseRole?.toLowerCase();
-        if (actualRole && actualRole !== expectedRole) {
-          const correctRoleDisplay = actualRole === 'student' ? 'Student' : 'Organizer';
-          throw new Error(`This account is registered as ${correctRoleDisplay}. Please select "${correctRoleDisplay}" to login.`);
+        // Determine the user role
+        let userRole = responseRole || role;
+        if (!userRole && access) {
+          const decoded = parseJwt(access);
+          userRole = decoded?.role || decoded?.user_type;
+          
+          if (!userRole && decoded?.is_organizer) {
+            userRole = 'Organizer';
+          }
         }
+        
+        // Fallback: Use the role state if still not determined
+        if (!userRole) {
+          userRole = role;
+        }
+        
+        // Normalize role to match store expectations
+        userRole = userRole.charAt(0).toUpperCase() + userRole.slice(1).toLowerCase();
+        
+        login({ user_id, email, ...res.data }, access, refresh, userRole);
 
-        const userRole = actualRole || expectedRole;
-        login({ user_id, email }, access, refresh, userRole);
-
-        toast.success("Login successful!");
-        router.push("/dashboard");
+        toast.success(is_new_user ? "Account created successfully!" : "Login successful!", { id: toastId });
+        
+        // Redirect based on role and callback URL
+        if (callbackUrl) {
+          const decodedUrl = decodeURIComponent(callbackUrl);
+          router.replace(decodedUrl);
+        } else {
+          // Redirect to appropriate dashboard based on role
+          const normalizedRole = userRole.toLowerCase().trim();
+          if (normalizedRole === "organizer" || normalizedRole === "org") {
+            router.replace('/dashboard/org');
+          } else if (normalizedRole === "student") {
+            router.replace('/dashboard/student');
+          } else {
+            router.replace('/dashboard');
+          }
+        }
       } catch (err) {
         console.error("Google login error:", err);
-        const message = err.message?.includes('registered as') 
-          ? err.message 
-          : (err.response?.data?.error || "Google login failed");
-        toast.error(message);
+        toast.error(err.response?.data?.error || "Google login failed", { id: toastId });
       } finally {
         setLoading(false);
       }
@@ -130,7 +152,15 @@ const LoginContent = () => {
         console.log('Redirecting to callback URL:', decodedUrl);
         router.replace(decodedUrl);
       } else {
-        router.replace('/dashboard');
+        // Redirect to appropriate dashboard based on role
+        const normalizedRole = userRole.toLowerCase().trim();
+        if (normalizedRole === "organizer" || normalizedRole === "org") {
+          router.replace('/dashboard/org');
+        } else if (normalizedRole === "student") {
+          router.replace('/dashboard/student');
+        } else {
+          router.replace('/dashboard');
+        }
       }
     } catch (err) {
       console.error("Login error:", err);
@@ -315,35 +345,32 @@ const LoginContent = () => {
               </Link>
             </div>
 
-            {role === "Organizer" && (
-              <>
-                {/* Divider */}
-                <div className="relative flex items-center justify-center w-full">
-                  <div className="grow border-t border-gray-800"></div>
-                  <span className="mx-4 text-[10px] md:text-xs text-gray-500 font-medium">
-                    OR
-                  </span>
-                  <div className="grow border-t border-gray-800"></div>
-                </div>
+            {/* Divider */}
+            <div className="relative flex items-center justify-center w-full">
+              <div className="grow border-t border-gray-800"></div>
+              <span className="mx-4 text-[10px] md:text-xs text-gray-500 font-medium">
+                OR
+              </span>
+              <div className="grow border-t border-gray-800"></div>
+            </div>
 
-                {/* Social Login Option */}
-                <Button
-                  variant="outline"
-                  onClick={() => handleGoogleLogin()}
-                  className="w-full h-10 md:h-12 rounded-xl border-gray-800 bg-zinc-900 hover:bg-zinc-800 text-gray-300 transition-all duration-200"
-                >
-                  <div className="flex items-center justify-center gap-3">
-                    <div className="h-4 w-4 md:h-5 md:w-5 flex items-center justify-center">
-                      <img
-                        src="/Logo-google-icon-PNG.png"
-                        alt="Google"
-                      />
-                    </div>
-                    <span className="text-sm md:text-base">Continue with Google</span>
-                  </div>
-                </Button>
-              </>
-            )}
+            {/* Social Login Option */}
+            <Button
+              variant="outline"
+              onClick={() => handleGoogleLogin()}
+              disabled={loading}
+              className="w-full h-10 md:h-12 rounded-xl border-gray-800 bg-zinc-900 hover:bg-zinc-800 text-gray-300 transition-all duration-200"
+            >
+              <div className="flex items-center justify-center gap-3">
+                <div className="h-4 w-4 md:h-5 md:w-5 flex items-center justify-center">
+                  <img
+                    src="/Logo-google-icon-PNG.png"
+                    alt="Google"
+                  />
+                </div>
+                <span className="text-sm md:text-base">Continue with Google</span>
+              </div>
+            </Button>
 
           </div>
         </div>
