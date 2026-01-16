@@ -27,7 +27,7 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { getImageUrl } from "../../../../../../lib/utils";
-import Loading from "@/components/ui/Loading";
+import { EventDetailsSkeleton } from "@/components/skeletons";
 import CustomDropdown from "@/components/ui/CustomDropdown";
 
 // Book for Attendee Modal Component
@@ -492,11 +492,7 @@ export default function EventDetailsPage() {
   }, [coverSrc]);
 
 
-  if (loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-black">
-      <Loading />
-    </div>
-  );
+  if (loading) return <EventDetailsSkeleton />;
 
   if (!event) return null;
 
