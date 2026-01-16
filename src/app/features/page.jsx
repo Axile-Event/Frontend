@@ -251,6 +251,31 @@ const FeaturesPage = () => {
             viewport={{ once: true }}
             className="p-16 rounded-[48px] bg-gradient-to-br from-primary to-rose-600 text-white text-center relative overflow-hidden"
           >
+            {/* African Topographic Contour Lines */}
+            <svg className="absolute inset-0 w-full h-full pointer-events-none z-[1]" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice">
+              {/* Large flowing contours - left side */}
+              <path d="M-50 150 Q50 80 150 120 T350 100" fill="none" stroke="white" strokeWidth="1.5" opacity="0.25"/>
+              <path d="M-50 170 Q50 100 150 140 T350 120" fill="none" stroke="white" strokeWidth="1.2" opacity="0.2"/>
+              <path d="M-50 190 Q50 120 150 160 T350 140" fill="none" stroke="white" strokeWidth="1" opacity="0.15"/>
+              
+              {/* Concentric hill formation - right side */}
+              <ellipse cx="380" cy="80" rx="80" ry="40" fill="none" stroke="white" strokeWidth="1.5" opacity="0.2"/>
+              <ellipse cx="380" cy="80" rx="60" ry="30" fill="none" stroke="white" strokeWidth="1.2" opacity="0.18"/>
+              <ellipse cx="380" cy="80" rx="40" ry="20" fill="none" stroke="white" strokeWidth="1" opacity="0.15"/>
+              <ellipse cx="380" cy="80" rx="20" ry="10" fill="none" stroke="white" strokeWidth="0.8" opacity="0.12"/>
+              
+              {/* Bottom terrain lines */}
+              <path d="M0 280 Q100 240 200 260 T400 240" fill="none" stroke="white" strokeWidth="1.2" opacity="0.18"/>
+              <path d="M0 295 Q100 255 200 275 T400 255" fill="none" stroke="white" strokeWidth="1" opacity="0.15"/>
+              
+              {/* Scattered elevation markers */}
+              <circle cx="60" cy="60" r="25" fill="none" stroke="white" strokeWidth="1.2" opacity="0.15"/>
+              <circle cx="60" cy="60" r="15" fill="none" stroke="white" strokeWidth="1" opacity="0.12"/>
+              
+              {/* Additional flowing line */}
+              <path d="M-20 220 Q80 180 180 200 T380 180" fill="none" stroke="white" strokeWidth="1" opacity="0.15"/>
+            </svg>
+            
             <div className="absolute top-0 right-0 w-80 h-80 bg-white/10 blur-[100px] rounded-full -translate-y-1/2 translate-x-1/2" />
             <div className="absolute bottom-0 left-0 w-60 h-60 bg-black/20 blur-[80px] rounded-full translate-y-1/2 -translate-x-1/2" />
             
