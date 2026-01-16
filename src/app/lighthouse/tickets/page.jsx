@@ -5,6 +5,8 @@ import { Loader2, Ticket, QrCode } from "lucide-react";
 import { adminService } from "@/lib/admin";
 import { toast } from "react-hot-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { TableSkeleton } from "@/components/skeletons";
+import { Button } from "@/components/ui/button";
 
 export default function TicketsPage() {
   const [loading, setLoading] = useState(true);
@@ -89,13 +91,14 @@ export default function TicketsPage() {
                  </tr>
                </thead>
                <tbody className="divide-y divide-white/10">
-                 {loading ? (
-                   <tr>
-                     <td colSpan={6} className="p-10 text-center">
-                        <Loader2 className="w-6 h-6 animate-spin text-primary mx-auto" />
-                     </td>
-                   </tr>
-                 ) : currentItems.length === 0 ? (
+                  {loading ? (
+                    <tr>
+                      <td colSpan={6} className="p-4">
+                        <TableSkeleton />
+                      </td>
+                    </tr>
+                  )
+ : currentItems.length === 0 ? (
                    <tr>
                      <td colSpan={6} className="p-8 text-center text-xs text-muted-foreground">
                        No tickets found.
