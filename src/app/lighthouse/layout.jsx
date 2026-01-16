@@ -150,7 +150,6 @@ export default function AdminLayout({ children }) {
             <h2 className="font-semibold text-sm">{getTitle()}</h2>
           </div>
           <div className="flex items-center gap-4">
-            <ModeToggle />
             <div className="flex items-center gap-3">
               <span className="hidden sm:inline text-sm font-medium">Hi, Admin</span>
               <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold border border-primary/20">
