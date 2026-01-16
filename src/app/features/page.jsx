@@ -133,15 +133,7 @@ const FeaturesPage = () => {
           <div className="absolute top-20 -right-20 w-[400px] h-[400px] bg-blue-500/10 rounded-full blur-[100px] -z-10" />
 
           <div className="max-w-4xl mx-auto text-center">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.5 }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary border border-border mb-8"
-            >
-              <Zap size={16} className="text-primary animate-pulse" />
-              <span className="text-sm font-medium">Radar 2026 Edition</span>
-            </motion.div>
+
             
             <motion.h1
               initial={{ opacity: 0, y: 30 }}
