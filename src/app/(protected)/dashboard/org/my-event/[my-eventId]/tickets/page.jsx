@@ -315,7 +315,7 @@ export default function ManageTicketsPage() {
                                             <div className="flex items-center gap-2">
                                                 <h3 className="font-bold text-white">{cat.name}</h3>
                                                 <span className="text-[10px] font-bold bg-white/5 px-2 py-0.5 rounded-full text-rose-500 uppercase">
-                                                    ₦{cat.price}
+                                                    ₦{parseFloat(cat.price).toLocaleString()}
                                                 </span>
                                                 {(cat.tickets_sold ?? 0) > 0 && (
                                                     <span className="text-[9px] font-bold bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full text-amber-500 uppercase">
@@ -325,8 +325,8 @@ export default function ManageTicketsPage() {
                                             </div>
                                             <p className="text-xs text-gray-500 max-w-xl">{cat.description || "No description provided."}</p>
                                             <div className="flex gap-4 text-[10px] text-gray-600 font-bold uppercase tracking-wider pt-2">
-                                                <span>Available: {cat.available_tickets ?? "Unlimited"}</span>
-                                                <span>Sold: {cat.tickets_sold ?? 0}</span>
+                                                <span>Available: {typeof cat.available_tickets === 'number' ? cat.available_tickets.toLocaleString() : (cat.available_tickets ?? "Unlimited")}</span>
+                                                <span>Sold: {(cat.tickets_sold ?? 0).toLocaleString()}</span>
                                             </div>
                                             {(cat.tickets_sold ?? 0) > 0 && (
                                                 <p className="text-[10px] text-amber-500/70 italic pt-1">

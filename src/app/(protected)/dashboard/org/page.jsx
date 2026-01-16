@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import api from "../../../../lib/axios";
-import { Ticket, Users, Calendar, TrendingUp, DollarSign, Clock, Plus, ChevronRight, ShieldAlert, X, Eye, EyeOff } from "lucide-react";
+import { Ticket, Users, Calendar, TrendingUp, DollarSign, Clock, Plus, ChevronRight, ShieldAlert, X, Eye, EyeOff, MapPin } from "lucide-react";
 import { useRouter } from "next/navigation";
 import useAuthStore from "../../../../store/authStore";
 import { toast } from "react-hot-toast";
@@ -583,7 +583,7 @@ export default function Overview() {
                       </div>
                       {event.location && (
                         <div className="flex items-center gap-1">
-                          <span className="text-rose-500">📍</span>
+                          <MapPin className="w-3.5 h-3.5" />
                           <span className="truncate max-w-[120px]">{event.location}</span>
                         </div>
                       )}
@@ -592,10 +592,12 @@ export default function Overview() {
 
                   <div className="flex items-center justify-between pt-4 border-t border-white/5">
                      <div className="flex gap-4">
-                        <div>
-                           <p className="text-rose-500 font-bold text-sm">₦{(event.ticket_stats?.total_revenue || 0).toLocaleString()}</p>
-                           <p className="text-[10px] text-gray-500 font-bold">Revenue</p>
-                        </div>
+                        {event.pricing_type !== 'free' && (
+                          <div>
+                             <p className="text-rose-500 font-bold text-sm">₦{(event.ticket_stats?.total_revenue || 0).toLocaleString()}</p>
+                             <p className="text-[10px] text-gray-500 font-bold">Revenue</p>
+                          </div>
+                        )}
                         <div>
                            <p className="text-blue-500 font-bold text-sm">{event.ticket_stats?.confirmed_tickets || 0}</p>
                            <p className="text-[10px] text-gray-500 font-bold">Sold</p>

@@ -77,6 +77,25 @@ export default function PayoutPage() {
     fetchData();
   }, [fetchData]);
 
+  // Format number with commas for display
+  const formatWithCommas = (value) => {
+    const cleaned = String(value).replace(/[^\d.]/g, "");
+    const parts = cleaned.split(".");
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    return parts.length > 1 ? `${parts[0]}.${parts[1]}` : parts[0];
+  };
+
+  // Handle amount input change with comma formatting
+  const handleAmountChange = (rawValue) => {
+    const numericValue = rawValue.replace(/,/g, "");
+    if (/^\d*\.?\d*$/.test(numericValue)) {
+      setWithdrawAmount(numericValue);
+    }
+  };
+
+  // Get raw numeric value from withdrawAmount
+  const getRawAmount = () => parseFloat(withdrawAmount.replace(/,/g, "")) || 0;
+
   const handleWithdraw = async (e) => {
     e.preventDefault();
     if (!stats.has_bank_account) {
@@ -85,7 +104,7 @@ export default function PayoutPage() {
       return;
     }
 
-    const amount = parseFloat(withdrawAmount);
+    const amount = parseFloat(withdrawAmount.replace(/,/g, ""));
     if (isNaN(amount) || amount < 1000) {
       toast.error("Minimum withdrawal amount is ₦1,000");
       return;
@@ -217,9 +236,10 @@ export default function PayoutPage() {
                 <div className="relative">
                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-medium">₦</div>
                    <input 
-                    type="number" 
-                    value={withdrawAmount}
-                    onChange={(e) => setWithdrawAmount(e.target.value)}
+                    type="text" 
+                    inputMode="decimal"
+                    value={formatWithCommas(withdrawAmount)}
+                    onChange={(e) => handleAmountChange(e.target.value)}
                     placeholder="Min. 1,000"
                     disabled={!stats.has_bank_account}
                     className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 transition-all placeholder:text-gray-700"
@@ -230,7 +250,7 @@ export default function PayoutPage() {
 
               <button
                 type="submit"
-                disabled={withdrawing || !stats.has_bank_account || parseFloat(withdrawAmount) < 1000}
+                disabled={withdrawing || !stats.has_bank_account || getRawAmount() < 1000}
                 className="w-full bg-rose-600 hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded-xl transition-all shadow-lg shadow-rose-600/20 active:scale-[0.98] flex items-center justify-center gap-2"
               >
                 {withdrawing ? <Loader2 className="w-5 h-5 animate-spin" /> : <ArrowUpRight className="w-5 h-5" />}

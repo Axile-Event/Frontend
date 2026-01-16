@@ -209,6 +209,28 @@ export default function CreateEvent() {
     setCategories(newCats);
   };
 
+  // Format number with commas for display
+  const formatPriceWithCommas = (value) => {
+    // Remove non-digit characters except decimal point
+    const cleaned = String(value).replace(/[^\d.]/g, "");
+    // Split by decimal point to handle decimals separately
+    const parts = cleaned.split(".");
+    // Format the integer part with commas
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    // Rejoin with decimal if exists
+    return parts.length > 1 ? `${parts[0]}.${parts[1]}` : parts[0];
+  };
+
+  // Handle price input change with comma formatting
+  const handlePriceChange = (index, rawValue) => {
+    // Remove commas to get raw number for storage
+    const numericValue = rawValue.replace(/,/g, "");
+    // Only allow digits and one decimal point
+    if (/^\d*\.?\d*$/.test(numericValue)) {
+      updateCategory(index, "price", numericValue);
+    }
+  };
+
   const validate = () => {
     const e = {};
     if (!form.name.trim()) e.name = "Name is required";
@@ -773,10 +795,11 @@ export default function CreateEvent() {
                               Price (₦) <span className="text-rose-500">*</span>
                             </label>
                             <input
-                              type="number"
-                              value={cat.price}
+                              type="text"
+                              inputMode="decimal"
+                              value={formatPriceWithCommas(cat.price)}
                               onChange={(e) =>
-                                updateCategory(idx, "price", e.target.value)
+                                handlePriceChange(idx, e.target.value)
                               }
                               placeholder="0.00"
                               className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500 transition-all"
@@ -939,7 +962,7 @@ export default function CreateEvent() {
                               {cat.name}
                             </span>
                             <span className="text-[10px] font-black text-rose-500">
-                              ₦{cat.price || "0"}
+                              ₦{formatPriceWithCommas(cat.price) || "0"}
                             </span>
                           </div>
                         )

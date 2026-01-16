@@ -74,11 +74,27 @@ export default function Settings() {
   useEffect(() => {
     fetchBankAccount();
     fetchBanks();
+    fetchPinStatus();
   }, []);
 
-  useEffect(() => {
-    setHasPin(hasPinSet());
-  }, []);
+  // Fetch PIN status from API (source of truth)
+  const fetchPinStatus = async () => {
+    try {
+      const res = await api.get('/organizer/profile/');
+      const profile = res.data.Org_profile || res.data;
+      // Use API's has_pin as the source of truth
+      if (profile.has_pin === true) {
+        setHasPin(true);
+      } else {
+        // Fallback to localStorage check
+        setHasPin(hasPinSet());
+      }
+    } catch (error) {
+      console.error('Failed to fetch profile for PIN status:', error);
+      // Fallback to localStorage check
+      setHasPin(hasPinSet());
+    }
+  };
 
 
 
