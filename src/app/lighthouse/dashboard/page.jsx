@@ -62,7 +62,7 @@ export default function AdminDashboardPage() {
   }, []);
 
   if (loading) {
-    return <DashboardSkeleton />;
+    return <AnalyticsSkeleton />;
   }
 
   return (
