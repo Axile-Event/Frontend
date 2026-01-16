@@ -7,6 +7,7 @@ import { Loader2, MapPin, Calendar as CalendarIcon, Search, Clock } from "lucide
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { getImageUrl } from "@/lib/utils";
+import { EventCardSkeleton } from "@/components/skeletons";
 
 const EventsPage = () => {
   const [events, setEvents] = useState([]);
@@ -75,8 +76,16 @@ const EventsPage = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="space-y-6">
+        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+           <div className="h-8 w-48 bg-white/5 rounded-lg animate-pulse" />
+           <div className="h-10 w-full md:w-72 bg-white/5 rounded-xl animate-pulse" />
+        </div>
+        <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+          {[...Array(6)].map((_, i) => (
+            <EventCardSkeleton key={i} />
+          ))}
+        </div>
       </div>
     );
   }

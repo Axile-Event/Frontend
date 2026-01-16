@@ -18,6 +18,7 @@ import { Loader2, MapPin, Calendar, Clock, Ticket, Info, CheckCircle2, Share2, C
 import toast from "react-hot-toast";
 import { motion } from "framer-motion";
 import { getImageUrl } from "@/lib/utils";
+import { EventDetailsSkeleton } from "@/components/skeletons";
 
 const EventDetailsPage = () => {
   const params = useParams();
@@ -121,11 +122,7 @@ const EventDetailsPage = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <EventDetailsSkeleton />;
   }
 
   if (!event) {
