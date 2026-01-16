@@ -7,8 +7,6 @@ import { Plus, Trash2, Edit2, ArrowLeft, Loader2, Save, X, Ticket, AlertTriangle
 import toast from "react-hot-toast";
 import PinPromptModal from "@/components/PinPromptModal";
 
-import { TableSkeleton } from "@/components/skeletons";
-
 export default function ManageTicketsPage() {
     const router = useRouter();
     const params = useParams();
@@ -190,14 +188,70 @@ export default function ManageTicketsPage() {
     if (loading) {
         return (
             <div className="min-h-screen bg-black text-white p-4 md:p-8 max-w-5xl mx-auto space-y-10">
-                <div className="flex items-center gap-4">
+                {/* Header Skeleton */}
+                <header className="flex items-center gap-4">
                     <div className="h-10 w-10 bg-white/5 rounded-full animate-pulse" />
                     <div className="space-y-2">
-                        <div className="h-8 w-64 bg-white/5 rounded-lg animate-pulse" />
-                        <div className="h-4 w-48 bg-white/5 rounded animate-pulse" />
+                        <div className="h-7 w-64 bg-white/5 rounded-lg animate-pulse" />
+                        <div className="h-4 w-40 bg-white/5 rounded animate-pulse" />
                     </div>
-                </div>
-                <TableSkeleton />
+                </header>
+
+                {/* Create Section Skeleton */}
+                <section className="bg-[#0A0A0A] border border-white/5 rounded-2xl p-6 shadow-xl space-y-6">
+                    <div className="flex items-center gap-2">
+                        <div className="w-5 h-5 rounded bg-white/5 animate-pulse" />
+                        <div className="h-5 w-44 bg-white/5 rounded animate-pulse" />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-1.5 md:col-span-2">
+                            <div className="h-3 w-32 bg-white/5 rounded animate-pulse" />
+                            <div className="h-12 w-full bg-white/5 rounded-xl animate-pulse" />
+                        </div>
+                        <div className="space-y-1.5">
+                            <div className="h-3 w-20 bg-white/5 rounded animate-pulse" />
+                            <div className="h-12 w-full bg-white/5 rounded-xl animate-pulse" />
+                        </div>
+                        <div className="space-y-1.5">
+                            <div className="h-3 w-32 bg-white/5 rounded animate-pulse" />
+                            <div className="h-12 w-full bg-white/5 rounded-xl animate-pulse" />
+                        </div>
+                        <div className="md:col-span-2">
+                            <div className="h-12 w-full bg-rose-600/20 rounded-xl animate-pulse" />
+                        </div>
+                    </div>
+                </section>
+
+                {/* Existing Categories Skeleton */}
+                <section className="space-y-6">
+                    <div className="flex items-center gap-2">
+                        <div className="w-5 h-5 rounded bg-white/5 animate-pulse" />
+                        <div className="h-5 w-40 bg-white/5 rounded animate-pulse" />
+                    </div>
+                    <div className="grid grid-cols-1 gap-4">
+                        {[1, 2, 3].map((i) => (
+                            <div key={i} className="bg-[#0A0A0A] border border-white/5 rounded-2xl p-6">
+                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                    <div className="space-y-3 flex-1">
+                                        <div className="flex items-center gap-2">
+                                            <div className="h-5 w-24 bg-white/5 rounded animate-pulse" />
+                                            <div className="h-5 w-16 bg-white/5 rounded-full animate-pulse" />
+                                        </div>
+                                        <div className="h-3 w-48 bg-white/5 rounded animate-pulse" />
+                                        <div className="flex gap-4 pt-2">
+                                            <div className="h-3 w-20 bg-white/5 rounded animate-pulse" />
+                                            <div className="h-3 w-16 bg-white/5 rounded animate-pulse" />
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="h-9 w-9 bg-white/5 rounded-xl animate-pulse" />
+                                        <div className="h-9 w-9 bg-white/5 rounded-xl animate-pulse" />
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </section>
             </div>
         );
     }

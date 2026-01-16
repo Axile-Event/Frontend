@@ -501,15 +501,25 @@ const StatCard = ({ icon, value, label }) => (
       hidden: { opacity: 0, y: 20 },
       visible: { opacity: 1, y: 0, transition: { duration: 0.6 } }
     }}
-    className="text-center space-y-2 p-6 rounded-3xl bg-secondary/20 border border-border/50 hover:border-primary/30 transition-colors group"
+    className="text-center space-y-2 p-6 rounded-3xl bg-secondary/20 border border-border/50 hover:border-primary/30 transition-colors group relative overflow-hidden"
   >
-    <div className="flex items-center justify-center text-primary mb-2 group-hover:scale-110 transition-transform">
+    {/* Subtle African Elevation Lines */}
+    <div className="absolute inset-0 pointer-events-none opacity-[0.03] group-hover:opacity-[0.06] transition-opacity duration-500">
+      <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">
+        <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" strokeWidth="0.8" className="text-amber-600"/>
+        <circle cx="50" cy="50" r="30" fill="none" stroke="currentColor" strokeWidth="0.6" className="text-amber-600"/>
+        <circle cx="50" cy="50" r="20" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-amber-500"/>
+        <circle cx="50" cy="50" r="10" fill="none" stroke="currentColor" strokeWidth="0.4" className="text-amber-500"/>
+      </svg>
+    </div>
+    
+    <div className="relative z-10 flex items-center justify-center text-primary mb-2 group-hover:scale-110 transition-transform">
       {icon}
     </div>
-    <div className="text-4xl md:text-5xl font-black text-foreground">
+    <div className="relative z-10 text-4xl md:text-5xl font-black text-foreground">
       {value}
     </div>
-    <div className="text-xs text-muted-foreground font-black uppercase tracking-widest opacity-60">
+    <div className="relative z-10 text-xs text-muted-foreground font-black uppercase tracking-widest opacity-60">
       {label}
     </div>
   </motion.div>
@@ -522,13 +532,28 @@ const FeatureCard = ({ icon, title, description, color }) => (
       visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.6 } }
     }}
     whileHover={{ y: -12, transition: { duration: 0.3 } }}
-    className="p-10 rounded-[2.5rem] bg-card border border-border hover:border-primary/30 transition-all duration-500 hover:shadow-[0_20px_50px_rgba(225,29,72,0.08)] group"
+    className="p-10 rounded-[2.5rem] bg-card border border-border hover:border-primary/30 transition-all duration-500 hover:shadow-[0_20px_50px_rgba(225,29,72,0.08)] group relative overflow-hidden"
   >
-    <div className={`mb-8 p-5 rounded-2xl w-fit ${color} group-hover:scale-110 transition-transform duration-500 group-hover:rotate-6 shadow-sm`}>
+    {/* African Topographic Contour Lines */}
+    <div className="absolute inset-0 pointer-events-none opacity-[0.04] group-hover:opacity-[0.08] transition-opacity duration-700">
+      <svg className="w-full h-full" viewBox="0 0 200 200" preserveAspectRatio="xMidYMid slice">
+        <path d="M-20,100 Q30,40 100,60 Q170,80 220,30" fill="none" stroke="currentColor" strokeWidth="1" className="text-amber-600"/>
+        <path d="M-20,120 Q40,60 100,80 Q160,100 220,50" fill="none" stroke="currentColor" strokeWidth="1" className="text-amber-600"/>
+        <path d="M-20,140 Q50,80 100,100 Q150,120 220,70" fill="none" stroke="currentColor" strokeWidth="1" className="text-amber-600"/>
+        <path d="M-20,160 Q60,100 100,120 Q140,140 220,90" fill="none" stroke="currentColor" strokeWidth="1" className="text-amber-600"/>
+        <path d="M-20,180 Q70,120 100,140 Q130,160 220,110" fill="none" stroke="currentColor" strokeWidth="0.8" className="text-amber-500"/>
+        <path d="M-20,200 Q80,140 100,160 Q120,180 220,130" fill="none" stroke="currentColor" strokeWidth="0.8" className="text-amber-500"/>
+        <circle cx="160" cy="40" r="25" fill="none" stroke="currentColor" strokeWidth="0.6" className="text-amber-600"/>
+        <circle cx="160" cy="40" r="18" fill="none" stroke="currentColor" strokeWidth="0.6" className="text-amber-600"/>
+        <circle cx="160" cy="40" r="10" fill="none" stroke="currentColor" strokeWidth="0.6" className="text-amber-600"/>
+      </svg>
+    </div>
+    
+    <div className={`relative z-10 mb-8 p-5 rounded-2xl w-fit ${color} group-hover:scale-110 transition-transform duration-500 group-hover:rotate-6 shadow-sm`}>
       {icon}
     </div>
-    <h3 className="text-2xl font-black tracking-tight mb-4 group-hover:text-primary transition-colors duration-300">{title}</h3>
-    <p className="text-muted-foreground leading-relaxed text-lg opacity-80 group-hover:opacity-100 transition-opacity">
+    <h3 className="relative z-10 text-2xl font-black tracking-tight mb-4 group-hover:text-primary transition-colors duration-300">{title}</h3>
+    <p className="relative z-10 text-muted-foreground leading-relaxed text-lg opacity-80 group-hover:opacity-100 transition-opacity">
       {description}
     </p>
   </motion.div>
@@ -543,10 +568,25 @@ const TestimonialCard = ({ quote, author, role }) => (
     whileHover={{ scale: 1.02, transition: { duration: 0.3 } }}
     className="p-10 rounded-[2.5rem] bg-card border border-border hover:border-primary/20 transition-all duration-500 space-y-8 relative overflow-hidden group shadow-sm hover:shadow-xl"
   >
+    {/* African River & Terrain Contour Lines */}
+    <div className="absolute inset-0 pointer-events-none opacity-[0.03] group-hover:opacity-[0.06] transition-opacity duration-700">
+      <svg className="w-full h-full" viewBox="0 0 200 250" preserveAspectRatio="xMidYMid slice">
+        <path d="M0,200 Q40,180 60,190 Q100,210 140,180 Q180,150 200,160" fill="none" stroke="currentColor" strokeWidth="1.2" className="text-amber-700"/>
+        <path d="M0,210 Q50,190 70,200 Q110,220 150,190 Q190,160 200,170" fill="none" stroke="currentColor" strokeWidth="1" className="text-amber-600"/>
+        <path d="M0,220 Q60,200 80,210 Q120,230 160,200 Q200,170 220,180" fill="none" stroke="currentColor" strokeWidth="0.8" className="text-amber-600"/>
+        <path d="M0,230 Q70,210 90,220 Q130,240 170,210 Q210,180 230,190" fill="none" stroke="currentColor" strokeWidth="0.6" className="text-amber-500"/>
+        <ellipse cx="30" cy="50" rx="20" ry="30" fill="none" stroke="currentColor" strokeWidth="0.8" className="text-amber-600" transform="rotate(-15 30 50)"/>
+        <ellipse cx="30" cy="50" rx="14" ry="22" fill="none" stroke="currentColor" strokeWidth="0.6" className="text-amber-600" transform="rotate(-15 30 50)"/>
+        <ellipse cx="30" cy="50" rx="8" ry="14" fill="none" stroke="currentColor" strokeWidth="0.6" className="text-amber-500" transform="rotate(-15 30 50)"/>
+        <path d="M150,0 Q160,30 155,60 Q150,90 160,120" fill="none" stroke="currentColor" strokeWidth="0.6" className="text-amber-500"/>
+        <path d="M160,0 Q170,30 165,60 Q160,90 170,120" fill="none" stroke="currentColor" strokeWidth="0.6" className="text-amber-500"/>
+      </svg>
+    </div>
+    
     <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
       <Star size={80} className="fill-primary text-primary" />
     </div>
-    <div className="flex gap-1.5">
+    <div className="flex gap-1.5 relative z-10">
       {[...Array(5)].map((_, i) => (
         <Star key={i} className="h-4 w-4 fill-primary text-primary" />
       ))}

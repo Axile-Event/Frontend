@@ -144,14 +144,28 @@ const PricingPage = () => {
               <motion.div
                 key={plan.name}
                 variants={itemVariants}
-                className={`relative p-8 md:p-12 rounded-[2.5rem] bg-secondary/30 backdrop-blur-xl border-2 transition-all duration-500 hover:shadow-2xl ${
+                className={`relative p-8 md:p-12 rounded-[2.5rem] bg-secondary/30 backdrop-blur-xl border-2 transition-all duration-500 hover:shadow-2xl overflow-hidden group ${
                   plan.highlight 
                     ? 'border-primary shadow-primary/10 scale-105 z-10' 
                     : 'border-border hover:border-blue-500/50'
                 }`}
               >
+                {/* African Topographic Contour Lines */}
+                <div className="absolute inset-0 pointer-events-none opacity-[0.04] group-hover:opacity-[0.08] transition-opacity duration-700">
+                  <svg className="w-full h-full" viewBox="0 0 200 300" preserveAspectRatio="xMidYMid slice">
+                    <path d="M-20,250 Q40,200 100,220 Q160,240 220,190" fill="none" stroke="currentColor" strokeWidth="1" className="text-amber-600"/>
+                    <path d="M-20,270 Q50,220 100,240 Q150,260 220,210" fill="none" stroke="currentColor" strokeWidth="0.8" className="text-amber-600"/>
+                    <path d="M-20,290 Q60,240 100,260 Q140,280 220,230" fill="none" stroke="currentColor" strokeWidth="0.6" className="text-amber-500"/>
+                    <ellipse cx="170" cy="50" rx="25" ry="35" fill="none" stroke="currentColor" strokeWidth="0.8" className="text-amber-600" transform="rotate(20 170 50)"/>
+                    <ellipse cx="170" cy="50" rx="18" ry="26" fill="none" stroke="currentColor" strokeWidth="0.6" className="text-amber-600" transform="rotate(20 170 50)"/>
+                    <ellipse cx="170" cy="50" rx="10" ry="16" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-amber-500" transform="rotate(20 170 50)"/>
+                    <path d="M20,0 Q30,40 25,80 Q20,120 30,160" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-amber-500"/>
+                    <path d="M30,0 Q40,40 35,80 Q30,120 40,160" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-amber-500"/>
+                  </svg>
+                </div>
+                
                 {plan.highlight && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-primary text-white text-xs font-black uppercase tracking-widest rounded-full shadow-lg">
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-primary text-white text-xs font-black uppercase tracking-widest rounded-full shadow-lg z-20">
                     Most Popular
                   </div>
                 )}
@@ -196,8 +210,21 @@ const PricingPage = () => {
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="max-w-4xl mx-auto p-10 md:p-16 rounded-[3rem] bg-gradient-to-br from-secondary/50 to-background border border-border relative overflow-hidden"
+            className="max-w-4xl mx-auto p-10 md:p-16 rounded-[3rem] bg-gradient-to-br from-secondary/50 to-background border border-border relative overflow-hidden group"
           >
+            {/* African Landscape Contour Lines */}
+            <div className="absolute inset-0 pointer-events-none opacity-[0.04] group-hover:opacity-[0.07] transition-opacity duration-700">
+              <svg className="w-full h-full" viewBox="0 0 400 200" preserveAspectRatio="xMidYMid slice">
+                <path d="M0,150 Q50,120 100,140 Q150,160 200,130 Q250,100 300,120 Q350,140 400,110" fill="none" stroke="currentColor" strokeWidth="1.2" className="text-amber-700"/>
+                <path d="M0,165 Q60,135 110,155 Q160,175 210,145 Q260,115 310,135 Q360,155 410,125" fill="none" stroke="currentColor" strokeWidth="1" className="text-amber-600"/>
+                <path d="M0,180 Q70,150 120,170 Q170,190 220,160 Q270,130 320,150 Q370,170 420,140" fill="none" stroke="currentColor" strokeWidth="0.8" className="text-amber-600"/>
+                <ellipse cx="60" cy="50" rx="30" ry="40" fill="none" stroke="currentColor" strokeWidth="0.8" className="text-amber-600" transform="rotate(-10 60 50)"/>
+                <ellipse cx="60" cy="50" rx="22" ry="30" fill="none" stroke="currentColor" strokeWidth="0.6" className="text-amber-600" transform="rotate(-10 60 50)"/>
+                <ellipse cx="60" cy="50" rx="14" ry="20" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-amber-500" transform="rotate(-10 60 50)"/>
+                <ellipse cx="340" cy="70" rx="25" ry="35" fill="none" stroke="currentColor" strokeWidth="0.7" className="text-amber-600" transform="rotate(15 340 70)"/>
+                <ellipse cx="340" cy="70" rx="17" ry="25" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-amber-500" transform="rotate(15 340 70)"/>
+              </svg>
+            </div>
             <div className="absolute top-0 right-0 p-8 opacity-10">
               <TrendingUp size={120} className="text-primary" />
             </div>
@@ -268,9 +295,19 @@ const PricingPage = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
-                className="p-8 rounded-3xl bg-secondary/20 border border-border/50 hover:border-primary/20 transition-all group"
+                className="p-8 rounded-3xl bg-secondary/20 border border-border/50 hover:border-primary/20 transition-all group relative overflow-hidden"
               >
-                <div className="flex gap-4">
+                {/* African Terrain Contour Lines */}
+                <div className="absolute inset-0 pointer-events-none opacity-[0.03] group-hover:opacity-[0.06] transition-opacity duration-500">
+                  <svg className="w-full h-full" viewBox="0 0 150 100" preserveAspectRatio="xMidYMid slice">
+                    <path d="M0,80 Q30,60 60,70 Q90,80 120,60 Q150,40 180,50" fill="none" stroke="currentColor" strokeWidth="0.8" className="text-amber-600"/>
+                    <path d="M0,90 Q35,70 65,80 Q95,90 125,70 Q155,50 185,60" fill="none" stroke="currentColor" strokeWidth="0.6" className="text-amber-500"/>
+                    <circle cx="130" cy="25" r="15" fill="none" stroke="currentColor" strokeWidth="0.6" className="text-amber-600"/>
+                    <circle cx="130" cy="25" r="10" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-amber-500"/>
+                  </svg>
+                </div>
+                
+                <div className="flex gap-4 relative z-10">
                   <div className="shrink-0 w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center group-hover:scale-110 transition-transform">
                     <HelpCircle size={18} className="text-primary" />
                   </div>
@@ -292,6 +329,31 @@ const PricingPage = () => {
             viewport={{ once: true }}
             className="p-16 rounded-[3rem] bg-gradient-to-br from-primary to-rose-600 text-white text-center relative overflow-hidden"
           >
+            {/* African Topographic Contour Lines */}
+            <svg className="absolute inset-0 w-full h-full pointer-events-none z-[1]" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice">
+              {/* Large flowing contours - left side */}
+              <path d="M-50 150 Q50 80 150 120 T350 100" fill="none" stroke="white" strokeWidth="1.5" opacity="0.25"/>
+              <path d="M-50 170 Q50 100 150 140 T350 120" fill="none" stroke="white" strokeWidth="1.2" opacity="0.2"/>
+              <path d="M-50 190 Q50 120 150 160 T350 140" fill="none" stroke="white" strokeWidth="1" opacity="0.15"/>
+              
+              {/* Concentric hill formation - right side */}
+              <ellipse cx="380" cy="80" rx="80" ry="40" fill="none" stroke="white" strokeWidth="1.5" opacity="0.2"/>
+              <ellipse cx="380" cy="80" rx="60" ry="30" fill="none" stroke="white" strokeWidth="1.2" opacity="0.18"/>
+              <ellipse cx="380" cy="80" rx="40" ry="20" fill="none" stroke="white" strokeWidth="1" opacity="0.15"/>
+              <ellipse cx="380" cy="80" rx="20" ry="10" fill="none" stroke="white" strokeWidth="0.8" opacity="0.12"/>
+              
+              {/* Bottom terrain lines */}
+              <path d="M0 280 Q100 240 200 260 T400 240" fill="none" stroke="white" strokeWidth="1.2" opacity="0.18"/>
+              <path d="M0 295 Q100 255 200 275 T400 255" fill="none" stroke="white" strokeWidth="1" opacity="0.15"/>
+              
+              {/* Scattered elevation markers */}
+              <circle cx="60" cy="60" r="25" fill="none" stroke="white" strokeWidth="1.2" opacity="0.15"/>
+              <circle cx="60" cy="60" r="15" fill="none" stroke="white" strokeWidth="1" opacity="0.12"/>
+              
+              {/* Additional flowing line */}
+              <path d="M-20 220 Q80 180 180 200 T380 180" fill="none" stroke="white" strokeWidth="1" opacity="0.15"/>
+            </svg>
+            
             <div className="absolute top-0 right-0 w-80 h-80 bg-white/10 blur-[100px] rounded-full -translate-y-1/2 translate-x-1/2" />
             <div className="absolute bottom-0 left-0 w-60 h-60 bg-black/20 blur-[80px] rounded-full translate-y-1/2 -translate-x-1/2" />
             
