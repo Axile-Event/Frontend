@@ -24,12 +24,27 @@ const useAuthStore = create(
         if (typeof window !== 'undefined') {
           // Clear the organizer Zustand store
           localStorage.removeItem('organizer-storage');
-          
+
           // IMPORTANT: Clear PIN reminder dismissal so new users see it
           localStorage.removeItem('radar_pin_reminder_dismissed');
+
+          // IMMEDIATELY write to localStorage to prevent race conditions
+          // This ensures token is available before any page navigation
+          const authData = {
+            state: {
+              user: userData,
+              token,
+              refreshToken: refresh,
+              role,
+              isAuthenticated: true,
+              hydrated: true,
+            },
+            version: 0,
+          };
+          localStorage.setItem('auth-storage', JSON.stringify(authData));
         }
-        
-        // THEN: Set new user data
+
+        // THEN: Set new user data in Zustand state
         set({
           user: userData,
           token,

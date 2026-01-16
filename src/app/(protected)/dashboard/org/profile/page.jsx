@@ -88,7 +88,80 @@ export default function ProfilePage() {
   };
 
   if (loadingProfile) {
-    return <Loading />;
+    return (
+      <div className="min-h-screen p-4 md:p-8 space-y-8 max-w-5xl mx-auto">
+        {/* Header Skeleton */}
+        <div>
+          <div className="h-7 w-24 bg-white/5 rounded-lg animate-pulse mb-2" />
+          <div className="h-4 w-72 bg-white/5 rounded animate-pulse" />
+        </div>
+
+        <div className="py-4">
+          <div className="max-w-4xl">
+            <div className="flex flex-col md:flex-row gap-8 items-start">
+              {/* Profile Card Skeleton */}
+              <div className="w-full md:w-1/3 bg-[#0A0A0A] border border-white/5 rounded-2xl p-6 text-center space-y-4 shadow-xl">
+                {/* Avatar */}
+                <div className="w-24 h-24 mx-auto bg-white/5 rounded-full animate-pulse" />
+                
+                {/* Name & Badge */}
+                <div className="space-y-2">
+                  <div className="h-5 w-32 mx-auto bg-white/5 rounded animate-pulse" />
+                  <div className="h-3 w-24 mx-auto bg-white/5 rounded animate-pulse" />
+                </div>
+                
+                {/* Stats */}
+                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/5">
+                  <div className="text-center space-y-1">
+                    <div className="h-3 w-12 mx-auto bg-white/5 rounded animate-pulse" />
+                    <div className="h-4 w-16 mx-auto bg-white/5 rounded animate-pulse" />
+                  </div>
+                  <div className="text-center border-l border-white/5 space-y-1">
+                    <div className="h-3 w-10 mx-auto bg-white/5 rounded animate-pulse" />
+                    <div className="h-4 w-16 mx-auto bg-white/5 rounded animate-pulse" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Profile Form Skeleton */}
+              <div className="flex-1 w-full">
+                <div className="flex items-center gap-2 mb-6">
+                  <div className="h-7 w-7 bg-white/5 rounded-lg animate-pulse" />
+                  <div className="h-5 w-28 bg-white/5 rounded animate-pulse" />
+                </div>
+                
+                <div className="space-y-5">
+                  <div className="bg-[#0A0A0A] border border-white/5 rounded-2xl p-6 shadow-xl space-y-5">
+                    {/* Organization Name Input Skeleton */}
+                    <div className="space-y-2">
+                      <div className="h-3 w-32 bg-white/5 rounded animate-pulse" />
+                      <div className="h-12 w-full bg-white/5 rounded-xl animate-pulse" />
+                    </div>
+                    
+                    {/* Email Input Skeleton */}
+                    <div className="space-y-2">
+                      <div className="h-3 w-20 bg-white/5 rounded animate-pulse" />
+                      <div className="h-12 w-full bg-white/5 rounded-xl animate-pulse" />
+                    </div>
+                    
+                    {/* Phone Input Skeleton */}
+                    <div className="space-y-2">
+                      <div className="h-3 w-24 bg-white/5 rounded animate-pulse" />
+                      <div className="h-12 w-full bg-white/5 rounded-xl animate-pulse" />
+                    </div>
+                  </div>
+                  
+                  {/* Submit Button Skeleton */}
+                  <div className="flex justify-end pt-2">
+                    <div className="h-10 w-36 bg-white/5 rounded-xl animate-pulse" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

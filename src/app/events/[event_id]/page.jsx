@@ -24,7 +24,7 @@ const EventDetailsPage = () => {
   const params = useParams();
   const router = useRouter();
   const eventId = decodeURIComponent(params.event_id);
-  const { token } = useAuthStore();
+  const { token, hydrated } = useAuthStore();
 
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -91,7 +91,23 @@ const EventDetailsPage = () => {
   }, [eventId]);
 
   const handleBookTicket = async () => {
-    if (!token) {
+    // Check Zustand token first (if hydrated), then fallback to localStorage directly
+    // This handles the race condition where Zustand hasn't hydrated yet after signup
+    let isAuthenticated = hydrated ? !!token : false;
+    
+    if (!isAuthenticated && typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('auth-storage');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          isAuthenticated = !!parsed?.state?.token;
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    if (!isAuthenticated) {
       toast.error("Please login to book tickets");
       const currentPath = window.location.pathname;
       const callbackUrl = encodeURIComponent(currentPath);
@@ -284,7 +300,7 @@ const EventDetailsPage = () => {
             {/* Booking Card & Share Section */}
             <div className="md:col-span-1">
               <div className="sticky top-24 space-y-6">
-                <Card>
+                <Card className="border-gray-700">
                   <CardHeader className="p-4 md:p-6">
                     <CardTitle className="text-lg md:text-xl">Book Tickets</CardTitle>
                   </CardHeader>
@@ -402,14 +418,14 @@ const EventDetailsPage = () => {
                 </Card>
 
                 {/* Share Section */}
-                <Card className="overflow-hidden">
+                <Card className="overflow-hidden border-gray-700">
                   <CardContent className="p-4 md:p-6">
                     <div className="flex items-center gap-2 mb-4">
                       <Share2 className="h-4 w-4 text-primary" />
                       <h3 className="font-semibold text-sm md:text-base">Share this event</h3>
                     </div>
                     <div className="flex gap-2">
-                      <div className="flex-1 bg-muted px-3 py-2 rounded-md text-xs md:text-sm text-muted-foreground truncate border border-border">
+                      <div className="flex-1 bg-muted px-3 py-2 rounded-md text-xs md:text-sm text-muted-foreground truncate border border-gray-700">
                         {typeof window !== 'undefined' ? `${window.location.origin}/events/${eventId}` : ''}
                       </div>
                       <Button 

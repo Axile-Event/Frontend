@@ -75,8 +75,61 @@ const StudentProfile = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="max-w-4xl mx-auto space-y-8">
+        {/* Header Skeleton */}
+        <div>
+          <div className="h-8 w-32 bg-white/5 rounded-lg animate-pulse mb-3" />
+          <div className="h-4 w-72 bg-white/5 rounded animate-pulse" />
+        </div>
+
+        {/* Personal Information Card Skeleton */}
+        <Card className="border-gray-700/60">
+          <CardHeader>
+            <div className="h-6 w-44 bg-white/5 rounded animate-pulse mb-2" />
+            <div className="h-4 w-64 bg-white/5 rounded animate-pulse" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+              <div className="grid gap-6 md:grid-cols-2">
+                {/* First Name Skeleton */}
+                <div className="space-y-2">
+                  <div className="h-4 w-20 bg-white/5 rounded animate-pulse" />
+                  <div className="h-10 w-full bg-white/5 rounded-lg animate-pulse" />
+                </div>
+                
+                {/* Last Name Skeleton */}
+                <div className="space-y-2">
+                  <div className="h-4 w-20 bg-white/5 rounded animate-pulse" />
+                  <div className="h-10 w-full bg-white/5 rounded-lg animate-pulse" />
+                </div>
+
+                {/* Email Skeleton */}
+                <div className="space-y-2">
+                  <div className="h-4 w-28 bg-white/5 rounded animate-pulse" />
+                  <div className="h-10 w-full bg-white/5 rounded-lg animate-pulse" />
+                </div>
+
+                {/* Preferred Name Skeleton */}
+                <div className="space-y-2">
+                  <div className="h-4 w-28 bg-white/5 rounded animate-pulse" />
+                  <div className="h-10 w-full bg-white/5 rounded-lg animate-pulse" />
+                  <div className="h-3 w-56 bg-white/5 rounded animate-pulse" />
+                </div>
+
+                {/* Date of Birth Skeleton */}
+                <div className="space-y-2 md:col-span-2">
+                  <div className="h-4 w-24 bg-white/5 rounded animate-pulse" />
+                  <div className="h-10 w-full md:w-1/2 bg-white/5 rounded-lg animate-pulse" />
+                </div>
+              </div>
+
+              {/* Button Skeleton */}
+              <div className="flex justify-end pt-4 border-t border-gray-700/40">
+                <div className="h-10 w-32 bg-white/5 rounded-lg animate-pulse" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }

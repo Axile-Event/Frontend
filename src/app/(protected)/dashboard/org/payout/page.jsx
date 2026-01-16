@@ -124,7 +124,97 @@ export default function PayoutPage() {
   };
 
   if (loading) {
-    return <Loading />;
+    return (
+      <div className="min-h-screen p-4 md:p-8 space-y-8 max-w-7xl mx-auto text-white">
+        {/* Header Skeleton */}
+        <div>
+          <div className="h-7 w-40 bg-white/5 rounded-lg animate-pulse mb-2" />
+          <div className="h-4 w-72 bg-white/5 rounded animate-pulse" />
+        </div>
+
+        {/* Stats Cards Skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="bg-[#0A0A0A] border border-white/5 rounded-xl p-5 shadow-xl">
+              <div className="flex items-center justify-between mb-3">
+                <div className="h-4 w-28 bg-white/5 rounded animate-pulse" />
+                <div className="h-8 w-8 bg-white/5 rounded-lg animate-pulse" />
+              </div>
+              <div className="h-8 w-32 bg-white/5 rounded animate-pulse mb-2" />
+              <div className="h-3 w-36 bg-white/5 rounded animate-pulse" />
+            </div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Withdrawal Form Skeleton */}
+          <div className="lg:col-span-1 space-y-5">
+            <div className="bg-[#0A0A0A] border border-white/5 rounded-xl p-5 shadow-xl">
+              <div className="flex items-center gap-2 mb-5">
+                <div className="h-4 w-4 bg-white/5 rounded animate-pulse" />
+                <div className="h-5 w-36 bg-white/5 rounded animate-pulse" />
+              </div>
+
+              {/* Bank Info Skeleton */}
+              <div className="mb-5 p-3.5 bg-white/5 border border-white/10 rounded-xl">
+                <div className="h-3 w-24 bg-white/10 rounded animate-pulse mb-2" />
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-white/10 animate-pulse" />
+                  <div>
+                    <div className="h-4 w-28 bg-white/10 rounded animate-pulse mb-1" />
+                    <div className="h-3 w-24 bg-white/10 rounded animate-pulse" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Amount Input Skeleton */}
+              <div className="space-y-4">
+                <div>
+                  <div className="h-3 w-20 bg-white/5 rounded animate-pulse mb-2" />
+                  <div className="h-12 w-full bg-white/5 rounded-xl animate-pulse" />
+                  <div className="h-3 w-32 bg-white/5 rounded animate-pulse mt-2" />
+                </div>
+
+                {/* Button Skeleton */}
+                <div className="h-12 w-full bg-white/5 rounded-xl animate-pulse" />
+
+                <div className="h-3 w-40 mx-auto bg-white/5 rounded animate-pulse" />
+              </div>
+            </div>
+          </div>
+
+          {/* Transactions Table Skeleton */}
+          <div className="lg:col-span-2">
+            <div className="bg-[#0A0A0A] border border-white/5 rounded-xl shadow-xl overflow-hidden">
+              {/* Tabs Header Skeleton */}
+              <div className="flex border-b border-white/5 p-1">
+                <div className="h-10 w-32 bg-white/5 rounded-lg animate-pulse m-1" />
+                <div className="h-10 w-32 bg-white/5 rounded-lg animate-pulse m-1" />
+              </div>
+
+              {/* Table Rows Skeleton */}
+              <div className="p-4 space-y-3">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="flex items-center justify-between p-4 bg-white/5 rounded-xl animate-pulse">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-white/10 rounded-lg" />
+                      <div>
+                        <div className="h-4 w-32 bg-white/10 rounded mb-1" />
+                        <div className="h-3 w-24 bg-white/10 rounded" />
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="h-4 w-20 bg-white/10 rounded mb-1" />
+                      <div className="h-3 w-16 bg-white/10 rounded" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

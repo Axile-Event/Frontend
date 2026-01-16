@@ -71,8 +71,44 @@ const StudentSettings = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="max-w-4xl mx-auto space-y-8">
+        {/* Header Skeleton */}
+        <div>
+          <div className="h-8 w-28 bg-white/5 rounded-lg animate-pulse mb-3" />
+          <div className="h-4 w-64 bg-white/5 rounded animate-pulse" />
+        </div>
+
+        {/* Event Preferences Card Skeleton */}
+        <Card>
+          <CardHeader>
+            <div className="h-6 w-36 bg-white/5 rounded animate-pulse mb-2" />
+            <div className="h-4 w-80 bg-white/5 rounded animate-pulse" />
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {[...Array(8)].map((_, i) => (
+                <div 
+                  key={i} 
+                  className="h-14 bg-white/5 rounded-xl animate-pulse"
+                />
+              ))}
+            </div>
+            <div className="flex justify-end pt-4 border-t border-gray-700/40">
+              <div className="h-10 w-36 bg-white/5 rounded-lg animate-pulse" />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Danger Zone Card Skeleton */}
+        <Card>
+          <CardHeader>
+            <div className="h-6 w-28 bg-white/5 rounded animate-pulse mb-2" />
+            <div className="h-4 w-48 bg-white/5 rounded animate-pulse" />
+          </CardHeader>
+          <CardContent>
+            <div className="h-10 w-48 bg-white/5 rounded-lg animate-pulse" />
+          </CardContent>
+        </Card>
       </div>
     );
   }

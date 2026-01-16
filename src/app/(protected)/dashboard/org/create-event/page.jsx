@@ -401,7 +401,91 @@ export default function CreateEvent() {
   };
 
   if (configLoading) {
-    return <Loading />;
+    return (
+      <div className="min-h-screen p-4 md:p-8 space-y-10 max-w-7xl mx-auto text-white">
+        {/* Header Skeleton */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <div className="h-7 w-40 bg-white/5 rounded-lg animate-pulse mb-2" />
+            <div className="h-4 w-56 bg-white/5 rounded animate-pulse" />
+          </div>
+          <div className="h-8 w-16 bg-white/5 rounded animate-pulse" />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Form Section Skeleton */}
+          <section className="bg-[#0A0A0A] border border-white/5 rounded-2xl p-6 md:p-8 shadow-xl space-y-6">
+            {/* Event Name */}
+            <div className="space-y-2">
+              <div className="h-3 w-24 bg-white/5 rounded animate-pulse" />
+              <div className="h-12 w-full bg-white/5 rounded-xl animate-pulse" />
+            </div>
+            
+            {/* Description */}
+            <div className="space-y-2">
+              <div className="h-3 w-20 bg-white/5 rounded animate-pulse" />
+              <div className="h-32 w-full bg-white/5 rounded-xl animate-pulse" />
+            </div>
+            
+            {/* Pricing & Type Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <div className="h-3 w-16 bg-white/5 rounded animate-pulse" />
+                <div className="h-12 w-full bg-white/5 rounded-xl animate-pulse" />
+              </div>
+              <div className="space-y-2">
+                <div className="h-3 w-20 bg-white/5 rounded animate-pulse" />
+                <div className="h-12 w-full bg-white/5 rounded-xl animate-pulse" />
+              </div>
+            </div>
+            
+            {/* Location & Date Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <div className="h-3 w-16 bg-white/5 rounded animate-pulse" />
+                <div className="h-12 w-full bg-white/5 rounded-xl animate-pulse" />
+              </div>
+              <div className="space-y-2">
+                <div className="h-3 w-24 bg-white/5 rounded animate-pulse" />
+                <div className="h-12 w-full bg-white/5 rounded-xl animate-pulse" />
+              </div>
+            </div>
+            
+            {/* Image Upload */}
+            <div className="space-y-2">
+              <div className="h-3 w-20 bg-white/5 rounded animate-pulse" />
+              <div className="h-40 w-full bg-white/5 rounded-xl animate-pulse" />
+            </div>
+            
+            {/* Submit Button */}
+            <div className="h-12 w-full bg-white/5 rounded-xl animate-pulse" />
+          </section>
+
+          {/* Preview Section Skeleton */}
+          <section className="bg-[#0A0A0A] border border-white/5 rounded-2xl p-6 md:p-8 shadow-xl space-y-6">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="h-5 w-5 bg-white/5 rounded animate-pulse" />
+              <div className="h-5 w-32 bg-white/5 rounded animate-pulse" />
+            </div>
+            
+            {/* Preview Image */}
+            <div className="h-48 w-full bg-white/5 rounded-xl animate-pulse" />
+            
+            {/* Preview Details */}
+            <div className="space-y-4">
+              <div className="h-6 w-3/4 bg-white/5 rounded animate-pulse" />
+              <div className="h-4 w-full bg-white/5 rounded animate-pulse" />
+              <div className="h-4 w-2/3 bg-white/5 rounded animate-pulse" />
+              
+              <div className="flex gap-4 pt-4">
+                <div className="h-4 w-24 bg-white/5 rounded animate-pulse" />
+                <div className="h-4 w-24 bg-white/5 rounded animate-pulse" />
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    );
   }
 
   return (

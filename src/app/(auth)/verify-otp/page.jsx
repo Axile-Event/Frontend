@@ -6,18 +6,15 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 import api from "../../../lib/axios";
-import { Mail, Lock, Loader2, ArrowRight, CheckCircle, Clock } from "lucide-react";
+import { Loader2, CheckCircle, Clock } from "lucide-react";
 import Logo from "@/components/Logo";
 import { getErrorMessage } from "@/lib/utils";
 import BackgroundCarousel from "../../../components/BackgroundCarousel";
-import useAuthStore from "@/store/authStore";
 
 const VerifyOTPContent = () => {
-  const login = useAuthStore((state) => state.login);
   const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get("email") || "";
-  const role = searchParams.get("role") || "";
   const callbackUrl = searchParams.get("callbackUrl");
 
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
@@ -84,23 +81,13 @@ const VerifyOTPContent = () => {
         otp: otpCode,
       });
 
-      const { user_id, email: verifiedEmail, access, role, refresh } = res.data;
-      login({ ...res.data }, access, refresh || null, role);
+      toast.success("Email verified successfully! Please login to continue.", { id: toastId });
 
-      // If this was an organizer verification right after signup, show a one-time
-      // "Welcome {name}" message on their first dashboard visit.
-      try {
-          // first-welcome logic removed
-      } catch {
-        // ignore
-      }
-
-      toast.success("Email verified successfully! Redirecting...", { id: toastId });
-      
+      // Redirect to login page with callbackUrl preserved
       if (callbackUrl) {
-        router.push(decodeURIComponent(callbackUrl));
+        router.replace(`/login?callbackUrl=${encodeURIComponent(callbackUrl)}`);
       } else {
-        router.push("/dashboard");
+        router.replace('/login');
       }
 
     } catch (err) {

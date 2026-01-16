@@ -14,9 +14,12 @@ const Header = () => {
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const pathname = usePathname();
-  const { user, role, logout, isAuthenticated, setUser } = useAuthStore();
+  const { user, role, logout, isAuthenticated, setUser, hydrated, token } = useAuthStore();
 
   React.useEffect(() => {
+    // Wait for store hydration and ensure we have a valid token before fetching
+    if (!hydrated || !token) return;
+    
     if (isAuthenticated && user && !user.firstname && !user.Firstname && !user.Preferred_name && !user.Organization_Name) {
       const fetchUserData = async () => {
         try {
@@ -25,12 +28,15 @@ const Header = () => {
           const data = response.data.profile || response.data.Org_profile || response.data;
           setUser(data);
         } catch (e) {
-          console.error("Failed to fetch user data for header", e);
+          // Silently ignore 401 errors - token may not be valid yet after signup
+          if (e?.response?.status !== 401) {
+            console.error("Failed to fetch user data for header", e);
+          }
         }
       };
       fetchUserData();
     }
-  }, [isAuthenticated, user, role, setUser]);
+  }, [hydrated, token, isAuthenticated, user, role, setUser]);
 
   if (pathname.startsWith('/dashboard/org') || pathname === '/dashboard' || pathname.startsWith('/lighthouse')) return null;
 
