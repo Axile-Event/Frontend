@@ -1,15 +1,48 @@
-
 "use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Loader2, Calendar, MapPin, DollarSign, CheckCircle, XCircle, Star, Trash2, Search } from "lucide-react";
+import { Calendar, MapPin, DollarSign, CheckCircle, XCircle, Trash2, Search, ChevronLeft, ChevronRight, Eye } from "lucide-react";
 import { adminService } from "../../../lib/admin";
 import { toast } from "react-hot-toast";
-import { Card, CardContent } from "../../../components/ui/card";
+import { Card } from "../../../components/ui/card";
 import { Button } from "../../../components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AdminTableSkeleton } from "@/components/skeletons";
+import { cn } from "@/lib/utils";
+
+function TabButton({ active, children, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200",
+        active
+          ? "bg-foreground text-background"
+          : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function StatusBadge({ status }) {
+  const config = {
+    verified: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+    denied: "bg-red-500/10 text-red-600 border-red-500/20",
+    pending: "bg-amber-500/10 text-amber-600 border-amber-500/20",
+  };
+  
+  return (
+    <span className={cn(
+      "inline-flex items-center px-2.5 py-1 rounded text-[10px] font-semibold uppercase tracking-wide border",
+      config[status] || config.pending
+    )}>
+      {status}
+    </span>
+  );
+}
 
 export default function EventsPage() {
   const [loading, setLoading] = useState(true);
@@ -17,7 +50,7 @@ export default function EventsPage() {
   const [filter, setFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 20;
+  const itemsPerPage = 15;
 
   useEffect(() => {
     fetchEvents();
@@ -48,10 +81,8 @@ export default function EventsPage() {
     }
   };
 
-
-
   const handleDeleteEvent = async (eventId) => {
-    if (!window.confirm("Are you sure you want to DELETE this event? This action cannot be undone.")) return;
+    if (!window.confirm("Are you sure you want to delete this event? This action cannot be undone.")) return;
 
     try {
       await adminService.deleteEvent(eventId);
@@ -79,10 +110,6 @@ export default function EventsPage() {
   const currentItems = filteredEvents.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredEvents.length / itemsPerPage);
 
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
-  };
-
   useEffect(() => {
     setCurrentPage(1);
   }, [filter, searchQuery]);
@@ -91,202 +118,216 @@ export default function EventsPage() {
     return <AdminTableSkeleton columns={5} rows={8} />;
   }
 
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Events</h2>
-          <p className="text-sm text-muted-foreground">
-            Monitor and moderate all events on the platform.
-          </p>
-        </div>
-        
-        <div className="flex flex-col sm:flex-row gap-3 items-end sm:items-center">
-            {/* Search Input */}
-            <div className="relative w-full sm:w-64">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                <Input
-                    placeholder="Search events..."
-                    className="pl-8 h-8 text-xs bg-background"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                />
-            </div>
+  const tabs = [
+    { id: "all", label: "All", count: events.length },
+    { id: "pending", label: "Pending", count: events.filter(e => e.status === 'pending').length },
+    { id: "verified", label: "Verified", count: events.filter(e => e.status === 'verified').length },
+    { id: "denied", label: "Denied", count: events.filter(e => e.status === 'denied').length },
+  ];
 
-            <div className="flex gap-2 bg-muted p-1 rounded-lg self-start sm:self-auto">
-            {["all", "pending", "verified", "denied"].map((status) => (
-                <button
-                key={status}
-                onClick={() => setFilter(status)}
-                className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${
-                    filter === status 
-                    ? "bg-primary text-primary-foreground shadow" 
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-                >
-                {status.charAt(0).toUpperCase() + status.slice(1)}
-                </button>
-            ))}
-            </div>
+  return (
+    <div className="space-y-5">
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div className="flex items-center gap-1 p-1 bg-muted/30 rounded-xl border border-border/40 overflow-x-auto">
+          {tabs.map((tab) => (
+            <TabButton
+              key={tab.id}
+              active={filter === tab.id}
+              onClick={() => setFilter(tab.id)}
+            >
+              {tab.label}
+              {tab.count > 0 && (
+                <span className={cn(
+                  "ml-1.5 px-1.5 py-0.5 text-[10px] rounded",
+                  filter === tab.id 
+                    ? "bg-background/20 text-background" 
+                    : "bg-muted text-muted-foreground"
+                )}>
+                  {tab.count}
+                </span>
+              )}
+            </TabButton>
+          ))}
+        </div>
+
+        <div className="relative w-full lg:w-72">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search events..."
+            className="pl-9 h-10 bg-card/50 border-border/40"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
         </div>
       </div>
 
-      <Card className="shadow-sm border-border">
-        <CardContent className="p-0">
-          <div className="border-t-0 overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-muted/40 text-muted-foreground text-xs uppercase tracking-wide">
+      <Card className="border-border/40 bg-card/50 backdrop-blur-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-border/40">
+                <th className="text-left p-4 text-xs font-medium text-muted-foreground uppercase tracking-wide">Event</th>
+                <th className="text-left p-4 text-xs font-medium text-muted-foreground uppercase tracking-wide hidden md:table-cell">Organizer</th>
+                <th className="text-left p-4 text-xs font-medium text-muted-foreground uppercase tracking-wide hidden lg:table-cell">Date & Location</th>
+                <th className="text-left p-4 text-xs font-medium text-muted-foreground uppercase tracking-wide">Status</th>
+                <th className="text-right p-4 text-xs font-medium text-muted-foreground uppercase tracking-wide">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/40">
+              {currentItems.length === 0 ? (
                 <tr>
-                  <th className="p-3 font-medium">Event Name</th>
-                  <th className="p-3 font-medium">Organizer</th>
-                  <th className="p-3 font-medium">Date & Location</th>
-                  <th className="p-3 font-medium">Status</th>
-                  <th className="p-3 font-medium text-right">Actions</th>
+                  <td colSpan={5} className="p-12 text-center">
+                    <Calendar className="w-8 h-8 mx-auto text-muted-foreground/40 mb-2" />
+                    <p className="text-sm text-muted-foreground">No events found</p>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y">
-                {currentItems.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="p-6 text-center text-xs text-muted-foreground">
-                      No events found matching this filter.
-                    </td>
-                  </tr>
-                ) : (
-                  currentItems.map((event) => (
-                    <tr key={event.event_id} className="hover:bg-muted/30 transition-colors text-xs">
-                      <td className="p-3">
-                        <div className="flex items-center gap-2">
-                           <div className="font-medium">
-                              <Link href={`/lighthouse/events/${event.event_id}`} className="hover:underline hover:text-primary transition-colors">
-                                {event.event_name}
-                              </Link>
-                           </div>
-                        </div>
-                        <div className="text-[10px] text-muted-foreground flex items-center gap-1 mt-0.5">
-                          <DollarSign className="w-3 h-3" /> 
+              ) : (
+                currentItems.map((event) => (
+                  <tr key={event.event_id} className="hover:bg-muted/30 transition-colors group">
+                    <td className="p-4">
+                      <div className="min-w-0">
+                        <Link 
+                          href={`/lighthouse/events/${event.event_id}`}
+                          className="text-sm font-medium text-foreground hover:text-primary transition-colors line-clamp-1"
+                        >
+                          {event.event_name}
+                        </Link>
+                        <div className="flex items-center gap-1.5 mt-1 text-xs text-muted-foreground">
+                          <DollarSign className="w-3 h-3" />
                           {event.pricing_type === 'free'
                             ? 'Free'
                             : event.event_price != null
                               ? `₦${Number(event.event_price).toLocaleString()}`
                               : 'Paid'}
                         </div>
-                      </td>
-                      <td className="p-3 text-muted-foreground">
+                      </div>
+                    </td>
+                    <td className="p-4 hidden md:table-cell">
+                      <p className="text-sm text-muted-foreground truncate max-w-[180px]">
                         {event.organisation_name}
-                      </td>
-                      <td className="p-3">
-                         <div className="space-y-0.5">
-                          <div className="flex items-center gap-1.5 text-muted-foreground">
-                            <Calendar className="h-3 w-3" /> 
-                            {new Date(event.date).toLocaleDateString()}
-                          </div>
-                          <div className="flex items-center gap-1.5 text-muted-foreground">
-                            <MapPin className="h-3 w-3" /> 
-                            {event.location}
-                          </div>
+                      </p>
+                    </td>
+                    <td className="p-4 hidden lg:table-cell">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                          <Calendar className="h-3.5 w-3.5 shrink-0" />
+                          <span>{new Date(event.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                         </div>
-                      </td>
-                      <td className="p-3">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] uppercase font-semibold tracking-wide ${
-                          event.status === 'verified' ? 'bg-green-50 text-green-700 border border-green-100' :
-                          event.status === 'denied' ? 'bg-red-50 text-red-700 border border-red-100' :
-                          'bg-yellow-50 text-yellow-700 border border-yellow-100'
-                        }`}>
-                          {event.status}
-                        </span>
-                      </td>
-                      <td className="p-3 text-right">
-                        <div className="flex items-center justify-end gap-1">
-
-
-                          {event.status === 'pending' && (
-                            <>
-                              <Button 
-                                size="sm" 
-                                variant="ghost"
-                                className="text-green-600 hover:text-green-700 hover:bg-green-50 h-7 w-7 p-0"
-                                onClick={() => handleStatusUpdate(event.event_id, 'verified')}
-                                title="Approve"
-                              >
-                                <CheckCircle className="w-4 h-4" />
-                              </Button>
-                              <Button 
-                                size="sm" 
-                                variant="ghost"
-                                className="text-red-500 hover:text-red-600 hover:bg-red-50 h-7 w-7 p-0"
-                                onClick={() => handleStatusUpdate(event.event_id, 'denied')}
-                                title="Deny"
-                              >
-                                <XCircle className="w-4 h-4" />
-                              </Button>
-                            </>
-                          )}
-                           {event.status === 'verified' && (
-                             <Button 
-                                size="sm" 
-                                variant="ghost"
-                                className="text-red-500 hover:text-red-600 hover:bg-red-50 h-7 w-7 p-0"
-                                onClick={() => handleStatusUpdate(event.event_id, 'denied')}
-                                title="Revoke Verification"
-                              >
-                                <XCircle className="w-4 h-4" />
-                              </Button>
-                          )}
-                          {event.status === 'denied' && (
-                             <Button 
-                                size="sm" 
-                                variant="ghost"
-                                className="text-green-600 hover:text-green-700 hover:bg-green-50 h-7 w-7 p-0"
-                                onClick={() => handleStatusUpdate(event.event_id, 'verified')}
-                                title="Re-approve"
-                              >
-                                <CheckCircle className="w-4 h-4" />
-                              </Button>
-                          )}
+                        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+                          <MapPin className="h-3.5 w-3.5 shrink-0" />
+                          <span className="truncate max-w-[150px]">{event.location}</span>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="p-4">
+                      <StatusBadge status={event.status} />
+                    </td>
+                    <td className="p-4">
+                      <div className="flex items-center justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                          asChild
+                        >
+                          <Link href={`/lighthouse/events/${event.event_id}`}>
+                            <Eye className="w-4 h-4 text-muted-foreground" />
+                          </Link>
+                        </Button>
+                        
+                        {event.status === 'pending' && (
+                          <>
+                            <Button 
+                              size="sm" 
+                              variant="ghost"
+                              className="h-8 w-8 p-0 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10"
+                              onClick={() => handleStatusUpdate(event.event_id, 'verified')}
+                              title="Approve"
+                            >
+                              <CheckCircle className="w-4 h-4" />
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="ghost"
+                              className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-500/10"
+                              onClick={() => handleStatusUpdate(event.event_id, 'denied')}
+                              title="Deny"
+                            >
+                              <XCircle className="w-4 h-4" />
+                            </Button>
+                          </>
+                        )}
+                        {event.status === 'verified' && (
                           <Button 
-                             size="sm" 
-                             variant="ghost"
-                             className="text-red-600 hover:text-red-700 hover:bg-red-50 h-7 w-7 p-0"
-                             onClick={() => handleDeleteEvent(event.event_id)}
-                             title="Delete Event"
-                           >
-                             <Trash2 className="w-4 h-4" />
-                           </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Pagination Controls */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-end gap-2 mt-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handlePageChange(currentPage - 1)}
-            disabled={currentPage === 1}
-          >
-            Prev
-          </Button>
-          <span className="text-sm text-gray-400">
-            Page {currentPage} of {totalPages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
-          >
-            Next
-          </Button>
+                            size="sm" 
+                            variant="ghost"
+                            className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-500/10"
+                            onClick={() => handleStatusUpdate(event.event_id, 'denied')}
+                            title="Revoke"
+                          >
+                            <XCircle className="w-4 h-4" />
+                          </Button>
+                        )}
+                        {event.status === 'denied' && (
+                          <Button 
+                            size="sm" 
+                            variant="ghost"
+                            className="h-8 w-8 p-0 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10"
+                            onClick={() => handleStatusUpdate(event.event_id, 'verified')}
+                            title="Approve"
+                          >
+                            <CheckCircle className="w-4 h-4" />
+                          </Button>
+                        )}
+                        <Button 
+                          size="sm" 
+                          variant="ghost"
+                          className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-500/10"
+                          onClick={() => handleDeleteEvent(event.event_id)}
+                          title="Delete"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
-      )}
+
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between p-4 border-t border-border/40">
+            <p className="text-xs text-muted-foreground">
+              Showing {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, filteredEvents.length)} of {filteredEvents.length}
+            </p>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setCurrentPage(currentPage - 1)}
+                disabled={currentPage === 1}
+                className="h-8 w-8 p-0"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm text-muted-foreground px-2">
+                {currentPage} / {totalPages}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setCurrentPage(currentPage + 1)}
+                disabled={currentPage === totalPages}
+                className="h-8 w-8 p-0"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+      </Card>
     </div>
   );
 }
