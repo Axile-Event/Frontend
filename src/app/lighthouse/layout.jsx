@@ -38,19 +38,22 @@ export default function AdminLayout({ children }) {
     if (!isClient) return;
 
     // Check auth
-    // Note: Role check is case-sensitive, backend might return 'admin'.
-    // Also, allow 'superuser' or other potential admin roles if applicable.
-    // For now, checking 'Admin' and 'admin'.
-    if (!token || (role !== 'Admin' && role !== 'admin' && !role?.toLowerCase().includes('admin'))) {
+    const isAdmin = token && (role === 'Admin' || role === 'admin' || role?.toLowerCase().includes('admin'));
+    
+    if (!isAdmin) {
       if (!isLoginPage) {
         router.push("/lighthouse/login");
+        return;
       }
     } else {
       // If authenticated and on login page, redirect to dashboard
       if (isLoginPage) {
         router.push("/lighthouse/dashboard");
+        return;
       }
     }
+    
+    setLoadingAuth(false);
   }, [isClient, token, role, isLoginPage, router]);
 
 
@@ -74,6 +77,31 @@ export default function AdminLayout({ children }) {
              {children}
           </div>
       )
+  }
+
+  if (loadingAuth || !isClient) {
+    return (
+      <div className="flex h-screen bg-background overflow-hidden">
+        {/* Sidebar Skeleton */}
+        <div className="hidden md:block w-64 border-r bg-card h-full">
+          <SidebarSkeleton />
+        </div>
+        
+        <div className="flex-1 flex flex-col h-full overflow-hidden">
+          {/* Header Skeleton */}
+          <div className="h-14 border-b bg-card">
+            <DashboardHeaderSkeleton />
+          </div>
+          
+          {/* Main Content Skeleton */}
+          <main className="flex-1 p-8 overflow-auto">
+            <div className="max-w-6xl mx-auto">
+              <AnalyticsSkeleton />
+            </div>
+          </main>
+        </div>
+      </div>
+    );
   }
 
   return (
