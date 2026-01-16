@@ -89,7 +89,7 @@ export function getImageUrl(path) {
 
   // Use dynamic base URL from environment or fallback
   const apiBase =
-    process.env.NEXT_PUBLIC_API_URL || "https://TreEvents-ufvb.onrender.com";
+    process.env.NEXT_PUBLIC_API_URL || "https://radar-ufvb.onrender.com";
   const baseUrl = apiBase.endsWith("/") ? apiBase.slice(0, -1) : apiBase;
 
   // Ensure we don't have double slashes

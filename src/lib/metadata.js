@@ -43,7 +43,7 @@ export function generateEventMetadata(event) {
             {
               url: event.event_image.startsWith("http")
                 ? event.event_image
-                : `https://TreEvents-ufvb.onrender.com${event.event_image}`,
+                : `https://radar-ufvb.onrender.com${event.event_image}`,
               width: 1200,
               height: 630,
               alt: event.event_name,
@@ -59,7 +59,7 @@ export function generateEventMetadata(event) {
         ? [
             event.event_image.startsWith("http")
               ? event.event_image
-              : `https://TreEvents-ufvb.onrender.com${event.event_image}`,
+              : `https://radar-ufvb.onrender.com${event.event_image}`,
           ]
         : [],
     },
