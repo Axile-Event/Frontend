@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { getImageUrl } from "@/lib/utils";
+import { EventDetailsSkeleton } from "@/components/skeletons";
 
 export default function AdminEventDetailsPage() {
   const { event_id } = useParams();
@@ -92,11 +93,7 @@ export default function AdminEventDetailsPage() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full min-h-[50vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
+    return <EventDetailsSkeleton />;
   }
 
   if (!event) {
