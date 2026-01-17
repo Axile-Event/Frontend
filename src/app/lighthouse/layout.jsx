@@ -124,7 +124,7 @@ export default function AdminLayout({ children }) {
       </AnimatePresence>
 
       <div className="flex-1 flex flex-col h-screen overflow-hidden">
-        <header className="h-16 border-b border-border/40 px-4 md:px-6 flex items-center justify-between bg-card/30 backdrop-blur-sm shrink-0">
+        <header className="h-16 border-b border-border/40 px-4 md:px-6 flex items-center justify-between bg-card/30 backdrop-blur-sm shrink-0 overflow-visible relative z-10">
           <div className="flex items-center gap-4">
             <Button 
               variant="ghost" 
