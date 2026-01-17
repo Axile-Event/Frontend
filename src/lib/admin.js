@@ -184,6 +184,15 @@ export const adminService = {
     return response.data;
   },
 
+  // Payment Transactions
+  getPaymentTransactions: async (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    const response = await api.get(
+      `/api/admin/payment-transactions/?${queryString}`
+    );
+    return response.data;
+  },
+
   // System Settings
   getSystemSettings: async () => {
     const response = await api.get("/api/admin/settings/");
