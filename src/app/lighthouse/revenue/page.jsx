@@ -2,12 +2,30 @@
 
 import { useEffect, useState } from "react";
 import { adminService } from "../../../lib/admin";
-import { DollarSign, Calendar, Users, TrendingUp, Clock, CheckCircle, XCircle } from "lucide-react";
+import { 
+  DollarSign, 
+  Calendar, 
+  Users, 
+  TrendingUp, 
+  Clock, 
+  CheckCircle, 
+  XCircle, 
+  CreditCard,
+  ArrowUpRight,
+  ArrowDownRight,
+  Receipt,
+  ChevronLeft,
+  ChevronRight,
+  Filter,
+  Search,
+  Download
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
+import { Button } from "@/components/ui/button";
 import { AdminRevenueSkeleton } from "@/components/skeletons";
 import { cn } from "@/lib/utils";
 
-function StatCard({ title, value, subtitle, icon: Icon }) {
+function StatCard({ title, value, subtitle, icon: Icon, trend, trendValue }) {
   return (
     <Card className="border-border/40 bg-card/50 backdrop-blur-sm">
       <CardContent className="p-5">
@@ -15,7 +33,18 @@ function StatCard({ title, value, subtitle, icon: Icon }) {
           <div className="space-y-2">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{title}</p>
             <p className="text-2xl font-semibold tracking-tight text-foreground">{value}</p>
-            {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
+            <div className="flex items-center gap-2">
+              {trend && (
+                <span className={cn(
+                  "inline-flex items-center text-xs font-medium",
+                  trend === 'up' ? "text-emerald-600" : "text-red-600"
+                )}>
+                  {trend === 'up' ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                  {trendValue}
+                </span>
+              )}
+              {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
+            </div>
           </div>
           <div className="h-10 w-10 rounded-lg bg-muted/50 flex items-center justify-center">
             <Icon className="h-5 w-5 text-muted-foreground" />
@@ -31,6 +60,7 @@ function StatusBadge({ status }) {
     completed: { icon: CheckCircle, className: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" },
     failed: { icon: XCircle, className: "bg-red-500/10 text-red-600 border-red-500/20" },
     pending: { icon: Clock, className: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
+    cancelled: { icon: XCircle, className: "bg-gray-500/10 text-gray-600 border-gray-500/20" },
   };
   
   const { icon: StatusIcon, className } = config[status] || config.pending;
@@ -46,7 +76,7 @@ function StatusBadge({ status }) {
   );
 }
 
-function TabButton({ active, children, onClick, variant }) {
+function TabButton({ active, children, onClick, variant, count }) {
   const variants = {
     pending: "data-[active=true]:bg-amber-500 data-[active=true]:text-white",
     completed: "data-[active=true]:bg-emerald-500 data-[active=true]:text-white",
@@ -59,12 +89,20 @@ function TabButton({ active, children, onClick, variant }) {
       data-active={active}
       onClick={onClick}
       className={cn(
-        "px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200",
+        "px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 flex items-center gap-1.5",
         "text-muted-foreground hover:text-foreground hover:bg-muted/50",
         variants[variant] || variants.default
       )}
     >
       {children}
+      {count !== undefined && (
+        <span className={cn(
+          "text-[10px] px-1.5 py-0.5 rounded-full",
+          active ? "bg-white/20" : "bg-muted text-muted-foreground"
+        )}>
+          {count}
+        </span>
+      )}
     </button>
   );
 }
@@ -73,20 +111,61 @@ export default function RevenuePage() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(null);
   const [withdrawals, setWithdrawals] = useState([]);
-  const [statusFilter, setStatusFilter] = useState(null);
+  const [transactions, setTransactions] = useState([]);
+  const [withdrawalFilter, setWithdrawalFilter] = useState(null);
+  const [transactionFilter, setTransactionFilter] = useState(null);
+  const [activeTab, setActiveTab] = useState('transactions'); // 'transactions' or 'withdrawals'
+  
+  // Pagination for transactions
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalTransactions, setTotalTransactions] = useState(0);
+  const itemsPerPage = 15;
 
   useEffect(() => {
-    Promise.all([
-      adminService.getAnalytics(),
-      adminService.getAllWithdrawals({ page: 1, page_size: 50 })
-    ]).then(([analyticsData, withdrawalsData]) => {
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'transactions') {
+      fetchTransactions();
+    }
+  }, [currentPage, transactionFilter]);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [analyticsData, withdrawalsData, transactionsData] = await Promise.all([
+        adminService.getAnalytics(),
+        adminService.getAllWithdrawals({ page: 1, page_size: 50 }),
+        adminService.getPaymentTransactions({ limit: itemsPerPage, offset: 0 })
+      ]);
+      
       setStats(analyticsData);
       setWithdrawals(withdrawalsData.withdrawals || []);
+      setTransactions(transactionsData.transactions || []);
+      setTotalTransactions(transactionsData.total_count || 0);
+    } catch (error) {
+      console.error("Failed to fetch revenue data:", error);
+    } finally {
       setLoading(false);
-    }).catch(() => {
-      setLoading(false);
-    });
-  }, []);
+    }
+  };
+
+  const fetchTransactions = async () => {
+    try {
+      const params = {
+        limit: itemsPerPage,
+        offset: (currentPage - 1) * itemsPerPage
+      };
+      if (transactionFilter) params.status = transactionFilter;
+      
+      const data = await adminService.getPaymentTransactions(params);
+      setTransactions(data.transactions || []);
+      setTotalTransactions(data.total_count || 0);
+    } catch (error) {
+      console.error("Failed to fetch transactions:", error);
+    }
+  };
 
   if (loading) {
     return <AdminRevenueSkeleton />;
@@ -100,12 +179,25 @@ export default function RevenuePage() {
   const avgRevenuePerEvent = totalEvents > 0 ? (totalRevenue / totalEvents) : 0;
   const avgRevenuePerOrganizer = totalOrganizers > 0 ? (totalRevenue / totalOrganizers) : 0;
 
-  const filteredWithdrawals = statusFilter 
-    ? withdrawals.filter(w => w.status === statusFilter)
+  // Calculate transaction stats
+  const completedTransactions = transactions.filter(t => t.status === 'completed');
+  const totalTransactionValue = completedTransactions.reduce((sum, t) => sum + parseFloat(t.amount || 0), 0);
+  const totalPlatformFees = completedTransactions.reduce((sum, t) => sum + parseFloat(t.platform_fee || 0), 0);
+
+  const filteredWithdrawals = withdrawalFilter 
+    ? withdrawals.filter(w => w.status === withdrawalFilter)
     : withdrawals;
+
+  const totalPages = Math.ceil(totalTransactions / itemsPerPage);
+
+  // Withdrawal stats
+  const pendingWithdrawals = withdrawals.filter(w => w.status === 'pending');
+  const completedWithdrawals = withdrawals.filter(w => w.status === 'completed');
+  const pendingWithdrawalAmount = pendingWithdrawals.reduce((sum, w) => sum + parseFloat(w.amount || 0), 0);
 
   return (
     <div className="space-y-6">
+      {/* Stats Overview */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard 
           title="Total Revenue" 
@@ -114,25 +206,26 @@ export default function RevenuePage() {
           icon={DollarSign}
         />
         <StatCard 
-          title="Total Events" 
-          value={totalEvents} 
-          subtitle="Events on platform"
-          icon={Calendar}
+          title="Total Transactions" 
+          value={totalTransactions.toLocaleString()} 
+          subtitle={`₦${totalTransactionValue.toLocaleString()} processed`}
+          icon={Receipt}
         />
         <StatCard 
-          title="Organizers" 
-          value={totalOrganizers} 
-          subtitle="Active organizers"
-          icon={Users}
+          title="Platform Fees" 
+          value={`₦${totalPlatformFees.toLocaleString()}`} 
+          subtitle="From recent transactions"
+          icon={TrendingUp}
         />
         <StatCard 
-          title="Students" 
-          value={totalStudents} 
-          subtitle="Registered students"
-          icon={Users}
+          title="Pending Payouts" 
+          value={`₦${pendingWithdrawalAmount.toLocaleString()}`} 
+          subtitle={`${pendingWithdrawals.length} pending requests`}
+          icon={CreditCard}
         />
       </div>
 
+      {/* Revenue Breakdown Cards */}
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="border-border/40 bg-card/50 backdrop-blur-sm">
           <CardHeader className="pb-3">
@@ -212,79 +305,206 @@ export default function RevenuePage() {
         </Card>
       </div>
 
+      {/* Main Data Section with Tabs */}
       <Card className="border-border/40 bg-card/50 backdrop-blur-sm">
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-medium">Recent Withdrawals</CardTitle>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-2 p-1 bg-muted/30 rounded-xl border border-border/40">
+              <TabButton 
+                active={activeTab === 'transactions'} 
+                onClick={() => setActiveTab('transactions')}
+              >
+                <Receipt className="w-3.5 h-3.5" />
+                Payment Transactions
+              </TabButton>
+              <TabButton 
+                active={activeTab === 'withdrawals'} 
+                onClick={() => setActiveTab('withdrawals')}
+                count={pendingWithdrawals.length > 0 ? pendingWithdrawals.length : undefined}
+              >
+                <CreditCard className="w-3.5 h-3.5" />
+                Withdrawals
+              </TabButton>
+            </div>
+            
+            {/* Status Filters */}
             <div className="flex items-center gap-1 p-1 bg-muted/30 rounded-lg">
-              <TabButton active={statusFilter === null} onClick={() => setStatusFilter(null)}>
-                All
-              </TabButton>
-              <TabButton active={statusFilter === 'pending'} onClick={() => setStatusFilter('pending')} variant="pending">
-                Pending
-              </TabButton>
-              <TabButton active={statusFilter === 'completed'} onClick={() => setStatusFilter('completed')} variant="completed">
-                Completed
-              </TabButton>
-              <TabButton active={statusFilter === 'failed'} onClick={() => setStatusFilter('failed')} variant="failed">
-                Failed
-              </TabButton>
+              {activeTab === 'transactions' ? (
+                <>
+                  <TabButton active={transactionFilter === null} onClick={() => { setTransactionFilter(null); setCurrentPage(1); }}>All</TabButton>
+                  <TabButton active={transactionFilter === 'completed'} onClick={() => { setTransactionFilter('completed'); setCurrentPage(1); }} variant="completed">Completed</TabButton>
+                  <TabButton active={transactionFilter === 'pending'} onClick={() => { setTransactionFilter('pending'); setCurrentPage(1); }} variant="pending">Pending</TabButton>
+                  <TabButton active={transactionFilter === 'failed'} onClick={() => { setTransactionFilter('failed'); setCurrentPage(1); }} variant="failed">Failed</TabButton>
+                </>
+              ) : (
+                <>
+                  <TabButton active={withdrawalFilter === null} onClick={() => setWithdrawalFilter(null)}>All</TabButton>
+                  <TabButton active={withdrawalFilter === 'pending'} onClick={() => setWithdrawalFilter('pending')} variant="pending">Pending</TabButton>
+                  <TabButton active={withdrawalFilter === 'completed'} onClick={() => setWithdrawalFilter('completed')} variant="completed">Completed</TabButton>
+                  <TabButton active={withdrawalFilter === 'failed'} onClick={() => setWithdrawalFilter('failed')} variant="failed">Failed</TabButton>
+                </>
+              )}
             </div>
           </div>
         </CardHeader>
         <CardContent className="pt-0">
-          {filteredWithdrawals.length === 0 ? (
-            <div className="py-12 text-center">
-              <DollarSign className="w-8 h-8 mx-auto text-muted-foreground/40 mb-2" />
-              <p className="text-sm text-muted-foreground">No withdrawals found</p>
-            </div>
+          {activeTab === 'transactions' ? (
+            /* Payment Transactions Table */
+            <>
+              {transactions.length === 0 ? (
+                <div className="py-12 text-center">
+                  <Receipt className="w-8 h-8 mx-auto text-muted-foreground/40 mb-2" />
+                  <p className="text-sm text-muted-foreground">No transactions found</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-border/40">
+                        <th className="text-left pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Transaction</th>
+                        <th className="text-left pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Buyer</th>
+                        <th className="text-left pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide hidden md:table-cell">Event</th>
+                        <th className="text-left pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Amount</th>
+                        <th className="text-left pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide hidden lg:table-cell">Platform Fee</th>
+                        <th className="text-left pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Status</th>
+                        <th className="text-right pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide hidden xl:table-cell">Date</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/40">
+                      {transactions.map((txn) => (
+                        <tr key={txn.transaction_id} className="hover:bg-muted/30 transition-colors">
+                          <td className="py-3">
+                            <div className="min-w-0">
+                              <p className="font-mono text-xs text-foreground truncate max-w-[100px]" title={txn.transaction_id}>
+                                {txn.transaction_id?.slice(-12) || '—'}
+                              </p>
+                              <p className="text-[10px] text-muted-foreground">{txn.paystack_reference?.slice(0, 12) || '—'}</p>
+                            </div>
+                          </td>
+                          <td className="py-3">
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-foreground truncate max-w-[120px]">{txn.user_name || '—'}</p>
+                              <p className="text-xs text-muted-foreground truncate max-w-[120px]">{txn.user_email || '—'}</p>
+                            </div>
+                          </td>
+                          <td className="py-3 hidden md:table-cell">
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-foreground truncate max-w-[150px]">{txn.event_name || '—'}</p>
+                              <p className="text-xs text-muted-foreground">{txn.category_name || 'Standard'}</p>
+                            </div>
+                          </td>
+                          <td className="py-3">
+                            <p className="text-sm font-semibold text-foreground">₦{Number(txn.amount || 0).toLocaleString()}</p>
+                          </td>
+                          <td className="py-3 hidden lg:table-cell">
+                            <p className="text-sm text-emerald-600 font-medium">₦{Number(txn.platform_fee || 0).toLocaleString()}</p>
+                          </td>
+                          <td className="py-3">
+                            <StatusBadge status={txn.status || 'pending'} />
+                          </td>
+                          <td className="py-3 text-right hidden xl:table-cell">
+                            <p className="text-sm text-muted-foreground">
+                              {txn.created_at ? new Date(txn.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                            </p>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between pt-4 border-t border-border/40 mt-4">
+                  <p className="text-xs text-muted-foreground">
+                    Showing {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, totalTransactions)} of {totalTransactions}
+                  </p>
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setCurrentPage(currentPage - 1)}
+                      disabled={currentPage === 1}
+                      className="h-8 w-8 p-0"
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <span className="text-sm text-muted-foreground px-2">
+                      {currentPage} / {totalPages}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setCurrentPage(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                      className="h-8 w-8 p-0"
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border/40">
-                    <th className="text-left pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Transaction</th>
-                    <th className="text-left pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">User</th>
-                    <th className="text-left pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide hidden md:table-cell">Bank</th>
-                    <th className="text-left pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Amount</th>
-                    <th className="text-left pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Status</th>
-                    <th className="text-right pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide hidden lg:table-cell">Date</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/40">
-                  {filteredWithdrawals.slice(0, 10).map((withdrawal) => (
-                    <tr key={withdrawal.transaction_id} className="hover:bg-muted/30 transition-colors">
-                      <td className="py-3">
-                        <p className="font-mono text-sm text-muted-foreground">{withdrawal.transaction_id}</p>
-                      </td>
-                      <td className="py-3">
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-foreground truncate max-w-[120px]">{withdrawal.organiser_name}</p>
-                          <p className="text-xs text-muted-foreground truncate max-w-[120px]">{withdrawal.organiser_email}</p>
-                        </div>
-                      </td>
-                      <td className="py-3 hidden md:table-cell">
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-foreground">{withdrawal.bank_name}</p>
-                          <p className="text-xs text-muted-foreground">{withdrawal.account_name}</p>
-                        </div>
-                      </td>
-                      <td className="py-3">
-                        <p className="text-sm font-semibold text-foreground">₦{Number(withdrawal.amount).toLocaleString()}</p>
-                      </td>
-                      <td className="py-3">
-                        <StatusBadge status={withdrawal.status} />
-                      </td>
-                      <td className="py-3 text-right hidden lg:table-cell">
-                        <p className="text-sm text-muted-foreground">
-                          {new Date(withdrawal.requested_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-                        </p>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            /* Withdrawals Table */
+            <>
+              {filteredWithdrawals.length === 0 ? (
+                <div className="py-12 text-center">
+                  <CreditCard className="w-8 h-8 mx-auto text-muted-foreground/40 mb-2" />
+                  <p className="text-sm text-muted-foreground">No withdrawals found</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-border/40">
+                        <th className="text-left pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Transaction</th>
+                        <th className="text-left pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Organizer</th>
+                        <th className="text-left pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide hidden md:table-cell">Bank</th>
+                        <th className="text-left pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Amount</th>
+                        <th className="text-left pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Status</th>
+                        <th className="text-right pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide hidden lg:table-cell">Date</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/40">
+                      {filteredWithdrawals.slice(0, 15).map((withdrawal) => (
+                        <tr key={withdrawal.transaction_id} className="hover:bg-muted/30 transition-colors">
+                          <td className="py-3">
+                            <p className="font-mono text-sm text-muted-foreground truncate max-w-[100px]" title={withdrawal.transaction_id}>
+                              {withdrawal.transaction_id?.slice(-12) || '—'}
+                            </p>
+                          </td>
+                          <td className="py-3">
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-foreground truncate max-w-[120px]">{withdrawal.organizer_name || '—'}</p>
+                              <p className="text-xs text-muted-foreground truncate max-w-[120px]">{withdrawal.organizer_email || '—'}</p>
+                            </div>
+                          </td>
+                          <td className="py-3 hidden md:table-cell">
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium text-foreground">{withdrawal.bank_name || '—'}</p>
+                              <p className="text-xs text-muted-foreground">{withdrawal.account_name || '—'}</p>
+                            </div>
+                          </td>
+                          <td className="py-3">
+                            <p className="text-sm font-semibold text-foreground">₦{Number(withdrawal.amount || 0).toLocaleString()}</p>
+                          </td>
+                          <td className="py-3">
+                            <StatusBadge status={withdrawal.status || 'pending'} />
+                          </td>
+                          <td className="py-3 text-right hidden lg:table-cell">
+                            <p className="text-sm text-muted-foreground">
+                              {withdrawal.created_at ? new Date(withdrawal.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
+                            </p>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
