@@ -4,8 +4,10 @@ export * from "./primitives";
 // Page-specific skeletons
 export * from "./pages";
 
-// Legacy exports for backward compatibility (will be deprecated)
-// These re-export from the new page skeletons
+// Admin-specific skeletons
+export * from "./admin";
+
+// Legacy exports for backward compatibility
 export {
   DashboardHeaderSkeleton,
   SidebarSkeleton,

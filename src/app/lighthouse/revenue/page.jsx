@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { adminService } from "../../../lib/admin";
 import { DollarSign, Calendar, Users, TrendingUp, Clock, CheckCircle, XCircle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
-import { AdminDashboardSkeleton } from "@/components/skeletons";
+import { AdminRevenueSkeleton } from "@/components/skeletons";
 import { cn } from "@/lib/utils";
 
 function StatCard({ title, value, subtitle, icon: Icon }) {
@@ -89,7 +89,7 @@ export default function RevenuePage() {
   }, []);
 
   if (loading) {
-    return <AdminDashboardSkeleton />;
+    return <AdminRevenueSkeleton />;
   }
 
   const totalRevenue = stats?.total_revenue || 0;
