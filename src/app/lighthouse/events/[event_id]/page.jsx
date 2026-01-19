@@ -7,10 +7,9 @@ import { toast } from "react-hot-toast";
 import { Calendar, MapPin, DollarSign, User, Mail, Phone, ArrowLeft, CheckCircle, XCircle, Trash2, Clock, Ticket, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { getImageUrl } from "@/lib/utils";
+import { getImageUrl, cn, formatCurrency } from "@/lib/utils";
 import { AdminEventDetailsSkeleton } from "@/components/skeletons";
 import { useConfirmModal } from "@/components/ui/confirmation-modal";
-import { cn } from "@/lib/utils";
 
 function StatusBadge({ status, size = "default" }) {
   const config = {
