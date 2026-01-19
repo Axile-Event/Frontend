@@ -52,7 +52,7 @@ const navigationGroups = [
     label: "Finance",
     items: [
       {
-        title: "Withdrawals",
+        title: "Payout",
         href: "/lighthouse/withdrawals",
         icon: CreditCard,
       },

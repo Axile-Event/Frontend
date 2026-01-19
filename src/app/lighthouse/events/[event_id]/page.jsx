@@ -205,7 +205,7 @@ export default function AdminEventDetailsPage() {
                 <InfoRow 
                   icon={DollarSign} 
                   label="Pricing" 
-                  value={event.pricing_type === 'free' ? 'Free Event' : event.event_price != null ? `₦${Number(event.event_price).toLocaleString()}` : 'Paid Event'} 
+                  value={event.pricing_type === 'free' ? 'Free Event' : event.event_price != null ? formatCurrency(event.event_price) : 'Paid Event'} 
                 />
               </div>
 
@@ -237,7 +237,7 @@ export default function AdminEventDetailsPage() {
                         </div>
                       </div>
                       <p className="text-sm font-semibold text-foreground">
-                        {tier.price == 0 ? "Free" : `₦${Number(tier.price).toLocaleString()}`}
+                        {tier.price == 0 ? "Free" : formatCurrency(tier.price)}
                       </p>
                     </div>
                   ))}
@@ -345,7 +345,7 @@ export default function AdminEventDetailsPage() {
                   <div className="flex items-center justify-center gap-1 mb-1">
                     <DollarSign className="w-4 h-4 text-muted-foreground" />
                   </div>
-                  <p className="text-xl font-semibold text-foreground">₦{Number(event.revenue || 0).toLocaleString()}</p>
+                  <p className="text-xl font-semibold text-foreground">{formatCurrency(event.revenue || 0)}</p>
                   <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Revenue</p>
                 </div>
               </div>

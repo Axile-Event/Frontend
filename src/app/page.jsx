@@ -79,7 +79,7 @@ const LandingPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground selection:bg-primary/30">
+    <div className="min-h-screen bg-background text-foreground selection:bg-primary/30 overflow-x-hidden">
       {/* Enhanced Hero Section */}
       <section className="relative pt-20 pb-32 lg:pt-32 lg:pb-40 overflow-hidden">
         {/* Animated Background */}

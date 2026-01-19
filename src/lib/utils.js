@@ -111,7 +111,8 @@ export function formatCurrency(value, includeDecimals = true, currency = "₦") 
     return `${currency}0`;
   }
 
-  const formatted = num.toLocaleString("en-NG", {
+  // Use en-US locale for consistent formatting with commas
+  const formatted = num.toLocaleString("en-US", {
     minimumFractionDigits: includeDecimals ? 2 : 0,
     maximumFractionDigits: includeDecimals ? 2 : 0,
   });
