@@ -129,7 +129,7 @@ export default function WithdrawalsPage() {
             Transactions from approved payout requests. Mark as completed after manual transfer.
           </p>
         </div>
-      )}
+      </div>
 
       <div className="flex items-center gap-1 p-1 bg-muted/30 rounded-xl border border-border/40">
         {tabs.map((tab) => (
@@ -258,7 +258,6 @@ export default function WithdrawalsPage() {
              </table>
            </div>
          </CardContent>
-       </Card>
 
         {totalPages > 1 && (
           <div className="flex items-center justify-between p-4 border-t border-border/40">
