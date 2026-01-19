@@ -125,7 +125,7 @@ export function AdminSidebar({ className }) {
             <span className="text-background font-bold text-sm">T</span>
           </div>
           <div>
-            <h1 className="text-sm font-semibold text-foreground">TreEvents</h1>
+            <h1 className="text-sm font-semibold text-foreground">Axilex</h1>
             <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Admin Console</p>
           </div>
         </div>

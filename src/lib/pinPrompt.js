@@ -18,16 +18,16 @@ function getStorageKeys() {
   if (!email) {
     // Fallback to global keys if no email found
     return {
-      hasPin: "TreEvents_has_pin",
-      pinSalt: "TreEvents_pin_salt",
-      pinHash: "TreEvents_pin_hash",
+      hasPin: "Axilex_has_pin",
+      pinSalt: "Axilex_pin_salt",
+      pinHash: "Axilex_pin_hash",
     };
   }
   // User-specific keys
   return {
-    hasPin: `TreEvents_has_pin:${email.toLowerCase()}`,
-    pinSalt: `TreEvents_pin_salt:${email.toLowerCase()}`,
-    pinHash: `TreEvents_pin_hash:${email.toLowerCase()}`,
+    hasPin: `Axilex_has_pin:${email.toLowerCase()}`,
+    pinSalt: `Axilex_pin_salt:${email.toLowerCase()}`,
+    pinHash: `Axilex_pin_hash:${email.toLowerCase()}`,
   };
 }
 

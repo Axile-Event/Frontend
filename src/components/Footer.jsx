@@ -50,7 +50,7 @@ const Footer = () => {
             </Link>
             <p className="text-muted-foreground text-base max-w-xs leading-relaxed">
               Empowering event organizers and attendees with a seamless, 
-              tech-driven experience. Your TreEvents for the best events.
+              tech-driven experience. Your Axilex for the best events.
             </p>
             <div className="flex gap-4">
               {socialLinks.map((social) => (
@@ -133,7 +133,7 @@ const Footer = () => {
         <div className="pt-8 border-t border-border flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="text-xs text-muted-foreground flex items-center gap-1">
             <span>© {new Date().getFullYear()}</span>
-            <span className="font-bold text-foreground">TreEvents</span>
+            <span className="font-bold text-foreground">Axilex</span>
             <span className="mx-2">•</span>
             <span>All rights reserved.</span>
           </div>
@@ -147,7 +147,7 @@ const Footer = () => {
             >
               ❤
             </motion.span>
-            <span>by Team TreEvents</span>
+            <span>by Team Axilex</span>
           </div>
         </div>
       </div>

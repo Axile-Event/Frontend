@@ -258,7 +258,7 @@ const LoginContent = () => {
                   id="email"
                   name="email"
                   type="email"
-                  placeholder="TreEvents@gmail.com"
+                  placeholder="Axilex@gmail.com"
                   className="w-full bg-transparent border border-gray-200 dark:border-gray-800 rounded-xl py-3 md:py-3.5 pl-10 md:pl-12 pr-4 text-sm md:text-base text-white hover:border-rose-500/60 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-500 transition-all duration-200 dark:placeholder:text-gray-600"
                   value={formData.email}
                   onChange={handleChange}

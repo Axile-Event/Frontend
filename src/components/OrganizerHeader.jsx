@@ -21,12 +21,12 @@ const OrganizerHeader = () => {
     
     // Selectively clear localStorage, preserving user-specific PIN data
     if (typeof window !== 'undefined') {
-      // Preserve email-specific PIN keys (TreEvents_pin_*:email) and welcome flags
+      // Preserve email-specific PIN keys (Axilex_pin_*:email) and welcome flags
       const allKeys = Object.keys(localStorage);
       const keysToPreserve = allKeys.filter(key => 
-        key.startsWith('TreEvents_pin_salt:') || 
-        key.startsWith('TreEvents_pin_hash:') || 
-        key.startsWith('TreEvents_has_pin:')
+        key.startsWith('Axilex_pin_salt:') || 
+        key.startsWith('Axilex_pin_hash:') || 
+        key.startsWith('Axilex_has_pin:')
       );
             
       const keysToRemove = allKeys.filter(key => !keysToPreserve.includes(key));

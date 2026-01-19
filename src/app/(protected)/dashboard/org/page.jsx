@@ -171,12 +171,12 @@ export default function Overview() {
     if (hasPin) {
       setShowPinReminder(false);
       // Clear any dismiss flag since user has PIN now
-      localStorage.removeItem('TreEvents_pin_reminder_dismissed');
+      localStorage.removeItem('Axilex_pin_reminder_dismissed');
       return;
     }
     
     // User doesn't have PIN - check if they dismissed the reminder
-    const dismissed = localStorage.getItem('TreEvents_pin_reminder_dismissed');
+    const dismissed = localStorage.getItem('Axilex_pin_reminder_dismissed');
     const dismissedDate = dismissed ? new Date(dismissed) : null;
     const now = new Date();
     
@@ -189,7 +189,7 @@ export default function Overview() {
   }, [organization]);
 
   const handleDismissReminder = () => {
-    localStorage.setItem('TreEvents_pin_reminder_dismissed', new Date().toISOString());
+    localStorage.setItem('Axilex_pin_reminder_dismissed', new Date().toISOString());
     setShowPinReminder(false);
   };
 
@@ -243,7 +243,7 @@ export default function Overview() {
           setOrganization(orgData);
           
           // Clear PIN reminder dismiss flag from localStorage
-          localStorage.removeItem('TreEvents_pin_reminder_dismissed');
+          localStorage.removeItem('Axilex_pin_reminder_dismissed');
         }
       } catch (profileErr) {
         console.error("Failed to refetch organization profile:", profileErr);

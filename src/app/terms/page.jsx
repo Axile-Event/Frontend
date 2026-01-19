@@ -11,7 +11,7 @@ const TermsOfService = () => {
     {
       title: "Agreement to Terms",
       icon: <Scale className="h-6 w-6 text-primary" />,
-      content: "By accessing and using TreEvents, you agree to be bound by these Terms of Service. If you do not agree with any part of these terms, you are prohibited from using the platform."
+      content: "By accessing and using Axilex, you agree to be bound by these Terms of Service. If you do not agree with any part of these terms, you are prohibited from using the platform."
     },
     {
       title: "User Accounts",
@@ -21,7 +21,7 @@ const TermsOfService = () => {
     {
       title: "Ticketing & Payments",
       icon: <Ticket className="h-6 w-6 text-green-500" />,
-      content: "All ticket sales are final. TreEvents acts as an intermediary between event organizers and attendees. We are not responsible for event cancellations but will facilitate communication between parties."
+      content: "All ticket sales are final. Axilex acts as an intermediary between event organizers and attendees. We are not responsible for event cancellations but will facilitate communication between parties."
     },
     {
       title: "Prohibited Activities",

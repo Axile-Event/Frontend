@@ -26,7 +26,7 @@ const useAuthStore = create(
           localStorage.removeItem("organizer-storage");
 
           // IMPORTANT: Clear PIN reminder dismissal so new users see it
-          localStorage.removeItem("TreEvents_pin_reminder_dismissed");
+          localStorage.removeItem("Axilex_pin_reminder_dismissed");
 
           // IMMEDIATELY write to localStorage to prevent race conditions
           // This ensures token is available before any page navigation

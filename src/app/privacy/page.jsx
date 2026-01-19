@@ -11,7 +11,7 @@ const PrivacyPolicy = () => {
     {
       title: "Introduction",
       icon: <FileText className="h-6 w-6 text-primary" />,
-      content: "Welcome to TreEvents. We are committed to protecting your personal information and your right to privacy. If you have any questions or concerns about our policy, or our practices with regards to your personal information, please contact us."
+      content: "Welcome to Axilex. We are committed to protecting your personal information and your right to privacy. If you have any questions or concerns about our policy, or our practices with regards to your personal information, please contact us."
     },
     {
       title: "Information We Collect",
@@ -85,7 +85,7 @@ const PrivacyPolicy = () => {
         >
           <h3 className="text-xl font-bold mb-4">Have questions?</h3>
           <p className="text-muted-foreground mb-6">
-            If you have questions or comments about this policy, you may email us at support@TreEvents.com
+            If you have questions or comments about this policy, you may email us at support@Axilex.com
           </p>
           <Link href="/contact">
             <Button className="rounded-full px-8">Contact Support</Button>

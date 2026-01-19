@@ -343,7 +343,7 @@ const LandingPage = () => {
                 Everything you need to succeed
               </h2>
               <p className="text-xl text-muted-foreground leading-relaxed">
-                Whether you're discovering your next favorite event or selling out your biggest show yet, TreEvents has you covered.
+                Whether you're discovering your next favorite event or selling out your biggest show yet, Axilex has you covered.
               </p>
             </motion.div>
           </div>
@@ -410,7 +410,7 @@ const LandingPage = () => {
                 Trusted by the community
               </h2>
               <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                Join thousands of students and organizers who've made TreEvents their go-to platform for the 2026 season.
+                Join thousands of students and organizers who've made Axilex their go-to platform for the 2026 season.
               </p>
             </motion.div>
           </div>
@@ -423,7 +423,7 @@ const LandingPage = () => {
             className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto"
           >
             <TestimonialCard 
-              quote="TreEvents made selling tickets for our tech conference so easy. Real-time analytics helped us make better decisions!"
+              quote="Axilex made selling tickets for our tech conference so easy. Real-time analytics helped us make better decisions!"
               author="Adewale Johnson"
               role="Tech Community Lead"
             />
@@ -470,7 +470,7 @@ const LandingPage = () => {
               </span>
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              Join our community today and discover why TreEvents is the #1 choice for campus events in 2026.
+              Join our community today and discover why Axilex is the #1 choice for campus events in 2026.
             </p>
             <motion.div 
               whileHover={{ scale: 1.05 }}

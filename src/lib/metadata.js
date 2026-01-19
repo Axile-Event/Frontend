@@ -84,7 +84,7 @@ export function generateDashboardMetadata(role, page = "Dashboard") {
 
   return {
     title: `${page} - ${roleName}`,
-    description: `${roleName} dashboard for managing your TreEvents account and ${
+    description: `${roleName} dashboard for managing your Axilex account and ${
       role === "org" || role === "organizer" ? "events" : "tickets"
     }.`,
     robots: {
@@ -104,12 +104,12 @@ export function generateAuthMetadata(page) {
     login: {
       title: "Login",
       description:
-        "Sign in to your TreEvents account to manage events and tickets.",
+        "Sign in to your Axilex account to manage events and tickets.",
     },
     signup: {
       title: "Sign Up",
       description:
-        "Create your TreEvents account to start discovering and booking events.",
+        "Create your Axilex account to start discovering and booking events.",
     },
     "verify-otp": {
       title: "Verify OTP",
@@ -120,7 +120,7 @@ export function generateAuthMetadata(page) {
   return (
     pageMap[page] || {
       title: page,
-      description: "TreEvents Event Ticketing Platform",
+      description: "Axilex Event Ticketing Platform",
     }
   );
 }
