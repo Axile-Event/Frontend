@@ -9,6 +9,7 @@ import { Card } from "../../../components/ui/card";
 import { Button } from "../../../components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AdminTableSkeleton } from "@/components/skeletons";
+import { useConfirmModal } from "@/components/ui/confirmation-modal";
 import { cn } from "@/lib/utils";
 
 function TabButton({ active, children, onClick }) {
@@ -51,6 +52,7 @@ export default function EventsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 15;
+  const { confirm } = useConfirmModal();
 
   useEffect(() => {
     fetchEvents();
@@ -69,7 +71,16 @@ export default function EventsPage() {
   };
 
   const handleStatusUpdate = async (eventId, newStatus) => {
-    if (!window.confirm(`Are you sure you want to mark this event as ${newStatus}?`)) return;
+    const isApproving = newStatus === 'verified';
+    const confirmed = await confirm({
+      title: isApproving ? "Approve Event" : "Deny Event",
+      description: isApproving 
+        ? "Are you sure you want to approve this event? It will become visible to all users."
+        : "Are you sure you want to deny this event? It will be hidden from the public.",
+      confirmText: isApproving ? "Approve" : "Deny",
+      variant: isApproving ? "success" : "warning",
+    });
+    if (!confirmed) return;
 
     try {
       await adminService.updateEventStatus(eventId, newStatus);
@@ -82,7 +93,13 @@ export default function EventsPage() {
   };
 
   const handleDeleteEvent = async (eventId) => {
-    if (!window.confirm("Are you sure you want to delete this event? This action cannot be undone.")) return;
+    const confirmed = await confirm({
+      title: "Delete Event",
+      description: "Are you sure you want to permanently delete this event? This action cannot be undone and all associated tickets will be removed.",
+      confirmText: "Delete",
+      variant: "danger",
+    });
+    if (!confirmed) return;
 
     try {
       await adminService.deleteEvent(eventId);

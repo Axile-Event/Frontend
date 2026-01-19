@@ -7,6 +7,7 @@ import { toast } from "react-hot-toast";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AdminTableSkeleton } from "@/components/skeletons";
+import { useConfirmModal } from "@/components/ui/confirmation-modal";
 import { cn } from "@/lib/utils";
 
 function TabButton({ active, children, onClick }) {
@@ -48,6 +49,7 @@ export default function WithdrawalsPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 15;
+  const { confirm } = useConfirmModal();
 
   useEffect(() => {
     fetchWithdrawals();
@@ -70,7 +72,16 @@ export default function WithdrawalsPage() {
   };
 
   const handleAction = async (id, status) => {
-    if (!confirm(`Are you sure you want to ${status === 'completed' ? 'approve' : 'reject'} this withdrawal?`)) return;
+    const isApproving = status === 'completed';
+    const confirmed = await confirm({
+      title: isApproving ? "Approve Withdrawal" : "Reject Withdrawal",
+      description: isApproving 
+        ? "Are you sure you want to approve this withdrawal? The funds will be released to the organizer."
+        : "Are you sure you want to reject this withdrawal? The organizer will be notified.",
+      confirmText: isApproving ? "Approve" : "Reject",
+      variant: isApproving ? "success" : "danger",
+    });
+    if (!confirmed) return;
     
     try {
       await adminService.updateWithdrawalStatus(id, status);

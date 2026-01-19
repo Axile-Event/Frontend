@@ -8,6 +8,7 @@ import { Card, CardContent } from "../../../components/ui/card";
 import { Button } from "../../../components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AdminTableSkeleton } from "@/components/skeletons";
+import { useConfirmModal } from "@/components/ui/confirmation-modal";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -68,6 +69,7 @@ export default function UsersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 15;
+  const { confirm } = useConfirmModal();
 
   useEffect(() => {
     fetchUsers(filterRole);
@@ -101,7 +103,15 @@ export default function UsersPage() {
   };
 
   const handleToggleStatus = async (user) => {
-    if (!confirm(`Are you sure you want to ${user.is_active ? 'disable' : 'enable'} this user?`)) return;
+    const isDisabling = user.is_active;
+    const confirmed = await confirm({
+      title: isDisabling ? "Disable Account" : "Enable Account",
+      description: `Are you sure you want to ${isDisabling ? 'disable' : 'enable'} this user's account? ${isDisabling ? 'They will lose access to the platform.' : 'They will regain access to the platform.'}`,
+      confirmText: isDisabling ? "Disable" : "Enable",
+      variant: isDisabling ? "warning" : "success",
+    });
+    if (!confirmed) return;
+    
     try {
       const role = user.role || 'student';
       await adminService.toggleUserStatus(user.id, role, !user.is_active);
@@ -115,7 +125,15 @@ export default function UsersPage() {
 
   const handleVerifyOrganizer = async (user) => {
     if (user.role !== 'organizer') return;
-    if (!confirm(`Are you sure you want to ${user.is_verified ? 'unverify' : 'verify'} this organizer?`)) return;
+    
+    const isUnverifying = user.is_verified;
+    const confirmed = await confirm({
+      title: isUnverifying ? "Remove Verification" : "Verify Organizer",
+      description: `Are you sure you want to ${isUnverifying ? 'remove verification from' : 'verify'} this organizer? ${isUnverifying ? 'Their verified badge will be removed.' : 'They will receive a verified badge.'}`,
+      confirmText: isUnverifying ? "Remove Verification" : "Verify",
+      variant: isUnverifying ? "warning" : "success",
+    });
+    if (!confirmed) return;
 
     try {
       await adminService.verifyOrganizer(user.id, !user.is_verified);
@@ -128,7 +146,13 @@ export default function UsersPage() {
   };
 
   const handleDeleteUser = async (user) => {
-    if (!confirm("Are you sure you want to permanently delete this user? This action cannot be undone.")) return;
+    const confirmed = await confirm({
+      title: "Delete Account",
+      description: "Are you sure you want to permanently delete this user? This action cannot be undone and all associated data will be lost.",
+      confirmText: "Delete",
+      variant: "danger",
+    });
+    if (!confirmed) return;
     
     try {
       const role = user.role || 'student';

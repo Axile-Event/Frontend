@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getImageUrl } from "@/lib/utils";
 import { AdminEventDetailsSkeleton } from "@/components/skeletons";
+import { useConfirmModal } from "@/components/ui/confirmation-modal";
 import { cn } from "@/lib/utils";
 
 function StatusBadge({ status, size = "default" }) {
@@ -48,6 +49,7 @@ export default function AdminEventDetailsPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [event, setEvent] = useState(null);
+  const { confirm } = useConfirmModal();
 
   useEffect(() => {
     if (event_id) {
@@ -84,7 +86,16 @@ export default function AdminEventDetailsPage() {
   };
 
   const handleStatusUpdate = async (newStatus) => {
-    if (!window.confirm(`Are you sure you want to mark this event as ${newStatus}?`)) return;
+    const isApproving = newStatus === 'verified';
+    const confirmed = await confirm({
+      title: isApproving ? "Approve Event" : "Deny Event",
+      description: isApproving 
+        ? "Are you sure you want to approve this event? It will become visible to all users."
+        : "Are you sure you want to deny this event? It will be hidden from the public.",
+      confirmText: isApproving ? "Approve" : "Deny",
+      variant: isApproving ? "success" : "warning",
+    });
+    if (!confirmed) return;
 
     try {
       setEvent((prev) => ({ ...prev, status: newStatus }));
@@ -98,7 +109,13 @@ export default function AdminEventDetailsPage() {
   };
 
   const handleDeleteEvent = async () => {
-    if (!window.confirm("Are you sure you want to permanently delete this event? This action cannot be undone.")) return;
+    const confirmed = await confirm({
+      title: "Delete Event",
+      description: "Are you sure you want to permanently delete this event? This action cannot be undone and all associated tickets will be removed.",
+      confirmText: "Delete",
+      variant: "danger",
+    });
+    if (!confirmed) return;
 
     try {
       await adminService.deleteEvent(event_id);
