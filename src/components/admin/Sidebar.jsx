@@ -1,6 +1,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
 import { 
   LayoutDashboard, 
   Users, 
@@ -11,9 +12,11 @@ import {
   LogOut,
   CreditCard,
   Settings,
-  History
+  History,
+  Banknote
 } from "lucide-react";
 import useAuthStore from "../../store/authStore";
+import { adminService } from "@/lib/admin";
 
 const sidebarItems = [
   {
@@ -37,7 +40,13 @@ const sidebarItems = [
     icon: Ticket,
   },
   {
-    title: "Withdrawals",
+    title: "Payout Requests",
+    href: "/lighthouse/payout-requests",
+    icon: Banknote,
+    showBadge: true,
+  },
+  {
+    title: "Transactions",
     href: "/lighthouse/withdrawals",
     icon: CreditCard,
   },
@@ -61,6 +70,23 @@ const sidebarItems = [
 export function AdminSidebar({ className }) {
   const pathname = usePathname();
   const logout = useAuthStore((state) => state.logout);
+  const [pendingCount, setPendingCount] = useState(0);
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const data = await adminService.getPayoutNotifications();
+        setPendingCount(data.pending_count || 0);
+      } catch (error) {
+        console.error("Failed to fetch payout notifications", error);
+      }
+    };
+
+    fetchNotifications();
+    // Poll every 2 minutes
+    const interval = setInterval(fetchNotifications, 120000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className={`flex flex-col w-56 border-r bg-card h-full ${className || ''}`}>
@@ -84,6 +110,11 @@ export function AdminSidebar({ className }) {
             >
               <item.icon className="w-4 h-4" />
               <span>{item.title}</span>
+              {item.showBadge && pendingCount > 0 && (
+                <span className="ml-auto px-2 py-0.5 text-[10px] font-bold bg-rose-500 text-white rounded-full">
+                  {pendingCount}
+                </span>
+              )}
             </Link>
           );
         })}

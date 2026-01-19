@@ -168,7 +168,27 @@ export const adminService = {
     return response.data;
   },
 
-  // Withdrawals
+  // Payout Requests (new system)
+  getPayoutRequests: async (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    const response = await api.get(`/api/admin/payout-requests/?${queryString}`);
+    return response.data;
+  },
+  updatePayoutRequestStatus: async (requestId, status, adminNotes = null) => {
+    const payload = { status };
+    if (adminNotes) payload.admin_notes = adminNotes;
+    const response = await api.patch(
+      `/api/admin/payout-requests/${requestId}/status/`,
+      payload
+    );
+    return response.data;
+  },
+  getPayoutNotifications: async () => {
+    const response = await api.get('/api/admin/notifications/payout-requests/');
+    return response.data;
+  },
+
+  // Withdrawals (transactions from approved payout requests)
   getAllWithdrawals: async (params = {}) => {
     const queryString = new URLSearchParams(params).toString();
     const response = await api.get(`/api/admin/withdrawals/?${queryString}`);

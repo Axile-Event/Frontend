@@ -8,24 +8,26 @@ import {
   Calendar, 
   DollarSign, 
   ArrowUpRight,
-  Loader2
+  Loader2,
+  Banknote,
+  AlertCircle
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import { AdminDashboardSkeleton } from "@/components/skeletons";
 import { adminService } from "../../../lib/admin";
 import { toast } from "react-hot-toast";
 
-function MetricCard({ title, value, icon: Icon, description }) {
-  return (
-    <Card className="shadow-sm">
+function MetricCard({ title, value, icon: Icon, description, highlight = false, href = null }) {
+  const content = (
+    <Card className={`shadow-sm ${highlight ? 'border-amber-500/50 bg-amber-50/50 dark:bg-amber-950/20' : ''}`}>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 p-4">
         <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
           {title}
         </CardTitle>
-        <Icon className="h-4 w-4 text-muted-foreground/70" />
+        <Icon className={`h-4 w-4 ${highlight ? 'text-amber-500' : 'text-muted-foreground/70'}`} />
       </CardHeader>
       <CardContent className="p-4 pt-0">
-        <div className="text-xl font-bold">{value}</div>
+        <div className={`text-xl font-bold ${highlight ? 'text-amber-600' : ''}`}>{value}</div>
         {description && (
           <p className="text-[10px] text-muted-foreground mt-1">
             {description}
@@ -34,6 +36,11 @@ function MetricCard({ title, value, icon: Icon, description }) {
       </CardContent>
     </Card>
   );
+
+  if (href) {
+    return <Link href={href}>{content}</Link>;
+  }
+  return content;
 }
 
 export default function AdminDashboardPage() {
@@ -76,7 +83,7 @@ export default function AdminDashboardPage() {
         </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-5">
         <MetricCard 
           title="Total Users" 
           value={(stats?.total_students || 0) + (stats?.total_organisers || 0)} 
@@ -100,6 +107,14 @@ export default function AdminDashboardPage() {
           value={stats?.total_organisers || 0} 
           icon={Building2}
           description="Registered organizations"
+        />
+        <MetricCard 
+          title="Pending Payouts" 
+          value={stats?.pending_payout_requests || 0} 
+          icon={Banknote}
+          description="Awaiting review"
+          highlight={(stats?.pending_payout_requests || 0) > 0}
+          href="/lighthouse/payout-requests"
         />
       </div>
 
@@ -156,9 +171,9 @@ export default function AdminDashboardPage() {
                 <Users className="w-3 h-3" />
                 Users
               </Link>
-              <Link href="/lighthouse/organizations" className="flex items-center justify-center gap-2 p-2 border rounded-md hover:bg-muted transition-colors text-xs font-medium">
-                <Building2 className="w-3 h-3" />
-                Orgs
+              <Link href="/lighthouse/payout-requests" className={`flex items-center justify-center gap-2 p-2 border rounded-md hover:bg-muted transition-colors text-xs font-medium ${(stats?.pending_payout_requests || 0) > 0 ? 'border-amber-500/50 bg-amber-50/50 text-amber-700' : ''}`}>
+                <Banknote className="w-3 h-3" />
+                Payouts {(stats?.pending_payout_requests || 0) > 0 && `(${stats.pending_payout_requests})`}
               </Link>
               <Link href="/lighthouse/revenue" className="flex items-center justify-center gap-2 p-2 border rounded-md hover:bg-muted transition-colors text-xs font-medium">
                 <DollarSign className="w-3 h-3" />

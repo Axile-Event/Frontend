@@ -131,12 +131,22 @@ export default function PayoutPage() {
     try {
       setWithdrawing(true);
       const res = await api.post('/wallet/withdraw/', { amount: pendingWithdrawal });
-      toast.success(res.data.message || "Withdrawal initiated successfully");
+      toast.success(res.data.message || "Payout request submitted! You'll be notified when it's processed.");
       setWithdrawAmount('');
       setPendingWithdrawal(null);
       fetchData(); // Refresh balances
     } catch (error) {
-      toast.error(error.response?.data?.error || "Withdrawal failed");
+      const errorMsg = error.response?.data?.error || "Payout request failed";
+      // Handle specific error cases
+      if (errorMsg.includes('Insufficient balance')) {
+        toast.error(`Insufficient balance. Available: ₦${Number(error.response?.data?.available_balance || 0).toLocaleString()}`);
+      } else if (errorMsg.includes('pending payout requests')) {
+        toast.error(`You have pending requests totaling ₦${Number(error.response?.data?.total_pending_requests || 0).toLocaleString()}. Please wait for them to be processed.`);
+      } else if (errorMsg.includes('similar payout request')) {
+        toast.error('A similar request was submitted recently. Please wait before submitting again.');
+      } else {
+        toast.error(errorMsg);
+      }
     } finally {
       setWithdrawing(false);
     }
@@ -165,10 +175,10 @@ export default function PayoutPage() {
           onToggleVisibility={() => setHideBalances(!hideBalances)}
         />
         <StatCard 
-          label="Pending balance" 
+          label="Pending payouts" 
           amount={stats.pending_balance} 
           icon={<Clock className="w-5 h-5 text-amber-500" />}
-          description="Held for 7 days after sale"
+          description="Awaiting admin approval"
           hideBalances={hideBalances}
           onToggleVisibility={() => setHideBalances(!hideBalances)}
         />
@@ -196,7 +206,7 @@ export default function PayoutPage() {
           <div className="bg-[#0A0A0A] border border-white/5 rounded-xl p-5 shadow-xl">
             <h2 className="text-base font-bold mb-5 flex items-center gap-2">
               <ArrowUpRight className="w-4 h-4 text-rose-500" />
-              Request Withdrawal
+              Request Payout
             </h2>
 
             {!stats.has_bank_account ? (
@@ -254,11 +264,11 @@ export default function PayoutPage() {
                 className="w-full bg-rose-600 hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded-xl transition-all shadow-lg shadow-rose-600/20 active:scale-[0.98] flex items-center justify-center gap-2"
               >
                 {withdrawing ? <Loader2 className="w-5 h-5 animate-spin" /> : <ArrowUpRight className="w-5 h-5" />}
-                {withdrawing ? "Processing..." : "Initiate Withdrawal"}
+                {withdrawing ? "Submitting..." : "Request Payout"}
               </button>
 
               <p className="text-[10px] text-center text-gray-500">
-                Processing time: 1-3 business days.
+                Requests are reviewed and processed within 1-3 business days.
               </p>
             </form>
           </div>
@@ -410,7 +420,7 @@ export default function PayoutPage() {
           setShowPinPrompt(false);
           executeWithdrawal();
         }}
-        action="process withdrawal"
+        action="request this payout"
         requireSetup={true}
       />
     </div>
