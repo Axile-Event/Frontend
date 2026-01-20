@@ -214,18 +214,34 @@ export default function PayoutsPage() {
     }
   };
 
-  const handleMarkCompleted = async (transactionId) => {
+  const handleMarkCompleted = async (payoutRequest) => {
     try {
-      setProcessing(prev => ({ ...prev, [transactionId]: 'completing' }));
-      // Strip 'payout:' prefix if present - the withdrawal API expects clean IDs
-      const cleanId = transactionId?.replace(/^payout:/, '') || transactionId;
-      await adminService.updateWithdrawalStatus(cleanId, 'completed');
-      toast.success("Transaction marked as completed");
+      setProcessing(prev => ({ ...prev, [payoutRequest.request_id]: 'completing' }));
+      
+      // Workaround: Fetch pending withdrawals and find the matching transaction
+      // by organizer email and amount
+      const withdrawalsData = await adminService.getAllWithdrawals({ status: 'pending', page_size: 100 });
+      const withdrawals = withdrawalsData.withdrawals || [];
+      
+      // Find matching transaction by organizer email and amount
+      const matchingTransaction = withdrawals.find(w => 
+        w.organizer_email === payoutRequest.organizer_email && 
+        parseFloat(w.amount) === parseFloat(payoutRequest.amount)
+      );
+      
+      if (!matchingTransaction) {
+        toast.error("Could not find matching transaction. It may have already been completed or the payout wasn't properly approved.");
+        return;
+      }
+      
+      const transactionId = matchingTransaction.transaction_id;
+      await adminService.updateWithdrawalStatus(transactionId, 'completed');
+      toast.success("Payout marked as completed");
       fetchPayoutRequests();
     } catch (error) {
-      toast.error(error.response?.data?.error || "Failed to complete transaction");
+      toast.error(error.response?.data?.error || "Failed to complete payout");
     } finally {
-      setProcessing(prev => ({ ...prev, [transactionId]: null }));
+      setProcessing(prev => ({ ...prev, [payoutRequest.request_id]: null }));
     }
   };
 
@@ -418,10 +434,10 @@ export default function PayoutsPage() {
                               size="sm"
                               variant="ghost"
                               className="h-8 px-3 text-blue-600 hover:text-blue-700 hover:bg-blue-500/10"
-                              onClick={() => handleMarkCompleted(request.transaction || request.request_id)}
-                              disabled={!!processing[request.transaction || request.request_id]}
+                              onClick={() => handleMarkCompleted(request)}
+                              disabled={!!processing[request.request_id]}
                             >
-                              {processing[request.transaction || request.request_id] === 'completing' ? (
+                              {processing[request.request_id] === 'completing' ? (
                                 <Loader2 className="w-4 h-4 animate-spin" />
                               ) : (
                                 <>
