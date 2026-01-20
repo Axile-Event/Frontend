@@ -547,6 +547,29 @@ export default function RevenuePage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Payout Requests Quick Action */}
+      <Card className="border-border/40 bg-card/50 backdrop-blur-sm">
+        <CardContent className="p-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-1">
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <CreditCard className="w-4 h-4 text-muted-foreground" />
+                Payout Requests Management
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                Review, approve, or decline organizer payout requests. Pending requests: <span className="font-semibold text-amber-500">{pendingWithdrawals.length}</span>
+              </p>
+            </div>
+            <Button 
+              onClick={() => window.location.href = '/lighthouse/payouts'}
+              className="shrink-0"
+            >
+              Manage Payout Requests
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
