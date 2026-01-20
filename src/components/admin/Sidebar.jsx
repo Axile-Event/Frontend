@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
+import { cn } from "@/lib/utils";
 import { 
   LayoutDashboard, 
   Users, 
@@ -18,36 +19,26 @@ import {
 import useAuthStore from "../../store/authStore";
 import { adminService } from "@/lib/admin";
 
-const navigationGroups = [
+const sidebarItems = [
   {
-    label: "Overview",
-    items: [
-      {
-        title: "Dashboard",
-        href: "/lighthouse/dashboard",
-        icon: LayoutDashboard,
-      },
-    ]
+    title: "Dashboard",
+    href: "/lighthouse/dashboard",
+    icon: LayoutDashboard,
   },
   {
-    label: "Management",
-    items: [
-      {
-        title: "Users",
-        href: "/lighthouse/users",
-        icon: Users,
-      },
-      {
-        title: "Events",
-        href: "/lighthouse/events",
-        icon: CalendarDays,
-      },
-      {
-        title: "Tickets",
-        href: "/lighthouse/tickets",
-        icon: Ticket,
-      },
-    ]
+    title: "Users",
+    href: "/lighthouse/users",
+    icon: Users,
+  },
+  {
+    title: "Events",
+    href: "/lighthouse/events",
+    icon: CalendarDays,
+  },
+  {
+    title: "Tickets",
+    href: "/lighthouse/tickets",
+    icon: Ticket,
   },
   {
     title: "Payout Requests",
@@ -66,44 +57,16 @@ const navigationGroups = [
     icon: BarChart3,
   },
   {
-    label: "System",
-    items: [
-      {
-        title: "Settings",
-        href: "/lighthouse/settings",
-        icon: Settings,
-      },
-      {
-        title: "Audit Logs",
-        href: "/lighthouse/audit-logs",
-        icon: History,
-      },
-    ]
+    title: "Settings",
+    href: "/lighthouse/settings",
+    icon: Settings,
+  },
+  {
+    title: "Audit Logs",
+    href: "/lighthouse/audit-logs",
+    icon: History,
   },
 ];
-
-function NavItem({ item, isActive }) {
-  return (
-    <Link
-      href={item.href}
-      className={cn(
-        "group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 text-[13px] font-medium",
-        isActive
-          ? "bg-foreground text-background"
-          : "text-muted-foreground hover:bg-muted hover:text-foreground"
-      )}
-    >
-      <item.icon className={cn(
-        "w-[18px] h-[18px] shrink-0 transition-colors",
-        isActive ? "text-background" : "text-muted-foreground group-hover:text-foreground"
-      )} />
-      <span className="flex-1">{item.title}</span>
-      {isActive && (
-        <ChevronRight className="w-4 h-4 opacity-60" />
-      )}
-    </Link>
-  );
-}
 
 export function AdminSidebar({ className }) {
   const pathname = usePathname();

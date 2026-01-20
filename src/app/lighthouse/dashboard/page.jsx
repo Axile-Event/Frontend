@@ -8,6 +8,7 @@ import {
   Calendar, 
   DollarSign, 
   ArrowUpRight,
+  ArrowRight,
   Loader2,
   Banknote,
   AlertCircle
@@ -42,6 +43,26 @@ function MetricCard({ title, value, icon: Icon, description, highlight = false, 
     return <Link href={href}>{content}</Link>;
   }
   return content;
+}
+
+function StatusBadge({ status }) {
+  const config = {
+    active: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+    approved: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+    completed: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+    pending: "bg-amber-500/10 text-amber-600 border-amber-500/20",
+    cancelled: "bg-red-500/10 text-red-600 border-red-500/20",
+    rejected: "bg-red-500/10 text-red-600 border-red-500/20",
+  };
+  
+  return (
+    <span className={cn(
+      "inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide border",
+      config[status] || config.pending
+    )}>
+      {status}
+    </span>
+  );
 }
 
 export default function AdminDashboardPage() {
@@ -93,19 +114,19 @@ export default function AdminDashboardPage() {
           icon={Users}
           subtitle={`${stats?.total_students || 0} students · ${stats?.total_organisers || 0} organizers`}
         />
-        <StatCard 
+        <MetricCard 
           title="Total Events" 
           value={stats?.total_events || 0} 
           icon={Calendar}
           subtitle="Events on platform"
         />
-        <StatCard 
+        <MetricCard 
           title="Total Revenue" 
           value={formatCurrency(stats?.total_revenue || 0)} 
           icon={DollarSign}
           subtitle="Platform earnings"
         />
-        <StatCard 
+        <MetricCard 
           title="Organizers" 
           value={stats?.total_organisers || 0} 
           icon={Building2}
