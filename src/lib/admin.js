@@ -23,7 +23,7 @@ export const adminService = {
   },
   getRecentEvents: async (limit = 10) => {
     const response = await api.get(
-      `/api/admin/dashboard/recent-events/?limit=${limit}`
+      `/api/admin/dashboard/recent-events/?limit=${limit}`,
     );
     return response.data.events;
   },
@@ -47,7 +47,7 @@ export const adminService = {
       const found = allEvents.find(
         (e) =>
           String(e.event_id) === String(eventId) ||
-          String(e.id) === String(eventId)
+          String(e.id) === String(eventId),
       );
       if (found) adminData = found;
     } catch (e) {
@@ -110,7 +110,7 @@ export const adminService = {
     } catch (error) {
       if (error.response?.status === 500 && params.role) {
         console.warn(
-          "Backend 500 on role filter, attempting fallback client-side filter."
+          "Backend 500 on role filter, attempting fallback client-side filter.",
         );
         const { role, ...fallbackParams } = params;
         const fallbackQuery = new URLSearchParams(fallbackParams).toString();
@@ -122,7 +122,7 @@ export const adminService = {
           const fallbackResponse = await api.get(fallbackUrl);
           const allUsers = fallbackResponse.data.users || [];
           const filteredUsers = allUsers.filter(
-            (u) => u.role && u.role.toLowerCase() === role.toLowerCase()
+            (u) => u.role && u.role.toLowerCase() === role.toLowerCase(),
           );
           return { ...fallbackResponse.data, users: filteredUsers };
         } catch (fbError) {
@@ -141,7 +141,7 @@ export const adminService = {
       `/api/admin/users/${userId}/status/?role=${role}`,
       {
         is_active: isActive,
-      }
+      },
     );
     return response.data;
   },
@@ -150,13 +150,13 @@ export const adminService = {
       `/api/admin/users/${organizerId}/verify/`,
       {
         is_verified: isVerified,
-      }
+      },
     );
     return response.data;
   },
   deleteUser: async (userId, role) => {
     const response = await api.delete(
-      `/api/admin/users/${userId}/delete/?role=${role}`
+      `/api/admin/users/${userId}/delete/?role=${role}`,
     );
     return response.data;
   },
@@ -199,7 +199,7 @@ export const adminService = {
       `/api/admin/withdrawals/${transactionId}/status/`,
       {
         status,
-      }
+      },
     );
     return response.data;
   },
@@ -208,7 +208,7 @@ export const adminService = {
   getPaymentTransactions: async (params = {}) => {
     const queryString = new URLSearchParams(params).toString();
     const response = await api.get(
-      `/api/admin/payment-transactions/?${queryString}`
+      `/api/admin/payment-transactions/?${queryString}`,
     );
     return response.data;
   },
@@ -227,6 +227,28 @@ export const adminService = {
   getAuditLogs: async (params = {}) => {
     const queryString = new URLSearchParams(params).toString();
     const response = await api.get(`/api/admin/audit-logs/?${queryString}`);
+    return response.data;
+  },
+
+  // Payout Requests
+  getPayoutRequests: async (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    const response = await api.get(
+      `/api/admin/payout-requests/?${queryString}`,
+    );
+    return response.data;
+  },
+  updatePayoutRequestStatus: async (requestId, status, adminNotes = null) => {
+    const body = { status };
+    if (adminNotes) body.admin_notes = adminNotes;
+    const response = await api.patch(
+      `/api/admin/payout-requests/${requestId}/status/`,
+      body,
+    );
+    return response.data;
+  },
+  getPayoutNotifications: async () => {
+    const response = await api.get(`/api/admin/notifications/payout-requests/`);
     return response.data;
   },
 };

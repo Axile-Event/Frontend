@@ -14,10 +14,12 @@ import {
   CheckCircle2,
   ChevronRight,
   Clock,
-  ExternalLink,
   Banknote,
   Eye,
-  EyeOff
+  EyeOff,
+  XCircle,
+  Check,
+  X
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { WalletPageSkeleton } from '@/components/skeletons';
@@ -31,7 +33,7 @@ export default function PayoutPage() {
   const [hideBalances, setHideBalances] = useState(true);
   const [showPinPrompt, setShowPinPrompt] = useState(false);
   const [pendingWithdrawal, setPendingWithdrawal] = useState(null);
-  const [activeTab, setActiveTab] = useState('all'); // 'all' or 'withdrawals'
+  const [activeTab, setActiveTab] = useState('requests'); // 'requests', 'all', or 'withdrawals'
   const [stats, setStats] = useState({
     available_balance: '0.00',
     pending_balance: '0.00',
@@ -43,6 +45,7 @@ export default function PayoutPage() {
   });
   const [transactions, setTransactions] = useState([]);
   const [withdrawals, setWithdrawals] = useState([]);
+  const [payoutRequests, setPayoutRequests] = useState([]);
   const [withdrawAmount, setWithdrawAmount] = useState('');
 
   const fetchData = useCallback(async () => {
@@ -64,6 +67,11 @@ export default function PayoutPage() {
 
       if (withdrawalRes.data && withdrawalRes.data.withdrawals) {
         setWithdrawals(withdrawalRes.data.withdrawals);
+        // Extract payout requests from withdrawals (those with request_id or pending/approved status)
+        const requests = withdrawalRes.data.withdrawals.filter(w => 
+          w.status === 'pending' || w.status === 'approved' || w.request_id
+        );
+        setPayoutRequests(requests);
       }
     } catch (error) {
       console.error("Failed to fetch payout data", error);
@@ -96,6 +104,19 @@ export default function PayoutPage() {
   // Get raw numeric value from withdrawAmount
   const getRawAmount = () => parseFloat(withdrawAmount.replace(/,/g, "")) || 0;
 
+  // Calculate total pending payout requests
+  const totalPendingRequests = payoutRequests
+    .filter(r => r.status === 'pending')
+    .reduce((sum, r) => sum + parseFloat(r.amount || 0), 0);
+
+  // Check if withdraw is allowed
+  const canWithdraw = () => {
+    const amount = getRawAmount();
+    const available = parseFloat(stats.available_balance);
+    const totalIfApproved = totalPendingRequests + amount;
+    return amount >= 1000 && totalIfApproved <= available;
+  };
+
   const handleWithdraw = async (e) => {
     e.preventDefault();
     if (!stats.has_bank_account) {
@@ -110,7 +131,15 @@ export default function PayoutPage() {
       return;
     }
 
-    if (amount > parseFloat(stats.available_balance)) {
+    const available = parseFloat(stats.available_balance);
+    const totalIfApproved = totalPendingRequests + amount;
+
+    if (totalIfApproved > available) {
+      toast.error(`Insufficient balance. You have pending payout requests totaling ₦${totalPendingRequests.toLocaleString()}`);
+      return;
+    }
+
+    if (amount > available) {
       toast.error("Amount exceeds available balance");
       return;
     }
@@ -131,24 +160,33 @@ export default function PayoutPage() {
     try {
       setWithdrawing(true);
       const res = await api.post('/wallet/withdraw/', { amount: pendingWithdrawal });
-      toast.success(
-        `Payout request of ₦${Number(pendingWithdrawal).toLocaleString()} submitted successfully! Your request is being processed and awaiting admin approval. You'll receive a notification once it's completed.`,
-        { duration: 6000 }
-      );
+      
+      // Handle new payout request response format per documentation
+      if (res.data.request_id) {
+        toast.success(res.data.message || "Payout request submitted successfully");
+        toast.success(`Request ID: ${res.data.request_id}`, { duration: 5000 });
+      } else {
+        toast.success(res.data.message || "Payout request submitted successfully");
+      }
+      
       setWithdrawAmount('');
       setPendingWithdrawal(null);
       fetchData(); // Refresh balances
     } catch (error) {
-      const errorMsg = error.response?.data?.error || "Payout request failed";
-      // Handle specific error cases
-      if (errorMsg.includes('Insufficient balance')) {
-        toast.error(`Insufficient balance. Available: ₦${Number(error.response?.data?.available_balance || 0).toLocaleString()}`);
-      } else if (errorMsg.includes('pending payout requests')) {
-        toast.error(`You have pending requests totaling ₦${Number(error.response?.data?.total_pending_requests || 0).toLocaleString()}. Please wait for them to be processed.`);
-      } else if (errorMsg.includes('similar payout request')) {
-        toast.error('A similar request was submitted recently. Please wait before submitting again.');
+      const errorData = error.response?.data;
+      
+      // Handle specific error types from documentation
+      if (errorData?.error === "Insufficient balance") {
+        toast.error(`Insufficient balance. Available: ₦${errorData.available_balance}`);
+      } else if (errorData?.error?.includes("pending payout requests")) {
+        toast.error(errorData.error);
+      } else if (errorData?.message === "Duplicate request prevented") {
+        toast.error("A similar payout request was submitted recently. Please wait before submitting again.");
+      } else if (errorData?.error === "Bank account not configured. Please add bank account details first.") {
+        toast.error(errorData.error);
+        router.push('/dashboard/org/settings');
       } else {
-        toast.error(errorMsg);
+        toast.error(errorData?.error || "Failed to submit payout request");
       }
     } finally {
       setWithdrawing(false);
@@ -164,7 +202,7 @@ export default function PayoutPage() {
       {/* Header */}
       <div>
         <h1 className="text-xl md:text-2xl font-bold mb-1">Payouts & Wallet</h1>
-        <p className="text-gray-400 text-xs">Manage your earnings and transfer funds to your bank account.</p>
+        <p className="text-gray-400 text-xs">Request payouts from your earnings. Payments are reviewed and processed by admin.</p>
       </div>
 
       {/* Stats Cards */}
@@ -173,13 +211,13 @@ export default function PayoutPage() {
           label="Available balance" 
           amount={stats.available_balance} 
           icon={<Wallet className="w-5 h-5 text-emerald-500" />}
-          description="Ready for withdrawal"
+          description="Ready for payout request"
           hideBalances={hideBalances}
           onToggleVisibility={() => setHideBalances(!hideBalances)}
         />
         <StatCard 
           label="Pending payouts" 
-          amount={stats.pending_balance} 
+          amount={totalPendingRequests.toFixed(2)} 
           icon={<Clock className="w-5 h-5 text-amber-500" />}
           description="Awaiting admin approval"
           hideBalances={hideBalances}
@@ -218,7 +256,7 @@ export default function PayoutPage() {
                   <AlertCircle className="w-5 h-5 text-rose-500 shrink-0" />
                   <div>
                     <p className="text-sm font-medium text-rose-500">No bank account linked</p>
-                    <p className="text-xs text-rose-400/80 mt-1">Please configure your bank details in settings set up withdrawals.</p>
+                    <p className="text-xs text-rose-400/80 mt-1">Please configure your bank details in settings set up payouts.</p>
                     <button 
                       onClick={() => router.push('/dashboard/org/settings')}
                       className="text-xs font-bold text-rose-500 mt-2 hover:underline flex items-center gap-1"
@@ -243,6 +281,22 @@ export default function PayoutPage() {
               </div>
             )}
 
+            {/* Pending Requests Warning */}
+            {totalPendingRequests > 0 && (
+              <div className="mb-5 p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-xl">
+                <div className="flex gap-3">
+                  <Clock className="w-5 h-5 text-amber-500 shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-amber-500">Pending payout requests</p>
+                    <p className="text-xs text-amber-400/80 mt-1">
+                      You have ₦{totalPendingRequests.toLocaleString()} in pending requests. 
+                      New requests must not exceed your effective available balance.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <form onSubmit={handleWithdraw} className="space-y-4">
               <div>
                 <label className="text-xs font-semibold text-gray-400 mb-1.5 block">Amount (₦)</label>
@@ -258,12 +312,17 @@ export default function PayoutPage() {
                     className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-white focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 transition-all placeholder:text-gray-700"
                   />
                 </div>
-                <p className="text-[10px] text-gray-500 mt-2">Available: ₦{parseFloat(stats.available_balance).toLocaleString()}</p>
+                <p className="text-[10px] text-gray-500 mt-2">
+                  Available: ₦{parseFloat(stats.available_balance).toLocaleString()} 
+                  {totalPendingRequests > 0 && (
+                    <span className="text-amber-500"> (₦{(parseFloat(stats.available_balance) - totalPendingRequests).toLocaleString()} effective)</span>
+                  )}
+                </p>
               </div>
 
               <button
                 type="submit"
-                disabled={withdrawing || !stats.has_bank_account || getRawAmount() < 1000}
+                disabled={withdrawing || !stats.has_bank_account || !canWithdraw()}
                 className="w-full bg-rose-600 hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold py-3 px-6 rounded-xl transition-all shadow-lg shadow-rose-600/20 active:scale-[0.98] flex items-center justify-center gap-2"
               >
                 {withdrawing ? <Loader2 className="w-5 h-5 animate-spin" /> : <ArrowUpRight className="w-5 h-5" />}
@@ -271,18 +330,34 @@ export default function PayoutPage() {
               </button>
 
               <p className="text-[10px] text-center text-gray-500">
-                Requests are reviewed and processed within 1-3 business days.
+                Payout requests are reviewed by admin. Processing time: 1-3 business days after approval.
               </p>
             </form>
           </div>
         </div>
 
-        {/* Transactions & Withdrawals Table */}
+        {/* Transactions & Payout Requests Table */}
         <div className="lg:col-span-2">
           <div className="bg-[#0A0A0A] border border-white/5 rounded-xl shadow-xl overflow-hidden">
             {/* Tabs Header */}
             <div className="p-5 border-b border-white/5">
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 flex-wrap">
+                <button
+                  onClick={() => setActiveTab('requests')}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all ${
+                    activeTab === 'requests'
+                      ? 'bg-amber-600 text-white'
+                      : 'text-gray-400 hover:text-white hover:bg-white/5'
+                  }`}
+                >
+                  <Clock className="w-4 h-4" />
+                  Payout Requests
+                  {payoutRequests.filter(r => r.status === 'pending').length > 0 && (
+                    <span className="px-2 py-0.5 rounded-full bg-white/10 text-[10px]">
+                      {payoutRequests.filter(r => r.status === 'pending').length}
+                    </span>
+                  )}
+                </button>
                 <button
                   onClick={() => setActiveTab('all')}
                   className={`flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all ${
@@ -304,12 +379,52 @@ export default function PayoutPage() {
                   }`}
                 >
                   <ArrowUpRight className="w-4 h-4" />
-                  Withdrawal History
-                  <span className="px-2 py-0.5 rounded-full bg-white/10 text-[10px]">{withdrawals.length}</span>
+                  Completed Payouts
+                  <span className="px-2 py-0.5 rounded-full bg-white/10 text-[10px]">
+                    {withdrawals.filter(w => w.status === 'completed').length}
+                  </span>
                 </button>
               </div>
             </div>
             
+            {/* Payout Requests Tab */}
+            {activeTab === 'requests' && (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-white/2 text-gray-400 text-[10px] font-bold">
+                    <tr>
+                      <th className="px-5 py-3">Status</th>
+                      <th className="px-5 py-3">Amount</th>
+                      <th className="px-5 py-3">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/5">
+                    {payoutRequests.length > 0 ? (
+                      payoutRequests.map((request, index) => (
+                        <tr key={request.request_id || request.withdrawal_id || request.id || index} className="hover:bg-white/2 transition-colors">
+                          <td className="px-6 py-4 text-xs font-bold">
+                             <PayoutStatusBadge status={request.status} />
+                          </td>
+                          <td className="px-6 py-4 font-bold text-rose-500">
+                            -₦{parseFloat(request.amount).toLocaleString()}
+                          </td>
+                          <td className="px-6 py-4 text-gray-500 truncate">
+                            {new Date(request.created_at).toLocaleDateString()}
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                         <td colSpan="3" className="px-6 py-12 text-center text-gray-500 italic">
+                           No payout requests found.
+                         </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
             {/* All Transactions Tab */}
             {activeTab === 'all' && (
               <div className="overflow-x-auto">
@@ -355,7 +470,7 @@ export default function PayoutPage() {
               </div>
             )}
 
-            {/* Withdrawal History Tab */}
+            {/* Completed Payouts Tab */}
             {activeTab === 'withdrawals' && (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
@@ -369,8 +484,8 @@ export default function PayoutPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
-                    {withdrawals.length > 0 ? (
-                      withdrawals.map((withdrawal, index) => (
+                    {withdrawals.filter(w => w.status === 'completed').length > 0 ? (
+                      withdrawals.filter(w => w.status === 'completed').map((withdrawal, index) => (
                         <tr key={withdrawal.withdrawal_id || withdrawal.id || index} className="hover:bg-white/[0.02] transition-colors">
                           <td className="px-6 py-4">
                             <span className="text-xs font-mono text-gray-500">{withdrawal.withdrawal_id || withdrawal.id}</span>
@@ -382,7 +497,7 @@ export default function PayoutPage() {
                             </div>
                           </td>
                           <td className="px-6 py-4 text-xs font-bold">
-                             <StatusBadge status={withdrawal.status} label={withdrawal.status_display || withdrawal.status} />
+                             <PayoutStatusBadge status={withdrawal.status} />
                           </td>
                           <td className="px-6 py-4 font-bold text-rose-500">
                             -₦{parseFloat(withdrawal.amount).toLocaleString()}
@@ -400,7 +515,7 @@ export default function PayoutPage() {
                     ) : (
                       <tr>
                          <td colSpan="5" className="px-6 py-12 text-center text-gray-500 italic">
-                           No withdrawal history found.
+                           No completed payouts found.
                          </td>
                       </tr>
                     )}
@@ -423,7 +538,7 @@ export default function PayoutPage() {
           setShowPinPrompt(false);
           executeWithdrawal();
         }}
-        action="request this payout"
+        action="submit payout request"
         requireSetup={true}
       />
     </div>
@@ -473,6 +588,45 @@ function StatusBadge({ status, label }) {
 
   return (
     <span className={`px-2 py-1 rounded-md border ${styles[status] || styles.pending}`}>
+      {label}
+    </span>
+  );
+}
+
+function PayoutStatusBadge({ status }) {
+  const config = {
+    completed: { 
+      icon: CheckCircle2, 
+      className: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
+      label: 'Completed'
+    },
+    approved: { 
+      icon: Check, 
+      className: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
+      label: 'Approved'
+    },
+    pending: { 
+      icon: Clock, 
+      className: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
+      label: 'Pending'
+    },
+    rejected: { 
+      icon: XCircle, 
+      className: 'bg-rose-500/10 text-rose-500 border-rose-500/20',
+      label: 'Rejected'
+    },
+    failed: { 
+      icon: X, 
+      className: 'bg-rose-500/10 text-rose-500 border-rose-500/20',
+      label: 'Failed'
+    },
+  };
+
+  const { icon: Icon, className, label } = config[status] || config.pending;
+
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-md border ${className}`}>
+      <Icon className="w-3 h-3" />
       {label}
     </span>
   );

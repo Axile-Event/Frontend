@@ -60,7 +60,8 @@ export default function AdminLayout({ children }) {
       "/lighthouse/events": { title: "Events", description: "Moderate and manage events" },
       "/lighthouse/revenue": { title: "Revenue", description: "Financial analytics and reports" },
       "/lighthouse/tickets": { title: "Tickets", description: "All platform tickets" },
-      "/lighthouse/withdrawals": { title: "Withdrawals", description: "Manage payout requests" },
+      "/lighthouse/payouts": { title: "Payout Requests", description: "Review and process organizer payout requests" },
+      "/lighthouse/withdrawals": { title: "Withdrawals", description: "View completed payout transactions" },
       "/lighthouse/settings": { title: "Settings", description: "System configuration" },
       "/lighthouse/audit-logs": { title: "Audit Logs", description: "Activity history" },
     };

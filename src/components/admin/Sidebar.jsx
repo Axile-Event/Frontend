@@ -41,20 +41,24 @@ const sidebarItems = [
     icon: Ticket,
   },
   {
-    title: "Payout Requests",
-    href: "/lighthouse/payout-requests",
-    icon: Banknote,
-    showBadge: true,
-  },
-  {
-    title: "Transactions",
-    href: "/lighthouse/withdrawals",
-    icon: CreditCard,
-  },
-  {
-    title: "Revenue",
-    href: "/lighthouse/revenue",
-    icon: BarChart3,
+    label: "Finance",
+    items: [
+      {
+        title: "Payout Requests",
+        href: "/lighthouse/payouts",
+        icon: CreditCard,
+      },
+      {
+        title: "Withdrawals",
+        href: "/lighthouse/withdrawals",
+        icon: CreditCard,
+      },
+      {
+        title: "Revenue",
+        href: "/lighthouse/revenue",
+        icon: BarChart3,
+      },
+    ]
   },
   {
     title: "Settings",
