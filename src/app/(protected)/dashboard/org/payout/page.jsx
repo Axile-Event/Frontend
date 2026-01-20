@@ -393,7 +393,6 @@ export default function PayoutPage() {
                 <table className="w-full text-left text-sm">
                   <thead className="bg-white/2 text-gray-400 text-[10px] font-bold">
                     <tr>
-                      <th className="px-5 py-3">Request ID</th>
                       <th className="px-5 py-3">Status</th>
                       <th className="px-5 py-3">Amount</th>
                       <th className="px-5 py-3">Date</th>
@@ -403,9 +402,6 @@ export default function PayoutPage() {
                     {payoutRequests.length > 0 ? (
                       payoutRequests.map((request, index) => (
                         <tr key={request.request_id || request.withdrawal_id || request.id || index} className="hover:bg-white/2 transition-colors">
-                          <td className="px-6 py-4">
-                            <span className="text-xs font-mono text-gray-500">{request.request_id || request.withdrawal_id || request.id}</span>
-                          </td>
                           <td className="px-6 py-4 text-xs font-bold">
                              <PayoutStatusBadge status={request.status} />
                           </td>
@@ -419,7 +415,7 @@ export default function PayoutPage() {
                       ))
                     ) : (
                       <tr>
-                         <td colSpan="4" className="px-6 py-12 text-center text-gray-500 italic">
+                         <td colSpan="3" className="px-6 py-12 text-center text-gray-500 italic">
                            No payout requests found.
                          </td>
                       </tr>

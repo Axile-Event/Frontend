@@ -417,15 +417,15 @@ export default function PayoutsPage() {
                               </Button>
                             </>
                           )}
-                          {request.status === 'approved' && request.transaction && (
+                          {request.status === 'approved' && (
                             <Button
                               size="sm"
                               variant="ghost"
                               className="h-8 px-3 text-blue-600 hover:text-blue-700 hover:bg-blue-500/10"
-                              onClick={() => handleMarkCompleted(request.transaction)}
-                              disabled={!!processing[request.transaction]}
+                              onClick={() => handleMarkCompleted(request.transaction || request.request_id)}
+                              disabled={!!processing[request.transaction || request.request_id]}
                             >
-                              {processing[request.transaction] === 'completing' ? (
+                              {processing[request.transaction || request.request_id] === 'completing' ? (
                                 <Loader2 className="w-4 h-4 animate-spin" />
                               ) : (
                                 <>
