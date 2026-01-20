@@ -36,7 +36,7 @@ export default function SettingsPage() {
     max_events_per_organizer: 50,
     min_withdrawal_amount: 1000.00,
     max_withdrawal_amount: 1000000.00,
-    support_email: "support@Axile.app",
+    support_email: "axile.nig@gmail.com",
   });
 
   useEffect(() => {

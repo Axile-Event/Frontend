@@ -85,7 +85,7 @@ const PrivacyPolicy = () => {
         >
           <h3 className="text-xl font-bold mb-4">Have questions?</h3>
           <p className="text-muted-foreground mb-6">
-            If you have questions or comments about this policy, you may email us at support@Axile.com
+            If you have questions or comments about this policy, you may email us at axile.nig@gmail.com
           </p>
           <Link href="/contact">
             <Button className="rounded-full px-8">Contact Support</Button>

@@ -51,7 +51,7 @@ const ContactPage = () => {
               <ContactCard
                 icon={<Mail className="h-6 w-6 text-primary" />}
                 title="Email Us"
-                description="support@Axile.com"
+                description="axile.nig@gmail.com"
               />
               <ContactCard
                 icon={<MessageSquare className="h-6 w-6 text-purple-500" />}
