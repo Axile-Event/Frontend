@@ -44,6 +44,7 @@ export default function EditEventPage() {
     date: "",
     event_type: "",
     pricing_type: "",
+    max_quantity_per_booking: "",
   });
   const [categories, setCategories] = useState([]);
   const [imageFile, setImageFile] = useState(null);
@@ -110,6 +111,7 @@ export default function EditEventPage() {
             date: dateObj ? dateObj.toISOString() : "",
             event_type: eventData.event_type || "",
             pricing_type: eventData.pricing_type || "free",
+            max_quantity_per_booking: eventData.max_quantity_per_booking || "",
           });
 
           // Load ticket categories if paid event
@@ -169,6 +171,91 @@ export default function EditEventPage() {
     reader.readAsDataURL(file);
   };
 
+  // Alias for handleImage for backward compatibility
+  const handleImageChange = handleImage;
+
+  const addCategory = () => {
+    setCategories([
+      ...categories,
+      {
+        name: "",
+        price: "",
+        max_tickets: "",
+        description: "",
+      },
+    ]);
+  };
+
+  const removeCategory = (index) => {
+    setCategories(categories.filter((_, i) => i !== index));
+  };
+
+  const updateCategory = (index, key, value) => {
+    const newCats = [...categories];
+    newCats[index][key] = value;
+    setCategories(newCats);
+  };
+
+  // Format number with commas for display
+  const formatPriceWithCommas = (value) => {
+    // Remove non-digit characters except decimal point
+    const cleaned = String(value).replace(/[^\d.]/g, "");
+    // Split by decimal point to handle decimals separately
+    const parts = cleaned.split(".");
+    // Format the integer part with commas
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    // Rejoin with decimal if exists
+    return parts.length > 1 ? `${parts[0]}.${parts[1]}` : parts[0];
+  };
+
+  // Handle price input change with comma formatting
+  const handlePriceChange = (index, rawValue) => {
+    // Remove commas to get raw number for storage
+    const numericValue = rawValue.replace(/,/g, "");
+    // Only allow digits and one decimal point
+    if (/^\d*\.?\d*$/.test(numericValue)) {
+      updateCategory(index, "price", numericValue);
+    }
+  };
+
+  const validate = () => {
+    const e = {};
+    if (!form.name.trim()) e.name = "Name is required";
+    if (!form.description.trim()) e.description = "Description is required";
+    if (!["paid", "free"].includes(form.pricing_type))
+      e.pricing_type = "Invalid pricing type";
+    if (!form.event_type) e.event_type = "Event type is required";
+    if (!form.location.trim()) e.location = "Location is required";
+    if (!form.date) e.date = "Date & time is required";
+
+    // For paid events, require at least one category with a valid price
+    if (form.pricing_type === "paid") {
+      const nonEmptyCategories = categories.filter((c) => (c?.name || "").trim());
+      if (nonEmptyCategories.length === 0) {
+        e.categories = "At least one ticket category is required for paid events";
+      } else {
+        const invalidCategory = nonEmptyCategories.find((c) => {
+          const rawPrice = String(c?.price ?? "").trim();
+          const parsedPrice = rawPrice === "" ? NaN : Number(rawPrice);
+          return !Number.isFinite(parsedPrice) || parsedPrice <= 0;
+        });
+
+        if (invalidCategory) {
+          e.categories = "Each category must have a price greater than 0";
+        }
+      }
+    }
+
+    // length checks per docs
+    if (form.name && form.name.length > 200)
+      e.name = "Name must be ≤ 200 characters";
+    if (form.location && form.location.length > 200)
+      e.location = "Location must be ≤ 200 characters";
+
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -198,6 +285,11 @@ export default function EditEventPage() {
 
       if (imageFile) {
         formData.append("image", imageFile);
+      }
+
+      // Add max_quantity_per_booking if provided
+      if (form.max_quantity_per_booking) {
+        formData.append("max_quantity_per_booking", form.max_quantity_per_booking);
       }
 
       const response = await api.patch(`/events/${eventId}/update/`, formData);
@@ -476,6 +568,25 @@ export default function EditEventPage() {
               </div>
             </div>
 
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                  Max Tickets Per Booking
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={form.max_quantity_per_booking}
+                  onChange={handleChange("max_quantity_per_booking")}
+                  placeholder="Default: 3"
+                  className="w-full bg-white/5 border border-white/10 focus:border-rose-500 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-rose-500 transition-all"
+                />
+                <p className="text-[10px] text-gray-500 font-medium">
+                  Maximum number of tickets a user can purchase in a single booking. Defaults to 3 if not set.
+                </p>
+              </div>
+            </div>
+
             <div className="space-y-4 pt-2">
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
@@ -611,6 +722,24 @@ export default function EditEventPage() {
                                 }
                                 placeholder="Unlimited"
                                 className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500 transition-all"
+                              />
+                            </div>
+                            <div className="space-y-1.5 sm:col-span-2">
+                              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider flex justify-between">
+                                <span>Description</span>
+                                <span className={`${(cat.description?.length || 0) > 140 ? 'text-rose-500' : 'text-gray-600'}`}>
+                                  {cat.description?.length || 0}/150
+                                </span>
+                              </label>
+                              <textarea
+                                value={cat.description || ""}
+                                onChange={(e) =>
+                                  updateCategory(idx, "description", e.target.value)
+                                }
+                                maxLength={150}
+                                placeholder="Describe what this ticket includes (e.g., Front row seats, Backstage access)"
+                                rows={2}
+                                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500 transition-all resize-none"
                               />
                             </div>
                           </div>

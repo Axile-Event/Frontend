@@ -27,7 +27,7 @@ import {
   Plus
 } from "lucide-react";
 import toast from "react-hot-toast";
-import { getImageUrl } from "../../../../../../lib/utils";
+import { getImageUrl, generateEventSlug } from "../../../../../../lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import CustomDropdown from "@/components/ui/CustomDropdown";
 
@@ -365,7 +365,9 @@ export default function EventDetailsPage() {
 
   const handleCopyLink = () => {
     if (!event) return;
-    const link = `${window.location.origin}/events/${id}`;
+    // Generate slug-based URL for sharing (name only)
+    const slug = generateEventSlug(event.name);
+    const link = `${window.location.origin}/events/${slug}`;
     navigator.clipboard.writeText(link).then(() => {
       toast.success("Link copied to clipboard!");
     }).catch(() => {
