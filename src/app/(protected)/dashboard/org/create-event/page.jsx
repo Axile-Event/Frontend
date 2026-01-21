@@ -195,6 +195,7 @@ export default function CreateEvent() {
         name: "",
         price: "",
         max_tickets: "",
+        description: "",
       },
     ]);
   };
@@ -375,12 +376,20 @@ export default function CreateEvent() {
                 const catMaxTickets = cat.max_tickets
                   ? parseInt(String(cat.max_tickets).replace(/,/g, ""), 10)
                   : null;
-                return api.post("/tickets/categories/create/", {
+                
+                const categoryPayload = {
                   event_id: newId,
                   name: cat.name,
                   price: !isNaN(catPrice) ? catPrice : 0,
                   max_tickets: !isNaN(catMaxTickets) ? catMaxTickets : null,
-                });
+                };
+                
+                // Include description if provided
+                if (cat.description?.trim()) {
+                  categoryPayload.description = cat.description.trim();
+                }
+                
+                return api.post("/tickets/categories/create/", categoryPayload);
               })
             );
           } catch (catErr) {
@@ -824,6 +833,24 @@ export default function CreateEvent() {
                               }
                               placeholder="Unlimited"
                               className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500 transition-all"
+                            />
+                          </div>
+                          <div className="space-y-1.5 sm:col-span-2">
+                            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider flex justify-between">
+                              <span>Description</span>
+                              <span className={`${(cat.description?.length || 0) > 140 ? 'text-rose-500' : 'text-gray-600'}`}>
+                                {cat.description?.length || 0}/150
+                              </span>
+                            </label>
+                            <textarea
+                              value={cat.description || ""}
+                              onChange={(e) =>
+                                updateCategory(idx, "description", e.target.value)
+                              }
+                              maxLength={150}
+                              placeholder="Describe what this ticket includes (e.g., Front row seats, Backstage access)"
+                              rows={2}
+                              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500 transition-all resize-none"
                             />
                           </div>
                         </div>

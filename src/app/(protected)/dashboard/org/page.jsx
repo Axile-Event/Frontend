@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import api from "../../../../lib/axios";
 import { Ticket, Users, Calendar, TrendingUp, DollarSign, Clock, Plus, ChevronRight, ShieldAlert, X, Eye, EyeOff, MapPin } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -35,6 +35,9 @@ export default function Overview() {
   const router = useRouter();
   const { user } = useAuthStore();
   const { events, setOrganization, setEvents, lastUpdate, hydrated } = useOrganizerStore();
+  
+  // Track initial lastUpdate to prevent refetch loop on mount
+  const initialLastUpdateRef = useRef(lastUpdate);
 
   useEffect(() => {
     // Wait for orgStore hydration before fetching data
@@ -270,6 +273,17 @@ export default function Overview() {
 
   // Refetch analytics and events summary when events change to update total events count and summary
   useEffect(() => {
+    // Skip refetch on initial mount or if lastUpdate hasn't changed meaningfully
+    // This prevents the infinite loop where fetchOverview -> setEvents -> lastUpdate change -> refetch
+    if (lastUpdate === null || lastUpdate === initialLastUpdateRef.current) {
+      // Update the ref to the current value after initial load
+      initialLastUpdateRef.current = lastUpdate;
+      return;
+    }
+    
+    // Update ref to current value to track subsequent changes
+    initialLastUpdateRef.current = lastUpdate;
+    
     async function refetchData() {
       try {
         const [analyticsRes, eventsRes] = await Promise.allSettled([
@@ -315,9 +329,10 @@ export default function Overview() {
         console.error("Failed to refetch data:", err);
       }
     }
-      console.log("Refetch effect fired", lastUpdate);
+    
+    console.log("Refetch effect fired", lastUpdate);
 
-  // refetch data so that the overview stats are always up to date
+    // refetch data so that the overview stats are always up to date
     refetchData();
   }, [lastUpdate]);
 
