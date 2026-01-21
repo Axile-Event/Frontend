@@ -55,6 +55,7 @@ export default function CreateEvent() {
     location: "",
     date: "",
     capacity: "",
+    max_quantity_per_booking: "",
   });
 
   const [categories, setCategories] = useState([]);
@@ -295,6 +296,7 @@ export default function CreateEvent() {
       location: "",
       date: "",
       capacity: "",
+      max_quantity_per_booking: "",
     });
     setImageFile(null);
     setPreview(null);
@@ -340,6 +342,11 @@ export default function CreateEvent() {
 
       if (imageFile) {
         formData.append("image", imageFile);
+      }
+
+      // Add max_quantity_per_booking if provided (defaults to 3 on backend)
+      if (form.max_quantity_per_booking) {
+        formData.append("max_quantity_per_booking", form.max_quantity_per_booking);
       }
 
       // IMPORTANT: don't set Content-Type for FormData; the browser will add the correct boundary.
@@ -704,6 +711,22 @@ export default function CreateEvent() {
                   </p>
                 </div>
               )}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                  Max Tickets Per Booking
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={form.max_quantity_per_booking}
+                  onChange={handleChange("max_quantity_per_booking")}
+                  placeholder="Default: 3"
+                  className="w-full bg-white/5 border border-white/10 focus:border-rose-500 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-rose-500 transition-all"
+                />
+                <p className="text-[10px] text-gray-500 font-medium">
+                  Maximum number of tickets a user can purchase in a single booking. Defaults to 3 if not set.
+                </p>
+              </div>
             </div>
 
             <div className="space-y-4 pt-2">

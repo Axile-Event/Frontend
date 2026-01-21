@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import api from "../../../../../lib/axios";
 import { Loader2, Copy, Check, ExternalLink, Plus, Clock, Search } from "lucide-react";
 import toast from "react-hot-toast";
-import { getImageUrl } from "../../../../../lib/utils";
+import { getImageUrl, generateEventSlug } from "../../../../../lib/utils";
 import { Input } from "@/components/ui/input";
 import { OrganizerEventsPageSkeleton } from "@/components/skeletons";
 
@@ -145,9 +145,11 @@ const MyEvent = () => {
     }
   };
 
-  const handleCopyLink = (e, eventId) => {
+  const handleCopyLink = (e, eventId, eventName) => {
     e.stopPropagation();
-    const link = `${window.location.origin}/events/${eventId}`;
+    // Generate slug-based URL for sharing (name only)
+    const slug = generateEventSlug(eventName);
+    const link = `${window.location.origin}/events/${slug}`;
     navigator.clipboard.writeText(link).then(() => {
       toast.success("Link copied to clipboard!");
     }).catch(() => {
@@ -347,7 +349,7 @@ const MyEvent = () => {
                     </div>
                     
                     <button
-                      onClick={(e) => ev.status === 'verified' ? handleCopyLink(e, id) : e.stopPropagation()}
+                      onClick={(e) => ev.status === 'verified' ? handleCopyLink(e, id, ev.name) : e.stopPropagation()}
                       disabled={ev.status !== 'verified'}
                       className={`flex items-center gap-1.5 px-2.5 py-1.5 border rounded-lg transition-all font-medium ${
                         ev.status === 'verified'

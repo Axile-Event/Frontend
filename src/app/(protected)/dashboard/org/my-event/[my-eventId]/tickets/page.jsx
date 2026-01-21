@@ -21,7 +21,6 @@ export default function ManageTicketsPage() {
         name: "",
         price: "",
         max_tickets: "",
-        max_quantity_per_booking: "",
         description: "",
     });
 
@@ -33,6 +32,29 @@ export default function ManageTicketsPage() {
     const [categoryToDelete, setCategoryToDelete] = useState(null);
     const [showPinPrompt, setShowPinPrompt] = useState(false);
     const [deleting, setDeleting] = useState(false);
+
+    // Format number with commas for display
+    const formatPriceWithCommas = (value) => {
+        const cleaned = String(value).replace(/[^\d.]/g, "");
+        const parts = cleaned.split(".");
+        parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        return parts.length > 1 ? `${parts[0]}.${parts[1]}` : parts[0];
+    };
+
+    // Handle price input change with comma formatting
+    const handleNewPriceChange = (rawValue) => {
+        const numericValue = rawValue.replace(/,/g, "");
+        if (/^\d*\.?\d*$/.test(numericValue)) {
+            setNewCategory({ ...newCategory, price: numericValue });
+        }
+    };
+
+    const handleEditPriceChange = (rawValue) => {
+        const numericValue = rawValue.replace(/,/g, "");
+        if (/^\d*\.?\d*$/.test(numericValue)) {
+            setEditForm({ ...editForm, price: numericValue });
+        }
+    };
 
     const fetchEventAndCategories = useCallback(async () => {
         if (!id) return;
@@ -92,7 +114,6 @@ export default function ManageTicketsPage() {
                 name: newCategory.name,
                 price: roundedPrice,
                 max_tickets: newCategory.max_tickets ? parseInt(newCategory.max_tickets) : null,
-                max_quantity_per_booking: newCategory.max_quantity_per_booking ? parseInt(newCategory.max_quantity_per_booking) : null,
             };
             
             // Include description if provided
@@ -102,7 +123,7 @@ export default function ManageTicketsPage() {
 
             await api.post("/tickets/categories/create/", payload);
             toast.success("Ticket category created!");
-            setNewCategory({ name: "", price: "", max_tickets: "", max_quantity_per_booking: "", description: "" });
+            setNewCategory({ name: "", price: "", max_tickets: "", description: "" });
             fetchEventAndCategories();
         } catch (err) {
             const errors = err?.response?.data;
@@ -295,12 +316,12 @@ export default function ManageTicketsPage() {
                     <div className="space-y-1.5">
                         <label className="text-[10px] uppercase font-bold text-gray-500 tracking-widest">Price (₦)</label>
                         <input
-                            type="number"
+                            type="text"
+                            inputMode="decimal"
                             required
-                            min="0"
-                            value={newCategory.price}
-                            onChange={(e) => setNewCategory({ ...newCategory, price: e.target.value })}
-                            placeholder="10000"
+                            value={formatPriceWithCommas(newCategory.price)}
+                            onChange={(e) => handleNewPriceChange(e.target.value)}
+                            placeholder="10,000"
                             className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-rose-500 transition-colors"
                         />
                     </div>
@@ -370,10 +391,18 @@ export default function ManageTicketsPage() {
                                             className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm"
                                         />
                                         <input
-                                            type="number"
-                                            value={editForm.price ?? ""}
-                                            onChange={(e) => setEditForm({ ...editForm, price: e.target.value })}
+                                            type="text"
+                                            inputMode="decimal"
+                                            value={formatPriceWithCommas(editForm.price ?? "")}
+                                            onChange={(e) => handleEditPriceChange(e.target.value)}
                                             placeholder="Price"
+                                            className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm"
+                                        />
+                                        <input
+                                            type="number"
+                                            value={editForm.max_tickets ?? ""}
+                                            onChange={(e) => setEditForm({ ...editForm, max_tickets: e.target.value })}
+                                            placeholder="Max Tickets (Unlimited)"
                                             className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm"
                                         />
                                         <div className="md:col-span-2 space-y-1">
@@ -409,45 +438,27 @@ export default function ManageTicketsPage() {
                                                 <span className="text-[10px] font-bold bg-white/5 px-2 py-0.5 rounded-full text-rose-500 uppercase">
                                                     ₦{parseFloat(cat.price).toLocaleString()}
                                                 </span>
-                                                {(cat.tickets_sold ?? 0) > 0 && (
-                                                    <span className="text-[9px] font-bold bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full text-amber-500 uppercase">
-                                                        Locked
-                                                    </span>
-                                                )}
                                             </div>
                                             <p className="text-xs text-gray-500 max-w-xl">{cat.description || "No description provided."}</p>
                                             <div className="flex gap-4 text-[10px] text-gray-600 font-bold uppercase tracking-wider pt-2">
                                                 <span>Available: {typeof cat.available_tickets === 'number' ? cat.available_tickets.toLocaleString() : (cat.available_tickets ?? "Unlimited")}</span>
                                                 <span>Sold: {(cat.tickets_sold ?? 0).toLocaleString()}</span>
+                                                <span>Max/Booking: {event?.max_quantity_per_booking || 3}</span>
                                             </div>
-                                            {(cat.tickets_sold ?? 0) > 0 && (
-                                                <p className="text-[10px] text-amber-500/70 italic pt-1">
-                                                    Cannot edit or delete — tickets have been sold
-                                                </p>
-                                            )}
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <button 
                                                 onClick={() => startEdit(cat)} 
-                                                disabled={(cat.tickets_sold ?? 0) > 0}
-                                                className={`p-2.5 rounded-xl transition-colors ${
-                                                    (cat.tickets_sold ?? 0) > 0 
-                                                        ? "text-gray-700 cursor-not-allowed" 
-                                                        : "hover:bg-white/5 text-gray-400 hover:text-white"
-                                                }`}
-                                                title={(cat.tickets_sold ?? 0) > 0 ? "Cannot edit - tickets have been sold" : "Edit category"}
+                                                className="p-2.5 rounded-xl transition-colors hover:bg-white/5 text-gray-400 hover:text-white"
+                                                title="Edit category"
                                             >
                                                 <Edit2 className="w-4 h-4" />
                                             </button>
                                             <button 
                                                 onClick={() => handleDeleteClick(cat)} 
-                                                disabled={(cat.tickets_sold ?? 0) > 0 || deleting}
-                                                className={`p-2.5 rounded-xl transition-colors ${
-                                                    (cat.tickets_sold ?? 0) > 0 
-                                                        ? "text-gray-700 cursor-not-allowed" 
-                                                        : "hover:bg-rose-600/10 text-gray-500 hover:text-rose-500"
-                                                }`}
-                                                title={(cat.tickets_sold ?? 0) > 0 ? "Cannot delete - tickets have been sold" : "Delete category"}
+                                                disabled={deleting}
+                                                className="p-2.5 rounded-xl transition-colors hover:bg-rose-600/10 text-gray-500 hover:text-rose-500"
+                                                title="Delete category"
                                             >
                                                 <Trash2 className="w-4 h-4" />
                                             </button>

@@ -17,16 +17,17 @@ import {
 import { Loader2, MapPin, Calendar, Clock, Ticket, Info, Share2, Copy, Check } from "lucide-react";
 import toast from "react-hot-toast";
 import useAuthStore from "@/store/authStore";
-import { getImageUrl } from "@/lib/utils";
+import { getImageUrl, generateEventSlug } from "@/lib/utils";
 import { EventDetailsSkeleton } from "@/components/skeletons";
 
 const EventDetailsPage = () => {
   const params = useParams();
   const router = useRouter();
-  const eventId = decodeURIComponent(params.event_id);
+  const slug = decodeURIComponent(params.event_id);
   const { token, hydrated } = useAuthStore();
 
   const [event, setEvent] = useState(null);
+  const [eventId, setEventId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [bookingLoading, setBookingLoading] = useState(false);
 
@@ -37,7 +38,9 @@ const EventDetailsPage = () => {
   const [copied, setCopied] = useState(false);
 
   const handleCopyLink = () => {
-    const link = window.location.href;
+    // Generate slug-based URL for sharing (name only)
+    const eventSlug = event ? generateEventSlug(event.name) : slug;
+    const link = `${window.location.origin}/events/${eventSlug}`;
     navigator.clipboard.writeText(link).then(() => {
       setCopied(true);
       toast.success("Link copied to clipboard!");
@@ -47,19 +50,52 @@ const EventDetailsPage = () => {
 
   useEffect(() => {
     const fetchEventDetails = async () => {
-      if (!eventId) return;
+      if (!slug) return;
 
       try {
-        const response = await api.get(`/events/${eventId}/details/`);
-        setEvent(response.data);
+        let eventData = null;
+        let foundEventId = null;
+
+        // Check if slug is already an event ID (legacy support)
+        if (slug.startsWith("event:")) {
+          const response = await api.get(`/events/${slug}/details/`);
+          eventData = response.data;
+          foundEventId = slug;
+        } else {
+          // Fetch all events and find by slug match
+          const allEventsRes = await api.get("/event/");
+          const eventsData = Array.isArray(allEventsRes.data) 
+            ? allEventsRes.data 
+            : (allEventsRes.data.events || []);
+          
+          // Find event where generated slug matches the URL slug
+          const matchedEvent = eventsData.find(ev => {
+            const eventName = ev.name || ev.event_name;
+            return generateEventSlug(eventName) === slug;
+          });
+          
+          if (matchedEvent) {
+            // Fetch full details using the event ID
+            const detailsRes = await api.get(`/events/${matchedEvent.event_id}/details/`);
+            eventData = detailsRes.data;
+            foundEventId = matchedEvent.event_id;
+          } else {
+            toast.error("Event not found");
+            setLoading(false);
+            return;
+          }
+        }
+        
+        setEvent(eventData);
+        setEventId(foundEventId);
         
         let cats = [];
-        if (Array.isArray(response.data.ticket_categories)) {
-          cats = response.data.ticket_categories;
+        if (Array.isArray(eventData?.ticket_categories)) {
+          cats = eventData.ticket_categories;
         } else {
            try {
              // Fallback to fetch categories if not present in details response
-             const catRes = await api.get(`/tickets/categories/?event_id=${eventId}`);
+             const catRes = await api.get(`/tickets/categories/?event_id=${foundEventId}`);
              if (Array.isArray(catRes.data)) {
                cats = catRes.data;
              } else {
@@ -88,7 +124,7 @@ const EventDetailsPage = () => {
     };
 
     fetchEventDetails();
-  }, [eventId]);
+  }, [slug]);
 
   const handleBookTicket = async () => {
     // Check Zustand token first (if hydrated), then fallback to localStorage directly
@@ -378,7 +414,7 @@ const EventDetailsPage = () => {
                     </div>
                     <div className="flex gap-2">
                       <div className="flex-1 bg-muted px-3 py-2 rounded-md text-xs md:text-sm text-muted-foreground truncate border border-gray-700">
-                        {typeof window !== 'undefined' ? `${window.location.origin}/events/${eventId}` : ''}
+                        {typeof window !== 'undefined' ? `${window.location.origin}/events/${event ? generateEventSlug(event.name) : slug}` : ''}
                       </div>
                       <Button 
                         size="sm" 
