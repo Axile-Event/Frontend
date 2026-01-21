@@ -139,7 +139,7 @@ const Header = () => {
           <div className="md:hidden flex items-center gap-2">
 
             {/* Student Mobile Logout */}
-            {isAuthenticated && role === 'student' && (
+            {isAuthenticated && role?.toLowerCase() === 'student' && (
               <Button
                 variant="ghost"
                 size="icon"
@@ -151,7 +151,7 @@ const Header = () => {
             )}
 
             {/* Mobile Hamburger Menu Button - Hidden for Students */}
-            {(!isAuthenticated || (isAuthenticated && role !== 'student')) && (
+            {(!isAuthenticated || (isAuthenticated && role?.toLowerCase() !== 'student')) && (
               <button
                 className="p-2 text-gray-300 hover:text-white focus:outline-none"
                 onClick={toggleMenu}
