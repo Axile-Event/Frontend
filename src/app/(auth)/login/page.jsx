@@ -226,7 +226,7 @@ const LoginContent = () => {
                   : "border-gray-600 border text-gray-300 hover:border-gray-500"
               }`}
               >
-              Student  
+             User
             </button>
 
             <button
