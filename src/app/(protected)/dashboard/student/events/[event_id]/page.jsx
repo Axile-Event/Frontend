@@ -318,10 +318,10 @@ const EventDetailsPage = () => {
                               } ${(!cat.is_active || cat.is_sold_out) ? "opacity-50 cursor-not-allowed grayscale" : ""}`}
                             >
                               <div className="flex justify-between items-center mb-1">
-                                <span className={`text-sm font-bold ${selectedCategory?.category_id === cat.category_id ? "text-rose-500" : "text-white"}`}>
+                                <span className={`text-sm font-bold ${selectedCategory?.category_id === cat.category_id ? "text-rose-500" : "text-gray-300"}`}>
                                   {cat.name}
                                 </span>
-                                <span className="text-xs font-bold text-white">₦{(parseFloat(cat.price) || 0).toLocaleString()}</span>
+                                <span className="text-xs font-bold text-gray-300">₦{(parseFloat(cat.price) || 0).toLocaleString()}</span>
                               </div>
                               {cat.description && <p className="text-[10px] text-muted-foreground line-clamp-2">{cat.description}</p>}
                               {cat.is_sold_out && <span className="text-[10px] text-rose-500 font-bold uppercase mt-1">Sold Out</span>}
@@ -349,7 +349,7 @@ const EventDetailsPage = () => {
                               : `From ₦${displayEventPrice.toLocaleString()}`}
                         </span>
                       </div>
-                      <div className="flex justify-between font-bold text-base md:text-lg text-white">
+                      <div className="flex justify-between font-bold text-base md:text-lg text-gray-300">
                         <span>Total</span>
                         <span className="text-rose-500">
                           {event.pricing_type === 'free' 
