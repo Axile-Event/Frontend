@@ -56,10 +56,11 @@ const EventDetailsPage = () => {
         let foundEventId = null;
 
         // Check if slug is already an event ID (legacy support)
-        if (slug.startsWith("event:")) {
-          const response = await api.get(`/events/${slug}/details/`);
+        if (slug.startsWith("event:") || slug.startsWith("event%3A")) {
+          const decodedId = decodeURIComponent(slug);
+          const response = await api.get(`/events/${decodedId}/details/`);
           eventData = response.data;
-          foundEventId = slug;
+          foundEventId = decodedId;
         } else {
           // Fetch all events and find by slug match
           const allEventsRes = await api.get("/event/");
@@ -67,10 +68,14 @@ const EventDetailsPage = () => {
             ? allEventsRes.data 
             : (allEventsRes.data.events || []);
           
+          // Normalize the URL slug for comparison
+          const normalizedSlug = slug.toLowerCase().trim();
+          
           // Find event where generated slug matches the URL slug
           const matchedEvent = eventsData.find(ev => {
             const eventName = ev.name || ev.event_name;
-            return generateEventSlug(eventName) === slug;
+            const eventSlug = generateEventSlug(eventName);
+            return eventSlug === normalizedSlug;
           });
           
           if (matchedEvent) {
@@ -78,10 +83,25 @@ const EventDetailsPage = () => {
             eventData = detailsRes.data;
             foundEventId = matchedEvent.event_id;
           } else {
-            toast.error("Event not found");
-            setLoading(false);
-            return;
+            // Try direct lookup as fallback (in case slug IS the event ID)
+            try {
+              const directRes = await api.get(`/events/${slug}/details/`);
+              if (directRes.data) {
+                eventData = directRes.data;
+                foundEventId = slug;
+              }
+            } catch {
+              toast.error("Event not found");
+              setLoading(false);
+              return;
+            }
           }
+        }
+
+        if (!eventData) {
+          toast.error("Event not found");
+          setLoading(false);
+          return;
         }
 
         setEvent(eventData);
