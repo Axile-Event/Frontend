@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
+import { cn } from "@/lib/utils";
 import { 
   LayoutDashboard, 
   Users, 
@@ -12,41 +14,31 @@ import {
   CreditCard,
   Settings,
   History,
-  ChevronRight
+  Banknote
 } from "lucide-react";
 import useAuthStore from "../../store/authStore";
-import { cn } from "@/lib/utils";
+import { adminService } from "@/lib/admin";
 
-const navigationGroups = [
+const sidebarItems = [
   {
-    label: "Overview",
-    items: [
-      {
-        title: "Dashboard",
-        href: "/lighthouse/dashboard",
-        icon: LayoutDashboard,
-      },
-    ]
+    title: "Dashboard",
+    href: "/lighthouse/dashboard",
+    icon: LayoutDashboard,
   },
   {
-    label: "Management",
-    items: [
-      {
-        title: "Users",
-        href: "/lighthouse/users",
-        icon: Users,
-      },
-      {
-        title: "Events",
-        href: "/lighthouse/events",
-        icon: CalendarDays,
-      },
-      {
-        title: "Tickets",
-        href: "/lighthouse/tickets",
-        icon: Ticket,
-      },
-    ]
+    title: "Users",
+    href: "/lighthouse/users",
+    icon: Users,
+  },
+  {
+    title: "Events",
+    href: "/lighthouse/events",
+    icon: CalendarDays,
+  },
+  {
+    title: "Tickets",
+    href: "/lighthouse/tickets",
+    icon: Ticket,
   },
   {
     label: "Finance",
@@ -69,55 +61,37 @@ const navigationGroups = [
     ]
   },
   {
-    label: "System",
-    items: [
-      {
-        title: "Settings",
-        href: "/lighthouse/settings",
-        icon: Settings,
-      },
-      {
-        title: "Audit Logs",
-        href: "/lighthouse/audit-logs",
-        icon: History,
-      },
-    ]
+    title: "Settings",
+    href: "/lighthouse/settings",
+    icon: Settings,
+  },
+  {
+    title: "Audit Logs",
+    href: "/lighthouse/audit-logs",
+    icon: History,
   },
 ];
-
-function NavItem({ item, isActive }) {
-  return (
-    <Link
-      href={item.href}
-      className={cn(
-        "group flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 text-[13px] font-medium",
-        isActive
-          ? "bg-foreground text-background"
-          : "text-muted-foreground hover:bg-muted hover:text-foreground"
-      )}
-    >
-      <item.icon className={cn(
-        "w-[18px] h-[18px] shrink-0 transition-colors",
-        isActive ? "text-background" : "text-muted-foreground group-hover:text-foreground"
-      )} />
-      <span className="flex-1">{item.title}</span>
-      {isActive && (
-        <ChevronRight className="w-4 h-4 opacity-60" />
-      )}
-    </Link>
-  );
-}
 
 export function AdminSidebar({ className }) {
   const pathname = usePathname();
   const logout = useAuthStore((state) => state.logout);
+  const [pendingCount, setPendingCount] = useState(0);
 
-  const isActiveRoute = (href) => {
-    if (href === "/lighthouse/dashboard") {
-      return pathname === href;
-    }
-    return pathname.startsWith(href);
-  };
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const data = await adminService.getPayoutNotifications();
+        setPendingCount(data.pending_count || 0);
+      } catch (error) {
+        console.error("Failed to fetch payout notifications", error);
+      }
+    };
+
+    fetchNotifications();
+    // Poll every 2 minutes
+    const interval = setInterval(fetchNotifications, 120000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className={cn(
@@ -135,24 +109,29 @@ export function AdminSidebar({ className }) {
           </div>
         </div>
       </div>
-
-      <nav className="flex-1 px-3 py-4 space-y-6 overflow-y-auto">
-        {navigationGroups.map((group) => (
-          <div key={group.label}>
-            <p className="px-3 mb-2 text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-wider">
-              {group.label}
-            </p>
-            <div className="space-y-1">
-              {group.items.map((item) => (
-                <NavItem 
-                  key={item.href} 
-                  item={item} 
-                  isActive={isActiveRoute(item.href)}
-                />
-              ))}
-            </div>
-          </div>
-        ))}
+      <nav className="flex-1 p-3 space-y-1">
+        {sidebarItems.map((item) => {
+          const isActive = pathname === item.href;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors text-sm ${
+                isActive
+                  ? "bg-primary/10 text-primary font-medium"
+                  : "hover:bg-muted text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              <item.icon className="w-4 h-4" />
+              <span>{item.title}</span>
+              {item.showBadge && pendingCount > 0 && (
+                <span className="ml-auto px-2 py-0.5 text-[10px] font-bold bg-rose-500 text-white rounded-full">
+                  {pendingCount}
+                </span>
+              )}
+            </Link>
+          );
+        })}
       </nav>
 
       <div className="p-3 border-t border-border/40 mt-auto">

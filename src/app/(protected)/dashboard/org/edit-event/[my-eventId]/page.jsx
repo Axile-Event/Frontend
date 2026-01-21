@@ -146,90 +146,27 @@ export default function EditEventPage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Validate file type
     if (!file.type?.startsWith("image/")) {
       toast.error("Please select an image file");
       e.target.value = "";
       return;
     }
 
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+    if (file.size > maxSize) {
+      toast.error("Image size must be less than 5MB");
+      e.target.value = "";
+      return;
+    }
+
     setImageFile(file);
     const reader = new FileReader();
-    reader.onload = () => {
+    reader.onloadend = () => {
       setPreview(reader.result);
     };
     reader.readAsDataURL(file);
-    e.target.value = "";
-  };
-
-  const addCategory = () => {
-    setCategories([
-      ...categories,
-      {
-        name: "",
-        price: "",
-        max_tickets: "",
-      },
-    ]);
-  };
-
-  const removeCategory = (index) => {
-    setCategories(categories.filter((_, i) => i !== index));
-  };
-
-  const updateCategory = (index, key, value) => {
-    const newCats = [...categories];
-    newCats[index][key] = value;
-    setCategories(newCats);
-  };
-
-  const formatPriceWithCommas = (value) => {
-    const cleaned = String(value).replace(/[^\d.]/g, "");
-    const parts = cleaned.split(".");
-    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-    return parts.length > 1 ? `${parts[0]}.${parts[1]}` : parts[0];
-  };
-
-  const handlePriceChange = (index, rawValue) => {
-    const numericValue = rawValue.replace(/,/g, "");
-    if (/^\d*\.?\d*$/.test(numericValue)) {
-      updateCategory(index, "price", numericValue);
-    }
-  };
-
-  const validate = () => {
-    const e = {};
-    if (!form.name.trim()) e.name = "Name is required";
-    if (!form.description.trim()) e.description = "Description is required";
-    if (!["paid", "free"].includes(form.pricing_type))
-      e.pricing_type = "Invalid pricing type";
-    if (!form.event_type) e.event_type = "Event type is required";
-    if (!form.location.trim()) e.location = "Location is required";
-    if (!form.date) e.date = "Date & time is required";
-
-    if (form.pricing_type === "paid") {
-      const nonEmptyCategories = categories.filter((c) => (c?.name || "").trim());
-      if (nonEmptyCategories.length === 0) {
-        e.categories = "At least one ticket category is required for paid events";
-      } else {
-        const invalidCategory = nonEmptyCategories.find((c) => {
-          const rawPrice = String(c?.price ?? "").trim();
-          const parsedPrice = rawPrice === "" ? NaN : Number(rawPrice);
-          return !Number.isFinite(parsedPrice) || parsedPrice <= 0;
-        });
-
-        if (invalidCategory) {
-          e.categories = "Each category must have a price greater than 0";
-        }
-      }
-    }
-
-    if (form.name && form.name.length > 200)
-      e.name = "Name must be ≤ 200 characters";
-    if (form.location && form.location.length > 200)
-      e.location = "Location must be ≤ 200 characters";
-
-    setErrors(e);
-    return Object.keys(e).length === 0;
   };
 
   const handleSubmit = async (e) => {
@@ -683,6 +620,16 @@ export default function EditEventPage() {
                   )}
                 </div>
               )}
+
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-rose-600 file:text-white hover:file:bg-rose-700 file:cursor-pointer"
+              />
+              <p className="text-xs text-gray-500">
+                Upload a new image to replace the current one (max 5MB)
+              </p>
             </div>
 
             <button

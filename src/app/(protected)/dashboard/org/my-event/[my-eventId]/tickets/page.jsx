@@ -22,6 +22,7 @@ export default function ManageTicketsPage() {
         price: "",
         max_tickets: "",
         max_quantity_per_booking: "",
+        description: "",
     });
 
     const [editingId, setEditingId] = useState(null);
@@ -93,10 +94,15 @@ export default function ManageTicketsPage() {
                 max_tickets: newCategory.max_tickets ? parseInt(newCategory.max_tickets) : null,
                 max_quantity_per_booking: newCategory.max_quantity_per_booking ? parseInt(newCategory.max_quantity_per_booking) : null,
             };
+            
+            // Include description if provided
+            if (newCategory.description?.trim()) {
+                payload.description = newCategory.description.trim();
+            }
 
             await api.post("/tickets/categories/create/", payload);
             toast.success("Ticket category created!");
-            setNewCategory({ name: "", price: "", max_tickets: "", max_quantity_per_booking: "" });
+            setNewCategory({ name: "", price: "", max_tickets: "", max_quantity_per_booking: "", description: "" });
             fetchEventAndCategories();
         } catch (err) {
             const errors = err?.response?.data;
@@ -309,6 +315,22 @@ export default function ManageTicketsPage() {
                             className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-rose-500 transition-colors"
                         />
                     </div>
+                    <div className="space-y-1.5 md:col-span-2">
+                        <label className="text-[10px] uppercase font-bold text-gray-500 tracking-widest flex justify-between">
+                            <span>Description (Optional)</span>
+                            <span className={`${(newCategory.description?.length || 0) > 140 ? 'text-rose-500' : 'text-gray-600'}`}>
+                                {newCategory.description?.length || 0}/150
+                            </span>
+                        </label>
+                        <textarea
+                            value={newCategory.description}
+                            onChange={(e) => setNewCategory({ ...newCategory, description: e.target.value })}
+                            maxLength={150}
+                            placeholder="Describe what this ticket category includes (e.g., Front row seats, Backstage access, Free drinks)"
+                            rows={3}
+                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-rose-500 transition-colors resize-none"
+                        />
+                    </div>
                     <div className="md:col-span-2">
                         <button
                             type="submit"
@@ -354,6 +376,22 @@ export default function ManageTicketsPage() {
                                             placeholder="Price"
                                             className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm"
                                         />
+                                        <div className="md:col-span-2 space-y-1">
+                                            <div className="flex justify-between text-[10px] text-gray-500">
+                                                <span>Description</span>
+                                                <span className={`${(editForm.description?.length || 0) > 140 ? 'text-rose-500' : ''}`}>
+                                                    {editForm.description?.length || 0}/150
+                                                </span>
+                                            </div>
+                                            <textarea
+                                                value={editForm.description ?? ""}
+                                                onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
+                                                maxLength={150}
+                                                placeholder="Description (what this ticket includes)"
+                                                rows={2}
+                                                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm resize-none"
+                                            />
+                                        </div>
                                         <div className="md:col-span-2 flex justify-end gap-2">
                                             <button type="button" onClick={() => setEditingId(null)} className="p-2 hover:bg-white/5 rounded-lg">
                                                 <X className="w-4 h-4" />

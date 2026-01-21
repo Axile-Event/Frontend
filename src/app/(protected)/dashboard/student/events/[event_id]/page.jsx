@@ -248,33 +248,30 @@ const EventDetailsPage = () => {
                     {event.ticket_categories?.length > 0 && (
                       <div className="space-y-2">
                         <Label htmlFor="category" className="text-xs md:text-sm">Ticket Category</Label>
-                        <Select 
-                          value={selectedCategory?.name || ""} 
-                          onValueChange={(val) => {
-                            const cat = event.ticket_categories.find(c => c.name === val);
-                            setSelectedCategory(cat || null);
-                          }}
-                        >
-                          <SelectTrigger id="category" className="h-9 md:h-10 text-sm md:text-base w-full">
-                            <SelectValue placeholder="Select category" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {event.ticket_categories?.map((cat) => (
-                              <SelectItem 
-                                key={cat.category_id} 
-                                value={cat.name}
-                                disabled={!cat.is_active || cat.is_sold_out}
-                              >
-                                {cat.name} - ₦{(parseFloat(cat.price) || 0).toLocaleString()} {cat.is_sold_out ? "(Sold Out)" : ""}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {selectedCategory?.description && (
-                          <p className="text-[10px] md:text-xs text-muted-foreground italic">
-                            {selectedCategory.description}
-                          </p>
-                        )}
+                        <div className="grid grid-cols-1 gap-2">
+                          {event.ticket_categories?.map((cat) => (
+                            <button
+                              key={cat.category_id}
+                              type="button"
+                              disabled={!cat.is_active || cat.is_sold_out}
+                              onClick={() => setSelectedCategory(cat)}
+                              className={`flex flex-col p-3 rounded-xl border text-left transition-all ${
+                                selectedCategory?.category_id === cat.category_id
+                                  ? "border-rose-600 bg-rose-600/5 ring-1 ring-rose-600"
+                                  : "border-gray-600 bg-gray-600/5 hover:border-gray-500"
+                              } ${(!cat.is_active || cat.is_sold_out) ? "opacity-50 cursor-not-allowed grayscale" : ""}`}
+                            >
+                              <div className="flex justify-between items-center mb-1">
+                                <span className={`text-sm font-bold ${selectedCategory?.category_id === cat.category_id ? "text-rose-500" : "text-white"}`}>
+                                  {cat.name}
+                                </span>
+                                <span className="text-xs font-bold text-white">₦{(parseFloat(cat.price) || 0).toLocaleString()}</span>
+                              </div>
+                              {cat.description && <p className="text-[10px] text-muted-foreground line-clamp-2">{cat.description}</p>}
+                              {cat.is_sold_out && <span className="text-[10px] text-rose-500 font-bold uppercase mt-1">Sold Out</span>}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     )}
 

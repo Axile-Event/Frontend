@@ -182,6 +182,14 @@ export default function CreateEvent() {
       return;
     }
 
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+    if (file.size > maxSize) {
+      toast.error("Image size must be less than 5MB");
+      e.target.value = "";
+      return;
+    }
+
     setImageFile(file);
 
     // allow re-selecting same file again
@@ -195,6 +203,7 @@ export default function CreateEvent() {
         name: "",
         price: "",
         max_tickets: "",
+        description: "",
       },
     ]);
   };
@@ -375,12 +384,20 @@ export default function CreateEvent() {
                 const catMaxTickets = cat.max_tickets
                   ? parseInt(String(cat.max_tickets).replace(/,/g, ""), 10)
                   : null;
-                return api.post("/tickets/categories/create/", {
+                
+                const categoryPayload = {
                   event_id: newId,
                   name: cat.name,
                   price: !isNaN(catPrice) ? catPrice : 0,
                   max_tickets: !isNaN(catMaxTickets) ? catMaxTickets : null,
-                });
+                };
+                
+                // Include description if provided
+                if (cat.description?.trim()) {
+                  categoryPayload.description = cat.description.trim();
+                }
+                
+                return api.post("/tickets/categories/create/", categoryPayload);
               })
             );
           } catch (catErr) {
@@ -706,6 +723,9 @@ export default function CreateEvent() {
                     <span className="text-xs text-gray-500 group-hover:text-rose-400 font-medium">
                       Click to upload cover image
                     </span>
+                    <span className="text-[10px] text-gray-600 mt-1">
+                      PNG, JPG up to 5MB
+                    </span>
                   </div>
                 </div>
                 {preview && (
@@ -824,6 +844,24 @@ export default function CreateEvent() {
                               }
                               placeholder="Unlimited"
                               className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500 transition-all"
+                            />
+                          </div>
+                          <div className="space-y-1.5 sm:col-span-2">
+                            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider flex justify-between">
+                              <span>Description</span>
+                              <span className={`${(cat.description?.length || 0) > 140 ? 'text-rose-500' : 'text-gray-600'}`}>
+                                {cat.description?.length || 0}/150
+                              </span>
+                            </label>
+                            <textarea
+                              value={cat.description || ""}
+                              onChange={(e) =>
+                                updateCategory(idx, "description", e.target.value)
+                              }
+                              maxLength={150}
+                              placeholder="Describe what this ticket includes (e.g., Front row seats, Backstage access)"
+                              rows={2}
+                              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500 transition-all resize-none"
                             />
                           </div>
                         </div>

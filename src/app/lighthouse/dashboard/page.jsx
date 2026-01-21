@@ -7,11 +7,10 @@ import {
   Building2, 
   Calendar, 
   DollarSign, 
-  TrendingUp,
+  ArrowUpRight,
   ArrowRight,
-  Clock,
-  CheckCircle,
-  XCircle,
+  Loader2,
+  Banknote,
   AlertCircle
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
@@ -20,59 +19,47 @@ import { adminService } from "../../../lib/admin";
 import { toast } from "react-hot-toast";
 import { cn, formatCurrency } from "@/lib/utils";
 
-function StatCard({ title, value, icon: Icon, subtitle, trend }) {
-  return (
-    <Card className="relative overflow-hidden border-border/40 bg-card/50 backdrop-blur-sm">
-      <CardContent className="p-5">
-        <div className="flex items-start justify-between">
-          <div className="space-y-2">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-              {title}
-            </p>
-            <p className="text-2xl font-semibold tracking-tight text-foreground">{value}</p>
-            {subtitle && (
-              <p className="text-xs text-muted-foreground">{subtitle}</p>
-            )}
-          </div>
-          <div className="h-10 w-10 rounded-lg bg-muted/50 flex items-center justify-center">
-            <Icon className="h-5 w-5 text-muted-foreground" />
-          </div>
-        </div>
-        {trend && (
-          <div className="flex items-center gap-1 mt-3 pt-3 border-t border-border/40">
-            <TrendingUp className="w-3 h-3 text-emerald-500" />
-            <span className="text-xs text-emerald-500 font-medium">{trend}</span>
-          </div>
+function MetricCard({ title, value, icon: Icon, description, highlight = false, href = null }) {
+  const content = (
+    <Card className={`shadow-sm ${highlight ? 'border-amber-500/50 bg-amber-50/50 dark:bg-amber-950/20' : ''}`}>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 p-4">
+        <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+          {title}
+        </CardTitle>
+        <Icon className={`h-4 w-4 ${highlight ? 'text-amber-500' : 'text-muted-foreground/70'}`} />
+      </CardHeader>
+      <CardContent className="p-4 pt-0">
+        <div className={`text-xl font-bold ${highlight ? 'text-amber-600' : ''}`}>{value}</div>
+        {description && (
+          <p className="text-[10px] text-muted-foreground mt-1">
+            {description}
+          </p>
         )}
       </CardContent>
     </Card>
   );
+
+  if (href) {
+    return <Link href={href}>{content}</Link>;
+  }
+  return content;
 }
 
 function StatusBadge({ status }) {
   const config = {
-    verified: { 
-      icon: CheckCircle, 
-      className: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" 
-    },
-    denied: { 
-      icon: XCircle, 
-      className: "bg-red-500/10 text-red-600 border-red-500/20" 
-    },
-    pending: { 
-      icon: AlertCircle, 
-      className: "bg-amber-500/10 text-amber-600 border-amber-500/20" 
-    },
+    active: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+    approved: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+    completed: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+    pending: "bg-amber-500/10 text-amber-600 border-amber-500/20",
+    cancelled: "bg-red-500/10 text-red-600 border-red-500/20",
+    rejected: "bg-red-500/10 text-red-600 border-red-500/20",
   };
-  
-  const { icon: StatusIcon, className } = config[status] || config.pending;
   
   return (
     <span className={cn(
-      "inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium uppercase tracking-wide border",
-      className
+      "inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide border",
+      config[status] || config.pending
     )}>
-      <StatusIcon className="w-3 h-3" />
       {status}
     </span>
   );
@@ -110,31 +97,48 @@ export default function AdminDashboardPage() {
   const pendingEvents = recentEvents.filter(e => e.status === 'pending').length;
 
   return (
-    <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard 
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight">Dashboard</h2>
+          <p className="text-sm text-muted-foreground">
+            Overview of platform activity and performance
+          </p>
+        </div>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-5">
+        <MetricCard 
           title="Total Users" 
           value={(stats?.total_students || 0) + (stats?.total_organisers || 0)} 
           icon={Users}
           subtitle={`${stats?.total_students || 0} students · ${stats?.total_organisers || 0} organizers`}
         />
-        <StatCard 
+        <MetricCard 
           title="Total Events" 
           value={stats?.total_events || 0} 
           icon={Calendar}
           subtitle="Events on platform"
         />
-        <StatCard 
+        <MetricCard 
           title="Total Revenue" 
           value={formatCurrency(stats?.total_revenue || 0)} 
           icon={DollarSign}
           subtitle="Platform earnings"
         />
-        <StatCard 
+        <MetricCard 
           title="Organizers" 
           value={stats?.total_organisers || 0} 
           icon={Building2}
-          subtitle="Registered organizations"
+          description="Registered organizations"
+        />
+        <MetricCard 
+          title="Pending Payouts" 
+          value={stats?.pending_payout_requests || 0} 
+          icon={Banknote}
+          description="Awaiting review"
+          highlight={(stats?.pending_payout_requests || 0) > 0}
+          href="/lighthouse/payout-requests"
         />
       </div>
 
@@ -218,15 +222,13 @@ export default function AdminDashboardPage() {
                 </div>
                 <ArrowRight className="w-4 h-4 text-muted-foreground" />
               </Link>
-              <Link 
-                href="/lighthouse/withdrawals?status=pending" 
-                className="flex items-center justify-between p-3 rounded-lg border border-border/40 hover:bg-muted/50 transition-colors"
-              >
-                <div className="flex items-center gap-2.5">
-                  <DollarSign className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">Process Payouts</span>
-                </div>
-                <ArrowRight className="w-4 h-4 text-muted-foreground" />
+              <Link href="/lighthouse/payout-requests" className={`flex items-center justify-center gap-2 p-2 border rounded-md hover:bg-muted transition-colors text-xs font-medium ${(stats?.pending_payout_requests || 0) > 0 ? 'border-amber-500/50 bg-amber-50/50 text-amber-700' : ''}`}>
+                <Banknote className="w-3 h-3" />
+                Payouts {(stats?.pending_payout_requests || 0) > 0 && `(${stats.pending_payout_requests})`}
+              </Link>
+              <Link href="/lighthouse/revenue" className="flex items-center justify-center gap-2 p-2 border rounded-md hover:bg-muted transition-colors text-xs font-medium">
+                <DollarSign className="w-3 h-3" />
+                Revenue
               </Link>
             </div>
           </CardContent>
