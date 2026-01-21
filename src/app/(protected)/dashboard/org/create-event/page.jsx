@@ -137,7 +137,8 @@ export default function CreateEvent() {
   }, [imageFile]);
 
   const handleChange = (key) => (e) => {
-    const value = e.target.type === "checkbox" ? e.target.checked : e.target.value;
+    const value =
+      e.target.type === "checkbox" ? e.target.checked : e.target.value;
     setForm((s) => ({ ...s, [key]: value }));
     setErrors((p) => ({ ...p, [key]: undefined }));
   };
@@ -145,7 +146,7 @@ export default function CreateEvent() {
   // const handleImage = (e) => {
   //   const file = e.target.files?.[0];
   //   console.log("File selected:", file);
-    
+
   //   if (!file) {
   //     console.log("No file selected");
   //     setImageFile(null);
@@ -173,7 +174,6 @@ export default function CreateEvent() {
   //   setImageFile(file);
   // };
 
-
   const handleImage = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -198,7 +198,6 @@ export default function CreateEvent() {
         price: "",
         description: "",
         max_tickets: "",
-        max_quantity_per_booking: "",
       },
     ]);
   };
@@ -267,8 +266,6 @@ export default function CreateEvent() {
     setCategories([]);
   };
 
-
-
   const submit = async (ev) => {
     ev.preventDefault();
     if (!validate()) {
@@ -278,7 +275,7 @@ export default function CreateEvent() {
 
     // Check if PIN is set from database
     if (!organization?.has_pin) {
-      toast.error('Please set up your PIN first from the dashboard');
+      toast.error("Please set up your PIN first from the dashboard");
       return;
     }
 
@@ -288,7 +285,7 @@ export default function CreateEvent() {
   };
 
   const executeCreateEvent = async () => {
-    setLoading(true);
+    setLoading(true); 
     setPendingSubmit(false);
 
     try {
@@ -314,10 +311,7 @@ export default function CreateEvent() {
       // Parse price as number (avoid toFixed to prevent rounding issues)
       if (form.pricing_type === "paid") {
         const priceVal = parseFloat(String(form.price).replace(/,/g, ""));
-        formData.append(
-          "price",
-          !isNaN(priceVal) ? String(priceVal) : "0"
-        );
+        formData.append("price", !isNaN(priceVal) ? String(priceVal) : "0");
       } else {
         formData.append("price", "0");
       }
@@ -338,7 +332,6 @@ export default function CreateEvent() {
 
       // IMPORTANT: don't set Content-Type for FormData; the browser will add the correct boundary.
       const res = await api.post("/event/", formData);
-
 
       if (res && res.status >= 200 && res.status < 300) {
         const newId = res.data.event_id || res.data.id;
@@ -366,12 +359,6 @@ export default function CreateEvent() {
                 const catMaxTickets = cat.max_tickets
                   ? parseInt(String(cat.max_tickets).replace(/,/g, ""), 10)
                   : null;
-                const catMaxPerBooking = cat.max_quantity_per_booking
-                  ? parseInt(
-                      String(cat.max_quantity_per_booking).replace(/,/g, ""),
-                      10
-                    )
-                  : null;
 
                 return api.post("/tickets/categories/create/", {
                   event_id: newId,
@@ -379,9 +366,6 @@ export default function CreateEvent() {
                   price: !isNaN(catPrice) ? catPrice : 0,
                   description: cat.description,
                   max_tickets: !isNaN(catMaxTickets) ? catMaxTickets : null,
-                  max_quantity_per_booking: !isNaN(catMaxPerBooking)
-                    ? catMaxPerBooking
-                    : null,
                 });
               })
             );
@@ -395,7 +379,7 @@ export default function CreateEvent() {
 
         setCreatedEventId(newId);
         setShowSuccessModal(true);
-        
+
         // resetForm();
       } else {
         toast.error(`Unexpected server response: ${res?.status}`);
@@ -582,7 +566,6 @@ export default function CreateEvent() {
                   placeholder="Unlimited"
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-rose-500 transition-all"
                 />
-
               </div>
 
               <div className="space-y-1.5">
@@ -604,7 +587,10 @@ export default function CreateEvent() {
                     placeholder="0.00"
                     disabled={form.pricing_type === "free"}
                     className={`w-full pl-8 bg-white/5 border ${errors.price ? "border-rose-500/50 focus:border-rose-500" : "border-white/10 focus:border-rose-500"} rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-rose-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed appearance-none`}
-                    style={{ WebkitAppearance: "none", MozAppearance: "textfield" }}
+                    style={{
+                      WebkitAppearance: "none",
+                      MozAppearance: "textfield",
+                    }}
                   />
                 </div>
                 {errors.price && (
@@ -629,7 +615,10 @@ export default function CreateEvent() {
                     onChange={handleChange("max_quantity_per_booking")}
                     placeholder="Default (3)"
                     className="w-full pl-10 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-rose-500 transition-all appearance-none"
-                    style={{ WebkitAppearance: "none", MozAppearance: "textfield" }}
+                    style={{
+                      WebkitAppearance: "none",
+                      MozAppearance: "textfield",
+                    }}
                   />
                   <Ticket className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                 </div>
@@ -644,7 +633,12 @@ export default function CreateEvent() {
             <div className="space-y-4 pt-2">
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                  Cover Image {imageFile && <span className="text-rose-500">• Selected: {imageFile.name}</span>}
+                  Cover Image{" "}
+                  {imageFile && (
+                    <span className="text-rose-500">
+                      • Selected: {imageFile.name}
+                    </span>
+                  )}
                 </label>
                 <div className="relative group cursor-pointer border-2 border-dashed border-white/10 rounded-2xl hover:border-rose-500/50 hover:bg-rose-500/5 transition-all h-32 flex flex-col items-center justify-center text-center">
                   <input
@@ -710,85 +704,70 @@ export default function CreateEvent() {
                 ) : (
                   <div className="space-y-4">
                     {categories.map((cat, idx) => (
-                      <div
-                        key={idx}
-                        className="relative bg-white/5 border border-white/10 rounded-xl p-4 space-y-4 group"
-                      >
-                        <button
-                          type="button"
-                          onClick={() => removeCategory(idx)}
-                          className="absolute top-3 right-3 p-1.5 bg-rose-600/10 hover:bg-rose-600 text-rose-500 hover:text-white rounded-lg transition-all"
+                      <>
+                        <div
+                          key={idx}
+                          className="relative bg-white/5 border border-white/10 rounded-xl p-4 space-y-4 group"
                         >
-                          <X className="w-3.5 h-3.5" />
-                        </button>
+                          <button
+                            type="button"
+                            onClick={() => removeCategory(idx)}
+                            className="absolute top-3 right-3 p-1.5 bg-rose-600/10 hover:bg-rose-600 text-rose-500 hover:text-white rounded-lg transition-all"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                          <div className="space-y-1.5">
-                            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
-                              Category Name{" "}
-                              <span className="text-rose-500">*</span>
-                            </label>
-                            <input
-                              value={cat.name}
-                              onChange={(e) =>
-                                updateCategory(idx, "name", e.target.value)
-                              }
-                              placeholder="e.g. VIP, Early Bird"
-                              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500 transition-all"
-                            />
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                                Category Name{" "}
+                                <span className="text-rose-500">*</span>
+                              </label>
+                              <input
+                                value={cat.name}
+                                onChange={(e) =>
+                                  updateCategory(idx, "name", e.target.value)
+                                }
+                                placeholder="e.g. VIP, Early Bird"
+                                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500 transition-all"
+                              />
+                            </div>
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                                Price (₦){" "}
+                                <span className="text-rose-500">*</span>
+                              </label>
+                              <input
+                                type="number"
+                                value={cat.price}
+                                onChange={(e) =>
+                                  updateCategory(idx, "price", e.target.value)
+                                }
+                                placeholder="0.00"
+                                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500 transition-all"
+                              />
+                            </div>
                           </div>
-                          <div className="space-y-1.5">
-                            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
-                              Price (₦) <span className="text-rose-500">*</span>
-                            </label>
-                            <input
-                              type="number"
-                              value={cat.price}
-                              onChange={(e) =>
-                                updateCategory(idx, "price", e.target.value)
-                              }
-                              placeholder="0.00"
-                              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500 transition-all"
-                            />
-                          </div>
-                        </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div className="space-y-1.5">
-                            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
-                              Max Tickets
-                            </label>
-                            <input
-                              type="number"
-                              value={cat.max_tickets}
-                              onChange={(e) =>
-                                updateCategory(
-                                  idx,
-                                  "max_tickets",
-                                  e.target.value
-                                )
-                              }
-                              placeholder="Unlimited"
-                              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500 transition-all"
-                            />
-                          </div>
-                          <div className="space-y-1.5">
-                            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
-                              Tickets Per Booking
-                            </label>
-                            <input
-                              type="number"
-                              value={cat.max_quantity_per_booking}
-                              onChange={(e) =>
-                                updateCategory(
-                                  idx,
-                                  "max_quantity_per_booking",
-                                  e.target.value
-                                )
-                              }
-                              placeholder="No Limit"
-                              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500 transition-all"
-                            />
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="space-y-1.5">
+                              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                                Max Tickets
+                              </label>
+                              <input
+                                type="number"
+                                value={cat.max_tickets}
+                                onChange={(e) =>
+                                  updateCategory(
+                                    idx,
+                                    "max_tickets",
+                                    e.target.value
+                                  )
+                                }
+                                placeholder="Unlimited"
+                                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500 transition-all"
+                              />
+                            </div>
                           </div>
                         </div>
 
@@ -805,7 +784,7 @@ export default function CreateEvent() {
                             className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500 transition-all h-16 resize-none"
                           />
                         </div>
-                      </div>
+                      </>
                     ))}
                   </div>
                 )}
@@ -956,9 +935,13 @@ export default function CreateEvent() {
               <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mb-2">
                 <CheckCircle2 className="w-16 h-16 text-emerald-500 mb-4" />
               </div>
-              <h2 className="text-2xl font-bold text-white">Event Created & Pending</h2>
+              <h2 className="text-2xl font-bold text-white">
+                Event Created & Pending
+              </h2>
               <p className="text-gray-400 text-center max-w-md">
-                Your event has been successfully created and is currently pending approval. An email will be delivered to you once your event is approved and is live.
+                Your event has been successfully created and is currently
+                pending approval. An email will be delivered to you once your
+                event is approved and is live.
               </p>
             </div>
 
