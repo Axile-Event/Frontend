@@ -13,6 +13,7 @@ import {
   CheckCircle2, 
   Clock, 
   Edit, 
+  Edit2,
   MapPin, 
   Users,
   CreditCard,
@@ -669,12 +670,13 @@ export default function EventDetailsPage() {
         </div>
 
         <div className="flex flex-wrap gap-3 w-full lg:w-auto">
-          {/* <button
+          <button
             onClick={() => router.push(`/dashboard/org/edit-event/${event.event_id ?? event.id}`)}
-            className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-6 py-3.5 rounded-2xl bg-white text-black font-bold hover:bg-gray-200 transition-all active:scale-95 text-sm"
+            className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold transition-all active:scale-95 text-sm shadow-lg shadow-rose-600/20"
+            title="Edit event details"
           >
-            <Edit className="w-4 h-4" /> Edit Event
-          </button> */}
+            <Edit2 className="w-4 h-4" /> Edit Event
+          </button>
           <button
             onClick={event.status === 'verified' ? () => setShowBookModal(true) : null}
             disabled={event.status !== 'verified'}
@@ -794,6 +796,15 @@ export default function EventDetailsPage() {
                       </div>
                     </div>
                   ))}
+                </div>
+                <div className="pt-4 border-t border-white/5">
+                  <button
+                    onClick={() => router.push(`/dashboard/org/my-event/${event.event_id ?? event.id}/tickets`)}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/30 hover:border-rose-500/50 text-rose-400 hover:text-rose-300 font-bold text-xs md:text-sm transition-all"
+                    title="Manage ticket categories"
+                  >
+                    <Edit2 className="w-3.5 h-3.5" /> Manage Categories
+                  </button>
                 </div>
               </div>
             )

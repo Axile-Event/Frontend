@@ -606,7 +606,7 @@ export default function Overview() {
                   </div>
 
                   <div className="flex items-center justify-between pt-4 border-t border-white/5">
-                     <div className="flex gap-4">
+                     <div className="flex flex-col gap-3 flex-1">
                         {event.pricing_type !== 'free' && (
                           <div>
                              <p className="text-rose-500 font-bold text-sm">₦{(event.ticket_stats?.total_revenue || 0).toLocaleString()}</p>
@@ -617,8 +617,26 @@ export default function Overview() {
                            <p className="text-blue-500 font-bold text-sm">{event.ticket_stats?.confirmed_tickets || 0}</p>
                            <p className="text-[10px] text-gray-500 font-bold">Sold</p>
                         </div>
+                        {/* Platform Fees */}
+                        {(event.platform_fee_percentage !== null || event.platform_fee_fixed !== null) && (
+                          <div className="pt-2 border-t border-white/5">
+                            <p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-1">Platform Fees</p>
+                            <div className="space-y-1">
+                              {event.platform_fee_percentage !== null && (
+                                <p className="text-[10px] text-amber-400">
+                                  <span className="text-gray-500">Percentage:</span> {event.platform_fee_percentage}%
+                                </p>
+                              )}
+                              {event.platform_fee_fixed !== null && (
+                                <p className="text-[10px] text-amber-400">
+                                  <span className="text-gray-500">Fixed:</span> ₦{parseFloat(event.platform_fee_fixed).toLocaleString()}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        )}
                      </div>
-                     <ChevronRight className="w-5 h-5 text-gray-700 group-hover:text-rose-500 transition-colors" />
+                     <ChevronRight className="w-5 h-5 text-gray-700 group-hover:text-rose-500 transition-colors ml-2 flex-shrink-0" />
                   </div>
                 </div>
               </div>

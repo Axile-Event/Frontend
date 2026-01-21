@@ -150,8 +150,9 @@ export default function QrScanner() {
       // 1. If we should be scanning but haven't started yet
       if (isScanning && activeTab === "scanner" && !scannerRef.current) {
         // Wait for DOM
-        await new Promise(r => setTimeout(r, 150));
-        if (!mounted) return;
+        await new Promise(r => setTimeout(r, 100)); 
+         const reader = document.getElementById(regionId);
+         if (!reader) return;
 
         // Check if element exists
         const element = document.getElementById(regionId);
@@ -184,6 +185,7 @@ export default function QrScanner() {
             }
           );
           console.log("✓ Camera started successfully and displaying");
+
         } catch (err) {
           console.error("❌ Html5Qrcode initialization failed:", err);
           if (err?.name === "NotAllowedError" || err?.name === "PermissionDeniedError") {
