@@ -1,9 +1,5 @@
-import Loading from "@/components/ui/Loading";
+import { OrganizerDashboardSkeleton } from "@/components/skeletons";
 
 export default function DashboardLoading() {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <Loading />
-    </div>
-  );
+  return <OrganizerDashboardSkeleton />;
 }

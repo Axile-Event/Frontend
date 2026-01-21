@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import { ChevronLeft, Save, Loader2 } from "lucide-react";
 import Loading from "@/components/ui/Loading";
 import { Skeleton } from "@/components/ui/skeleton";
+import DateTimePicker from "@/components/ui/DateTimePicker";
 
 export default function EditEventPage() {
   const router = useRouter();
@@ -24,8 +25,6 @@ export default function EditEventPage() {
     date: "",
     event_type: "",
     pricing_type: "",
-    price: "",
-    capacity: "",
   });
   const [imageFile, setImageFile] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -64,8 +63,6 @@ export default function EditEventPage() {
             date: formattedDate,
             event_type: eventData.event_type || "",
             pricing_type: eventData.pricing_type || "",
-            price: eventData.price || "",
-            capacity: eventData.capacity || "",
           });
 
           if (eventData.image) {
@@ -123,16 +120,6 @@ export default function EditEventPage() {
       if (form.date) {
         const isoDate = new Date(form.date).toISOString();
         formData.append("date", isoDate);
-      }
-
-      if (form.pricing_type === "paid" && form.price) {
-        formData.append("price", parseFloat(form.price).toFixed(2));
-      } else {
-        formData.append("price", "0.00");
-      }
-
-      if (form.capacity) {
-        formData.append("capacity", parseInt(form.capacity, 10));
       }
 
       // Append new image if selected
@@ -286,12 +273,11 @@ export default function EditEventPage() {
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
                   Date & Time <span className="text-rose-500">*</span>
                 </label>
-                <input
-                  type="datetime-local"
-                  value={form.date}
-                  onChange={handleChange("date")}
-                  required
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-rose-500 transition-all [scheme:dark]"
+                <DateTimePicker
+                  selected={form.date}
+                  onChange={(value) => setForm(prev => ({ ...prev, date: value }))}
+                  placeholder="Select event date and time"
+                  minDate={null}
                 />
               </div>
             </div>
@@ -308,19 +294,6 @@ export default function EditEventPage() {
                   required
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-rose-500 transition-all"
                  />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                  Capacity
-                </label>
-                <input
-                  type="number"
-                  value={form.capacity}
-                  onChange={handleChange("capacity")}
-                  min="1"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-rose-500 transition-all"
-                />
               </div>
             </div>
           </div>
@@ -359,22 +332,9 @@ export default function EditEventPage() {
               </div>
             </div>
 
-            {form.pricing_type === "paid" && (
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                  Price (₦) <span className="text-rose-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  value={form.price}
-                  onChange={handleChange("price")}
-                  min="0"
-                  step="0.01"
-                  required
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-rose-500 transition-all"
-                />
-              </div>
-            )}
+            <p className="text-xs text-gray-500">
+              Ticket prices and capacity are now managed via ticket categories.
+            </p>
           </div>
 
           {/* Event Image */}

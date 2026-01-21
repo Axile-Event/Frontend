@@ -64,9 +64,9 @@ const ResetPinContent = () => {
 
       toast.success(res.data.Message || res.data.message || "PIN reset successfully!", { id: toastId });
       
-      // Redirect back to dashboard
+      // Redirect back to organizer dashboard
       setTimeout(() => {
-        router.push("/dashboard");
+        router.push("/dashboard/org");
       }, 1500);
     } catch (err) {
       const errorMsg =
@@ -162,7 +162,7 @@ const ResetPinContent = () => {
           {/* Back to dashboard */}
           <div className="text-center mt-4">
             <Link
-              href="/dashboard"
+              href="/dashboard/org"
               className="text-gray-500 hover:text-gray-400 text-xs flex items-center justify-center gap-1.5 transition-colors"
             >
               <ArrowLeft className="h-3.5 w-3.5" />

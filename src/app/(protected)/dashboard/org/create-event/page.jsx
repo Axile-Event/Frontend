@@ -23,8 +23,8 @@ import {
   Plus,
   Edit2,
   Zap,
-  Users,
 } from "lucide-react";
+import DateTimePicker from "@/components/ui/DateTimePicker";
 
 const FALLBACK_EVENT_TYPES = [
   { value: "conference", label: "Conference" },
@@ -55,8 +55,6 @@ export default function CreateEvent() {
     location: "",
     date: "",
     capacity: "",
-    price: "",
-    max_quantity_per_booking: "",
   });
 
   const [categories, setCategories] = useState([]);
@@ -137,8 +135,7 @@ export default function CreateEvent() {
   }, [imageFile]);
 
   const handleChange = (key) => (e) => {
-    const value =
-      e.target.type === "checkbox" ? e.target.checked : e.target.value;
+    const value = e.target.type === "checkbox" ? e.target.checked : e.target.value;
     setForm((s) => ({ ...s, [key]: value }));
     setErrors((p) => ({ ...p, [key]: undefined }));
   };
@@ -146,7 +143,7 @@ export default function CreateEvent() {
   // const handleImage = (e) => {
   //   const file = e.target.files?.[0];
   //   console.log("File selected:", file);
-
+    
   //   if (!file) {
   //     console.log("No file selected");
   //     setImageFile(null);
@@ -174,6 +171,7 @@ export default function CreateEvent() {
   //   setImageFile(file);
   // };
 
+
   const handleImage = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -196,7 +194,6 @@ export default function CreateEvent() {
       {
         name: "",
         price: "",
-        description: "",
         max_tickets: "",
       },
     ]);
@@ -212,6 +209,28 @@ export default function CreateEvent() {
     setCategories(newCats);
   };
 
+  // Format number with commas for display
+  const formatPriceWithCommas = (value) => {
+    // Remove non-digit characters except decimal point
+    const cleaned = String(value).replace(/[^\d.]/g, "");
+    // Split by decimal point to handle decimals separately
+    const parts = cleaned.split(".");
+    // Format the integer part with commas
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+    // Rejoin with decimal if exists
+    return parts.length > 1 ? `${parts[0]}.${parts[1]}` : parts[0];
+  };
+
+  // Handle price input change with comma formatting
+  const handlePriceChange = (index, rawValue) => {
+    // Remove commas to get raw number for storage
+    const numericValue = rawValue.replace(/,/g, "");
+    // Only allow digits and one decimal point
+    if (/^\d*\.?\d*$/.test(numericValue)) {
+      updateCategory(index, "price", numericValue);
+    }
+  };
+
   const validate = () => {
     const e = {};
     if (!form.name.trim()) e.name = "Name is required";
@@ -221,28 +240,38 @@ export default function CreateEvent() {
     if (!form.event_type) e.event_type = "Event type is required";
     if (!form.location.trim()) e.location = "Location is required";
     if (!form.date) e.date = "Date & time is required";
-    if (form.pricing_type === "paid") {
-      if (!form.price || Number(form.price) <= 0)
-        e.price = "Price must be greater than 0";
+
+    // New behavior requested:
+    // - Free events MUST have a capacity
+    // - Paid events use ticket categories for capacity and pricing
+    if (form.pricing_type === "free") {
+      const capVal = parseInt(String(form.capacity).replace(/,/g, ""), 10);
+      if (!form.capacity || isNaN(capVal) || capVal < 1) {
+        e.capacity = "Capacity is required for free events";
+      }
+    } else {
+      // Paid event: require at least one category with a valid price
+      const nonEmptyCategories = categories.filter((c) => (c?.name || "").trim());
+      if (nonEmptyCategories.length === 0) {
+        e.categories = "At least one ticket category is required for paid events";
+      } else {
+        const invalidCategory = nonEmptyCategories.find((c) => {
+          const rawPrice = String(c?.price ?? "").trim();
+          const parsedPrice = rawPrice === "" ? NaN : Number(rawPrice);
+          return !Number.isFinite(parsedPrice) || parsedPrice <= 0;
+        });
+
+        if (invalidCategory) {
+          e.categories = "Each category must have a price greater than 0";
+        }
+      }
     }
-    if (
-      form.capacity !== "" &&
-      (isNaN(Number(form.capacity)) || Number(form.capacity) < 1)
-    ) {
-      e.capacity = "Capacity must be at least 1";
-    }
+
     // length checks per docs
     if (form.name && form.name.length > 200)
       e.name = "Name must be ≤ 200 characters";
     if (form.location && form.location.length > 200)
       e.location = "Location must be ≤ 200 characters";
-    if (
-      form.max_quantity_per_booking !== "" &&
-      (isNaN(Number(form.max_quantity_per_booking)) ||
-        Number(form.max_quantity_per_booking) < 1)
-    ) {
-      e.max_quantity_per_booking = "Must be at least 1";
-    }
 
     setErrors(e);
     return Object.keys(e).length === 0;
@@ -257,14 +286,14 @@ export default function CreateEvent() {
       location: "",
       date: "",
       capacity: "",
-      price: "",
-      max_quantity_per_booking: "",
     });
     setImageFile(null);
     setPreview(null);
     setErrors({});
     setCategories([]);
   };
+
+
 
   const submit = async (ev) => {
     ev.preventDefault();
@@ -275,7 +304,7 @@ export default function CreateEvent() {
 
     // Check if PIN is set from database
     if (!organization?.has_pin) {
-      toast.error("Please set up your PIN first from the dashboard");
+      toast.error('Please set up your PIN first from the dashboard');
       return;
     }
 
@@ -285,7 +314,7 @@ export default function CreateEvent() {
   };
 
   const executeCreateEvent = async () => {
-    setLoading(true); 
+    setLoading(true);
     setPendingSubmit(false);
 
     try {
@@ -300,38 +329,13 @@ export default function CreateEvent() {
       const isoDate = form.date ? new Date(form.date).toISOString() : "";
       formData.append("date", isoDate);
 
-      // Explicitly parse capacity as integer
-      if (form.capacity !== "" && form.capacity !== null) {
-        const capVal = parseInt(String(form.capacity).replace(/,/g, ""), 10);
-        if (!isNaN(capVal)) {
-          formData.append("capacity", capVal);
-        }
-      }
-
-      // Parse price as number (avoid toFixed to prevent rounding issues)
-      if (form.pricing_type === "paid") {
-        const priceVal = parseFloat(String(form.price).replace(/,/g, ""));
-        formData.append("price", !isNaN(priceVal) ? String(priceVal) : "0");
-      } else {
-        formData.append("price", "0");
-      }
-
       if (imageFile) {
         formData.append("image", imageFile);
       }
 
-      if (
-        form.max_quantity_per_booking !== "" &&
-        form.max_quantity_per_booking !== null
-      ) {
-        formData.append(
-          "max_quantity_per_booking",
-          form.max_quantity_per_booking
-        );
-      }
-
       // IMPORTANT: don't set Content-Type for FormData; the browser will add the correct boundary.
       const res = await api.post("/event/", formData);
+
 
       if (res && res.status >= 200 && res.status < 300) {
         const newId = res.data.event_id || res.data.id;
@@ -346,25 +350,35 @@ export default function CreateEvent() {
           }
         }
 
-        // Create categories if any
-        if (categories.length > 0) {
+        // Create categories (required by migration)
+          const categoriesToCreate =
+            form.pricing_type === "free"
+              ? [
+                  {
+                    name: "General",
+                    price: 0,
+                    max_tickets: form.capacity,
+                  },
+                ]
+              : categories;
+
+          if (categoriesToCreate.length > 0) {
           try {
             await Promise.all(
-              categories.map((cat) => {
-                if (!cat.name || cat.price === "") return Promise.resolve();
+                categoriesToCreate.map((cat) => {
+                  if (!cat.name) return Promise.resolve();
 
-                const catPrice = parseFloat(
-                  String(cat.price).replace(/,/g, "")
-                );
+                const rawPrice = String(cat.price ?? "").trim();
+                const parsedPrice = rawPrice === "" ? 0 : parseFloat(String(cat.price).replace(/,/g, ""));
+                // Round to 2 decimal places to avoid floating-point precision issues
+                const catPrice = Math.round(parsedPrice * 100) / 100;
                 const catMaxTickets = cat.max_tickets
                   ? parseInt(String(cat.max_tickets).replace(/,/g, ""), 10)
                   : null;
-
                 return api.post("/tickets/categories/create/", {
                   event_id: newId,
                   name: cat.name,
                   price: !isNaN(catPrice) ? catPrice : 0,
-                  description: cat.description,
                   max_tickets: !isNaN(catMaxTickets) ? catMaxTickets : null,
                 });
               })
@@ -379,7 +393,7 @@ export default function CreateEvent() {
 
         setCreatedEventId(newId);
         setShowSuccessModal(true);
-
+        
         // resetForm();
       } else {
         toast.error(`Unexpected server response: ${res?.status}`);
@@ -409,7 +423,91 @@ export default function CreateEvent() {
   };
 
   if (configLoading) {
-    return <Loading />;
+    return (
+      <div className="min-h-screen p-4 md:p-8 space-y-10 max-w-7xl mx-auto text-white">
+        {/* Header Skeleton */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <div className="h-7 w-40 bg-white/5 rounded-lg animate-pulse mb-2" />
+            <div className="h-4 w-56 bg-white/5 rounded animate-pulse" />
+          </div>
+          <div className="h-8 w-16 bg-white/5 rounded animate-pulse" />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Form Section Skeleton */}
+          <section className="bg-[#0A0A0A] border border-white/5 rounded-2xl p-6 md:p-8 shadow-xl space-y-6">
+            {/* Event Name */}
+            <div className="space-y-2">
+              <div className="h-3 w-24 bg-white/5 rounded animate-pulse" />
+              <div className="h-12 w-full bg-white/5 rounded-xl animate-pulse" />
+            </div>
+            
+            {/* Description */}
+            <div className="space-y-2">
+              <div className="h-3 w-20 bg-white/5 rounded animate-pulse" />
+              <div className="h-32 w-full bg-white/5 rounded-xl animate-pulse" />
+            </div>
+            
+            {/* Pricing & Type Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <div className="h-3 w-16 bg-white/5 rounded animate-pulse" />
+                <div className="h-12 w-full bg-white/5 rounded-xl animate-pulse" />
+              </div>
+              <div className="space-y-2">
+                <div className="h-3 w-20 bg-white/5 rounded animate-pulse" />
+                <div className="h-12 w-full bg-white/5 rounded-xl animate-pulse" />
+              </div>
+            </div>
+            
+            {/* Location & Date Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <div className="h-3 w-16 bg-white/5 rounded animate-pulse" />
+                <div className="h-12 w-full bg-white/5 rounded-xl animate-pulse" />
+              </div>
+              <div className="space-y-2">
+                <div className="h-3 w-24 bg-white/5 rounded animate-pulse" />
+                <div className="h-12 w-full bg-white/5 rounded-xl animate-pulse" />
+              </div>
+            </div>
+            
+            {/* Image Upload */}
+            <div className="space-y-2">
+              <div className="h-3 w-20 bg-white/5 rounded animate-pulse" />
+              <div className="h-40 w-full bg-white/5 rounded-xl animate-pulse" />
+            </div>
+            
+            {/* Submit Button */}
+            <div className="h-12 w-full bg-white/5 rounded-xl animate-pulse" />
+          </section>
+
+          {/* Preview Section Skeleton */}
+          <section className="bg-[#0A0A0A] border border-white/5 rounded-2xl p-6 md:p-8 shadow-xl space-y-6">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="h-5 w-5 bg-white/5 rounded animate-pulse" />
+              <div className="h-5 w-32 bg-white/5 rounded animate-pulse" />
+            </div>
+            
+            {/* Preview Image */}
+            <div className="h-48 w-full bg-white/5 rounded-xl animate-pulse" />
+            
+            {/* Preview Details */}
+            <div className="space-y-4">
+              <div className="h-6 w-3/4 bg-white/5 rounded animate-pulse" />
+              <div className="h-4 w-full bg-white/5 rounded animate-pulse" />
+              <div className="h-4 w-2/3 bg-white/5 rounded animate-pulse" />
+              
+              <div className="flex gap-4 pt-4">
+                <div className="h-4 w-24 bg-white/5 rounded animate-pulse" />
+                <div className="h-4 w-24 bg-white/5 rounded animate-pulse" />
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -483,11 +581,24 @@ export default function CreateEvent() {
                       key={p.value}
                       type="button"
                       onClick={() =>
-                        setForm((s) => ({
-                          ...s,
-                          pricing_type: p.value,
-                          price: p.value === "free" ? "" : s.price,
-                        }))
+                        {
+                          setForm((s) => ({
+                            ...s,
+                            pricing_type: p.value,
+                            // Capacity is only for free events
+                            capacity: p.value === "paid" ? "" : s.capacity,
+                          }));
+                          setErrors((prev) => ({
+                            ...prev,
+                            pricing_type: undefined,
+                            capacity: undefined,
+                            categories: undefined,
+                          }));
+                          if (p.value === "free") {
+                            // Simplify free event flow: capacity-driven single category
+                            setCategories([]);
+                          }
+                        }
                       }
                       className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${form.pricing_type === p.value ? "bg-rose-600 text-white shadow-lg" : "text-gray-400 hover:text-white"}`}
                     >
@@ -538,11 +649,11 @@ export default function CreateEvent() {
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
                   Date & Time <span className="text-rose-500">*</span>
                 </label>
-                <input
-                  type="datetime-local"
-                  value={form.date}
-                  onChange={handleChange("date")}
-                  className={`w-full bg-white/5 border ${errors.date ? "border-rose-500/50 focus:border-rose-500" : "border-white/10 focus:border-rose-500"} rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-rose-500 transition-all [scheme:dark]`}
+                <DateTimePicker
+                  selected={form.date}
+                  onChange={(value) => setForm(prev => ({ ...prev, date: value }))}
+                  placeholder="Select event date and time"
+                  hasError={!!errors.date}
                 />
                 {errors.date && (
                   <p className="text-[10px] text-rose-500 font-bold">
@@ -552,93 +663,36 @@ export default function CreateEvent() {
               </div>
             </div>
 
-            {/* Capacity and Price Row */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                  Capacity
-                </label>
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  value={form.capacity}
-                  onChange={handleChange("capacity")}
-                  placeholder="Unlimited"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-rose-500 transition-all"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                  Price{" "}
-                  {form.pricing_type === "paid" && (
-                    <span className="text-rose-500">*</span>
-                  )}
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-500">
-                    ₦
-                  </span>
+              {form.pricing_type === "free" && (
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                    Capacity <span className="text-rose-500">*</span>
+                  </label>
                   <input
                     type="text"
-                    inputMode="decimal"
-                    value={form.price}
-                    onChange={handleChange("price")}
-                    placeholder="0.00"
-                    disabled={form.pricing_type === "free"}
-                    className={`w-full pl-8 bg-white/5 border ${errors.price ? "border-rose-500/50 focus:border-rose-500" : "border-white/10 focus:border-rose-500"} rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-rose-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed appearance-none`}
-                    style={{
-                      WebkitAppearance: "none",
-                      MozAppearance: "textfield",
-                    }}
+                    inputMode="numeric"
+                    value={form.capacity}
+                    onChange={handleChange("capacity")}
+                    placeholder="e.g. 100"
+                    className={`w-full bg-white/5 border ${errors.capacity ? "border-rose-500/50 focus:border-rose-500" : "border-white/10 focus:border-rose-500"} rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-rose-500 transition-all`}
                   />
-                </div>
-                {errors.price && (
-                  <p className="text-[10px] text-rose-500 font-bold">
-                    {errors.price}
+                  {errors.capacity && (
+                    <p className="text-[10px] text-rose-500 font-bold">
+                      {errors.capacity}
+                    </p>
+                  )}
+                  <p className="text-[10px] text-gray-500 font-medium">
+                    Free events require a capacity. This becomes the max tickets for the default “General” category.
                   </p>
-                )}
-              </div>
-            </div>
-
-            {/* Max Tickets Per User Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                  Max Tickets Per User
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    min="1"
-                    value={form.max_quantity_per_booking}
-                    onChange={handleChange("max_quantity_per_booking")}
-                    placeholder="Default (3)"
-                    className="w-full pl-10 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:border-rose-500 transition-all appearance-none"
-                    style={{
-                      WebkitAppearance: "none",
-                      MozAppearance: "textfield",
-                    }}
-                  />
-                  <Ticket className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                 </div>
-                {errors.max_quantity_per_booking && (
-                  <p className="text-[10px] text-rose-500 font-bold">
-                    {errors.max_quantity_per_booking}
-                  </p>
-                )}
-              </div>
+              )}
             </div>
 
             <div className="space-y-4 pt-2">
               <div className="space-y-1.5">
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                  Cover Image{" "}
-                  {imageFile && (
-                    <span className="text-rose-500">
-                      • Selected: {imageFile.name}
-                    </span>
-                  )}
+                  Cover Image {imageFile && <span className="text-rose-500">• Selected: {imageFile.name}</span>}
                 </label>
                 <div className="relative group cursor-pointer border-2 border-dashed border-white/10 rounded-2xl hover:border-rose-500/50 hover:bg-rose-500/5 transition-all h-32 flex flex-col items-center justify-center text-center">
                   <input
@@ -676,7 +730,8 @@ export default function CreateEvent() {
               </div>
 
               {/* Ticket Categories Section */}
-              <div className="space-y-4 pt-4 border-t border-white/5">
+              {form.pricing_type === "paid" && (
+                <div className="space-y-4 pt-4 border-t border-white/5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Ticket className="w-4 h-4 text-rose-500" />
@@ -697,98 +752,87 @@ export default function CreateEvent() {
                 {categories.length === 0 ? (
                   <div className="bg-white/5 border border-white/5 rounded-xl p-6 text-center">
                     <p className="text-[10px] text-gray-500 font-medium">
-                      No ticket categories added. The event will use the base
-                      price.
+                      No ticket categories added. Events must have at least one ticket category.
                     </p>
+                    {errors.categories && (
+                      <p className="text-[10px] text-rose-500 font-bold mt-2">
+                        {errors.categories}
+                      </p>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-4">
                     {categories.map((cat, idx) => (
-                      <>
-                        <div
-                          key={idx}
-                          className="relative bg-white/5 border border-white/10 rounded-xl p-4 space-y-4 group"
+                      <div
+                        key={idx}
+                        className="relative bg-white/5 border border-white/10 rounded-xl p-4 space-y-4 group"
+                      >
+                        <button
+                          type="button"
+                          onClick={() => removeCategory(idx)}
+                          className="absolute top-3 right-3 p-1.5 bg-rose-600/10 hover:bg-rose-600 text-rose-500 hover:text-white rounded-lg transition-all"
                         >
-                          <button
-                            type="button"
-                            onClick={() => removeCategory(idx)}
-                            className="absolute top-3 right-3 p-1.5 bg-rose-600/10 hover:bg-rose-600 text-rose-500 hover:text-white rounded-lg transition-all"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </button>
+                          <X className="w-3.5 h-3.5" />
+                        </button>
 
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                            <div className="space-y-1.5">
-                              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
-                                Category Name{" "}
-                                <span className="text-rose-500">*</span>
-                              </label>
-                              <input
-                                value={cat.name}
-                                onChange={(e) =>
-                                  updateCategory(idx, "name", e.target.value)
-                                }
-                                placeholder="e.g. VIP, Early Bird"
-                                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500 transition-all"
-                              />
-                            </div>
-                            <div className="space-y-1.5">
-                              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
-                                Price (₦){" "}
-                                <span className="text-rose-500">*</span>
-                              </label>
-                              <input
-                                type="number"
-                                value={cat.price}
-                                onChange={(e) =>
-                                  updateCategory(idx, "price", e.target.value)
-                                }
-                                placeholder="0.00"
-                                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500 transition-all"
-                              />
-                            </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                              Category Name{" "}
+                              <span className="text-rose-500">*</span>
+                            </label>
+                            <input
+                              value={cat.name}
+                              onChange={(e) =>
+                                updateCategory(idx, "name", e.target.value)
+                              }
+                              placeholder="e.g. VIP, Early Bird"
+                              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500 transition-all"
+                            />
                           </div>
-
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div className="space-y-1.5">
-                              <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
-                                Max Tickets
-                              </label>
-                              <input
-                                type="number"
-                                value={cat.max_tickets}
-                                onChange={(e) =>
-                                  updateCategory(
-                                    idx,
-                                    "max_tickets",
-                                    e.target.value
-                                  )
-                                }
-                                placeholder="Unlimited"
-                                className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500 transition-all"
-                              />
-                            </div>
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                              Price (₦) <span className="text-rose-500">*</span>
+                            </label>
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              value={formatPriceWithCommas(cat.price)}
+                              onChange={(e) =>
+                                handlePriceChange(idx, e.target.value)
+                              }
+                              placeholder="0.00"
+                              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500 transition-all"
+                            />
                           </div>
                         </div>
 
-                        <div className="space-y-1.5">
-                          <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
-                            Description
-                          </label>
-                          <textarea
-                            value={cat.description}
-                            onChange={(e) =>
-                              updateCategory(idx, "description", e.target.value)
-                            }
-                            placeholder="Perks of this category..."
-                            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500 transition-all h-16 resize-none"
-                          />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="space-y-1.5">
+                            <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
+                              Max Tickets
+                            </label>
+                            <input
+                              type="number"
+                              value={cat.max_tickets}
+                              onChange={(e) =>
+                                updateCategory(
+                                  idx,
+                                  "max_tickets",
+                                  e.target.value
+                                )
+                              }
+                              placeholder="Unlimited"
+                              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-rose-500 transition-all"
+                            />
+                          </div>
                         </div>
-                      </>
+                      </div>
                     ))}
                   </div>
                 )}
               </div>
+              )}
             </div>
 
             <button
@@ -880,9 +924,16 @@ export default function CreateEvent() {
                     Price
                   </p>
                   <p className="text-white font-bold text-lg">
-                    {form.pricing_type === "paid" && form.price
-                      ? `₦${form.price}`
-                      : "Free"}
+                    {(() => {
+                      if (form.pricing_type === "free") return "Free";
+                      const prices = categories
+                        .filter((c) => (c?.name || "").trim())
+                        .map((c) => Number(String(c?.price ?? "").trim() || 0))
+                        .filter((n) => Number.isFinite(n) && n >= 0);
+                      if (!prices.length) return "Paid";
+                      const minPrice = Math.min(...prices);
+                      return `From ₦${minPrice.toLocaleString()}`;
+                    })()}
                   </p>
                 </div>
                 <button
@@ -911,7 +962,7 @@ export default function CreateEvent() {
                               {cat.name}
                             </span>
                             <span className="text-[10px] font-black text-rose-500">
-                              ₦{cat.price || "0"}
+                              ₦{formatPriceWithCommas(cat.price) || "0"}
                             </span>
                           </div>
                         )
@@ -935,13 +986,9 @@ export default function CreateEvent() {
               <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mb-2">
                 <CheckCircle2 className="w-16 h-16 text-emerald-500 mb-4" />
               </div>
-              <h2 className="text-2xl font-bold text-white">
-                Event Created & Pending
-              </h2>
+              <h2 className="text-2xl font-bold text-white">Event Created & Pending</h2>
               <p className="text-gray-400 text-center max-w-md">
-                Your event has been successfully created and is currently
-                pending approval. An email will be delivered to you once your
-                event is approved and is live.
+                Your event has been successfully created and is currently pending approval. An email will be delivered to you once your event is approved and is live.
               </p>
             </div>
 

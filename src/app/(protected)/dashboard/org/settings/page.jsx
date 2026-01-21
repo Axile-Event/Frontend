@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Select from '@/components/ui/custom-select';
-import Loading from '@/components/ui/Loading';
+import { ProfileSkeleton } from '@/components/skeletons';
 
 export default function Settings() {
   const router = useRouter();
@@ -74,11 +74,27 @@ export default function Settings() {
   useEffect(() => {
     fetchBankAccount();
     fetchBanks();
+    fetchPinStatus();
   }, []);
 
-  useEffect(() => {
-    setHasPin(hasPinSet());
-  }, []);
+  // Fetch PIN status from API (source of truth)
+  const fetchPinStatus = async () => {
+    try {
+      const res = await api.get('/organizer/profile/');
+      const profile = res.data.Org_profile || res.data;
+      // Use API's has_pin as the source of truth
+      if (profile.has_pin === true) {
+        setHasPin(true);
+      } else {
+        // Fallback to localStorage check
+        setHasPin(hasPinSet());
+      }
+    } catch (error) {
+      console.error('Failed to fetch profile for PIN status:', error);
+      // Fallback to localStorage check
+      setHasPin(hasPinSet());
+    }
+  };
 
 
 
@@ -459,7 +475,7 @@ export default function Settings() {
                </div>
 
                {loadingBank ? (
-                  <Loading />
+                  <ProfileSkeleton />
                ) : (
                  <form onSubmit={handleBankUpdate} className="space-y-5">
                    <div className="bg-[#0A0A0A] border border-white/5 rounded-2xl p-6 shadow-xl space-y-5">

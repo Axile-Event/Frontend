@@ -1,8 +1,22 @@
+"use client";
+
 import Sidebar from "@/components/organizersDashboardComponents/Sidebar"
 import OrganizerHeader from "@/components/OrganizerHeader"
+import { useRoleAuth } from "@/hooks/useRoleAuth"
 import React from 'react'
+import { DashboardLayoutSkeleton, OrganizerDashboardSkeleton } from "@/components/skeletons";
 
 const organizersDashboardLayout = ({ children }) => {
+  const { loading, authorized } = useRoleAuth('organizer');
+
+  if (loading || !authorized) {
+    return (
+      <DashboardLayoutSkeleton>
+        <OrganizerDashboardSkeleton />
+      </DashboardLayoutSkeleton>
+    );
+  }
+
   return (
     <>
       <OrganizerHeader />

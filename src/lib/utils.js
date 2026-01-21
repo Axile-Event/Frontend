@@ -75,8 +75,11 @@ export function getImageUrl(path) {
   // Pattern: /image/upload/... or /video/upload/... or starts with image/upload or video/upload
   if (imagePath.match(/^\/?(?:image|video)\/upload\//)) {
     // Use the Cloudinary cloud name from environment or default
-    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "dyup8vl0j";
-    const cleanPath = imagePath.startsWith("/") ? imagePath.substring(1) : imagePath;
+    const cloudName =
+      process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || "dyup8vl0j";
+    const cleanPath = imagePath.startsWith("/")
+      ? imagePath.substring(1)
+      : imagePath;
     return `https://res.cloudinary.com/${cloudName}/${cleanPath}`;
   }
 
@@ -92,4 +95,42 @@ export function getImageUrl(path) {
   // Ensure we don't have double slashes
   const cleanPath = imagePath.startsWith("/") ? imagePath : `/${imagePath}`;
   return `${baseUrl}${cleanPath}`;
+}
+
+/**
+ * Formats a number as currency with proper comma separators
+ * @param {number|string} value - The value to format
+ * @param {boolean} includeDecimals - Whether to include decimal places (default: true)
+ * @param {string} currency - Currency symbol (default: '₦')
+ * @returns {string} Formatted currency string
+ */
+export function formatCurrency(value, includeDecimals = true, currency = "₦") {
+  const num = typeof value === "string" ? parseFloat(value) : value;
+
+  if (isNaN(num) || num === null || num === undefined) {
+    return `${currency}0`;
+  }
+
+  // Use en-US locale for consistent formatting with commas
+  const formatted = num.toLocaleString("en-US", {
+    minimumFractionDigits: includeDecimals ? 2 : 0,
+    maximumFractionDigits: includeDecimals ? 2 : 0,
+  });
+
+  return `${currency}${formatted}`;
+}
+
+/**
+ * Formats a number with comma separators (no currency symbol)
+ * @param {number|string} value - The value to format
+ * @returns {string} Formatted number string
+ */
+export function formatNumber(value) {
+  const num = typeof value === "string" ? parseFloat(value) : value;
+
+  if (isNaN(num) || num === null || num === undefined) {
+    return "0";
+  }
+
+  return num.toLocaleString("en-NG");
 }

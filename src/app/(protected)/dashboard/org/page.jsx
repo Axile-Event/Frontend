@@ -1,18 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import api from "../../../../lib/axios";
-import { Ticket, Users, Calendar, TrendingUp, DollarSign, Clock, Plus, ChevronRight, ShieldAlert, X, Eye, EyeOff } from "lucide-react";
+import { Ticket, Users, Calendar, TrendingUp, DollarSign, Clock, Plus, ChevronRight, ShieldAlert, X, Eye, EyeOff, MapPin } from "lucide-react";
 import { useRouter } from "next/navigation";
 import useAuthStore from "../../../../store/authStore";
 import { toast } from "react-hot-toast";
 import useOrganizerStore from "../../../../store/orgStore";
-import Loading from "@/components/ui/Loading";
+import { OrganizerDashboardSkeleton } from "@/components/skeletons";
 import OtpPinInput from "@/components/OtpPinInput";
 import { getImageUrl } from "../../../../lib/utils";
-import { hasPinSet } from "@/lib/pinPrompt";
-import { AnimatePresence,motion } from "framer-motion";
-import { Skeleton } from "@/components/ui/skeleton";
+import { AnimatePresence, motion } from "framer-motion";
 
 
 export default function Overview() {
@@ -37,6 +35,9 @@ export default function Overview() {
   const router = useRouter();
   const { user } = useAuthStore();
   const { events, setOrganization, setEvents, lastUpdate, hydrated } = useOrganizerStore();
+  
+  // Track initial lastUpdate to prevent refetch loop on mount
+  const initialLastUpdateRef = useRef(lastUpdate);
 
   useEffect(() => {
     // Wait for orgStore hydration before fetching data
@@ -173,12 +174,12 @@ export default function Overview() {
     if (hasPin) {
       setShowPinReminder(false);
       // Clear any dismiss flag since user has PIN now
-      localStorage.removeItem('radar_pin_reminder_dismissed');
+      localStorage.removeItem('Axile_pin_reminder_dismissed');
       return;
     }
     
     // User doesn't have PIN - check if they dismissed the reminder
-    const dismissed = localStorage.getItem('radar_pin_reminder_dismissed');
+    const dismissed = localStorage.getItem('Axile_pin_reminder_dismissed');
     const dismissedDate = dismissed ? new Date(dismissed) : null;
     const now = new Date();
     
@@ -191,7 +192,7 @@ export default function Overview() {
   }, [organization]);
 
   const handleDismissReminder = () => {
-    localStorage.setItem('radar_pin_reminder_dismissed', new Date().toISOString());
+    localStorage.setItem('Axile_pin_reminder_dismissed', new Date().toISOString());
     setShowPinReminder(false);
   };
 
@@ -245,7 +246,7 @@ export default function Overview() {
           setOrganization(orgData);
           
           // Clear PIN reminder dismiss flag from localStorage
-          localStorage.removeItem('radar_pin_reminder_dismissed');
+          localStorage.removeItem('Axile_pin_reminder_dismissed');
         }
       } catch (profileErr) {
         console.error("Failed to refetch organization profile:", profileErr);
@@ -272,6 +273,17 @@ export default function Overview() {
 
   // Refetch analytics and events summary when events change to update total events count and summary
   useEffect(() => {
+    // Skip refetch on initial mount or if lastUpdate hasn't changed meaningfully
+    // This prevents the infinite loop where fetchOverview -> setEvents -> lastUpdate change -> refetch
+    if (lastUpdate === null || lastUpdate === initialLastUpdateRef.current) {
+      // Update the ref to the current value after initial load
+      initialLastUpdateRef.current = lastUpdate;
+      return;
+    }
+    
+    // Update ref to current value to track subsequent changes
+    initialLastUpdateRef.current = lastUpdate;
+    
     async function refetchData() {
       try {
         const [analyticsRes, eventsRes] = await Promise.allSettled([
@@ -317,62 +329,15 @@ export default function Overview() {
         console.error("Failed to refetch data:", err);
       }
     }
-      console.log("Refetch effect fired", lastUpdate);
+    
+    console.log("Refetch effect fired", lastUpdate);
 
-  // refetch data so that the overview stats are always up to date
+    // refetch data so that the overview stats are always up to date
     refetchData();
   }, [lastUpdate]);
 
   if (loading) {
-    return (
-      <div className="min-h-screen p-4 md:p-8 space-y-10 max-w-7xl mx-auto">
-        {/* Header Skeleton */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div className="space-y-2">
-            <Skeleton className="h-8 w-64 md:w-80" />
-            <Skeleton className="h-4 w-48" />
-          </div>
-          <Skeleton className="h-10 w-40 rounded-xl" />
-        </div>
-
-        {/* Stats Grid Skeleton */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map((i) => (
-             <Skeleton key={i} className="h-32 w-full rounded-2xl bg-[#0A0A0A] border border-white/5" />
-          ))}
-        </div>
-
-        {/* Analytics Section Skeleton */}
-        <Skeleton className="h-48 w-full rounded-2xl bg-[#0A0A0A] border border-white/5" />
-
-        {/* Recent Events Skeleton */}
-        <div className="space-y-4">
-           <div className="flex justify-between items-center">
-             <Skeleton className="h-8 w-40" />
-             <Skeleton className="h-5 w-20" />
-           </div>
-           
-           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-             {[1, 2, 3].map((i) => (
-               <div key={i} className="rounded-2xl overflow-hidden border border-white/5 bg-[#0A0A0A]">
-                  <Skeleton className="h-40 w-full" />
-                  <div className="p-5 space-y-4">
-                     <div className="space-y-2">
-                        <Skeleton className="h-6 w-3/4" />
-                        <Skeleton className="h-4 w-1/2" />
-                     </div>
-                     <Skeleton className="h-px w-full" />
-                     <div className="flex justify-between">
-                        <Skeleton className="h-10 w-20" />
-                        <Skeleton className="h-10 w-20" />
-                     </div>
-                  </div>
-               </div>
-             ))}
-           </div>
-        </div>
-      </div>
-    );
+    return <OrganizerDashboardSkeleton />;
   }
 
   if (!analytics) {
@@ -415,7 +380,7 @@ export default function Overview() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="bg-gradient-to-r from-amber-500/10 to-rose-500/10 border border-amber-500/30 rounded-2xl p-5 md:p-6 relative overflow-hidden"
+            className="bg-linear-to-r from-amber-500/10 to-rose-500/10 border border-amber-500/30 rounded-2xl p-5 md:p-6 relative overflow-hidden"
           >
             <div className="absolute top-0 right-0 w-64 h-64 bg-rose-500/5 rounded-full blur-3xl" />
             <button
@@ -456,7 +421,7 @@ export default function Overview() {
 
       {/* Set PIN Modal */}
       {showSetPinModal && !organization?.has_pin && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setShowSetPinModal(false)} />
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -633,7 +598,7 @@ export default function Overview() {
                       </div>
                       {event.location && (
                         <div className="flex items-center gap-1">
-                          <span className="text-rose-500">📍</span>
+                          <MapPin className="w-3.5 h-3.5" />
                           <span className="truncate max-w-[120px]">{event.location}</span>
                         </div>
                       )}
@@ -642,10 +607,12 @@ export default function Overview() {
 
                   <div className="flex items-center justify-between pt-4 border-t border-white/5">
                      <div className="flex gap-4">
-                        <div>
-                           <p className="text-rose-500 font-bold text-sm">₦{(event.ticket_stats?.total_revenue || 0).toLocaleString()}</p>
-                           <p className="text-[10px] text-gray-500 font-bold">Revenue</p>
-                        </div>
+                        {event.pricing_type !== 'free' && (
+                          <div>
+                             <p className="text-rose-500 font-bold text-sm">₦{(event.ticket_stats?.total_revenue || 0).toLocaleString()}</p>
+                             <p className="text-[10px] text-gray-500 font-bold">Revenue</p>
+                          </div>
+                        )}
                         <div>
                            <p className="text-blue-500 font-bold text-sm">{event.ticket_stats?.confirmed_tickets || 0}</p>
                            <p className="text-[10px] text-gray-500 font-bold">Sold</p>

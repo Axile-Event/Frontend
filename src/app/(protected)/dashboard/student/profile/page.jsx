@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Loader2, Save, User, Mail, Calendar } from "lucide-react";
 import toast from "react-hot-toast";
 
+import { ProfileSkeleton } from "@/components/skeletons";
+
 const StudentProfile = () => {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -74,11 +76,7 @@ const StudentProfile = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <ProfileSkeleton />;
   }
 
   return (
@@ -88,7 +86,7 @@ const StudentProfile = () => {
         <p className="text-muted-foreground">Manage your personal information and account details.</p>
       </div>
 
-      <Card className="border-white/10">
+      <Card className="border-gray-700/60">
         <CardHeader>
           <CardTitle>Personal Information</CardTitle>
           <CardDescription>

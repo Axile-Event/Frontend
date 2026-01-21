@@ -31,28 +31,57 @@ export default function AnalyticsPage() {
     if (!id) return;
     setLoading(true);
     try {
-      const res = await api.get(`/tickets/organizer/${id}/tickets/`);
+      // Use the dedicated analytics endpoint for richer data
+      const res = await api.get(`/analytics/event/${id}/`);
       console.log("Analytics data received:", res.data);
-      setData(res.data);
-    } catch (err) {
-      const msg = err?.response?.data?.detail || err?.response?.data?.message || "Failed to load analytics data";
-      toast.error(msg);
-      console.error("Analytics error:", err);
-      // Set empty data so page still renders
+      
+      // Map the analytics response to our expected data structure
+      const analyticsData = res.data.analytics || res.data;
       setData({
-        event_id: id,
-        event_name: "Unknown Event",
-        tickets: [],
-        count: 0,
+        event_id: analyticsData.event_info?.event_id || id,
+        event_name: analyticsData.event_info?.name || analyticsData.event_info?.event_name || "Unknown Event",
+        event_location: analyticsData.event_info?.location,
+        event_date: analyticsData.event_info?.date,
+        event_status: analyticsData.event_info?.status,
+        pricing_type: analyticsData.event_info?.pricing_type,
+        tickets: analyticsData.tickets_list || [],
+        count: analyticsData.tickets_list?.length || 0,
         statistics: {
-          confirmed: 0,
-          pending: 0,
-          cancelled: 0,
-          used: 0,
-          total_revenue: 0,
-          available_spots: "∞"
+          confirmed: analyticsData.statistics?.total_tickets_sold || 0,
+          pending: analyticsData.statistics?.pending_tickets || 0,
+          cancelled: analyticsData.statistics?.cancelled_tickets || 0,
+          used: analyticsData.statistics?.used_tickets || 0,
+          total_revenue: analyticsData.statistics?.total_revenue || 0,
+          available_spots: analyticsData.statistics?.available_spots ?? "∞"
         }
       });
+    } catch (err) {
+      console.error("Analytics endpoint error, falling back to tickets endpoint:", err);
+      // Fallback to tickets endpoint if analytics endpoint fails
+      try {
+        const fallbackRes = await api.get(`/tickets/organizer/${id}/tickets/`);
+        console.log("Fallback data received:", fallbackRes.data);
+        setData(fallbackRes.data);
+      } catch (fallbackErr) {
+        const msg = fallbackErr?.response?.data?.detail || fallbackErr?.response?.data?.message || "Failed to load analytics data";
+        toast.error(msg);
+        console.error("Analytics error:", fallbackErr);
+        // Set empty data so page still renders
+        setData({
+          event_id: id,
+          event_name: "Unknown Event",
+          tickets: [],
+          count: 0,
+          statistics: {
+            confirmed: 0,
+            pending: 0,
+            cancelled: 0,
+            used: 0,
+            total_revenue: 0,
+            available_spots: "∞"
+          }
+        });
+      }
     } finally {
       setLoading(false);
     }
@@ -74,14 +103,16 @@ export default function AnalyticsPage() {
       return;
     }
 
-    // Create CSV headers
-    const headers = ["Attendee Name", "Email", "Ticket ID", "Quantity", "Status", "Check-in Time", "Purchase Date"];
+    // Create CSV headers - includes category info from analytics endpoint
+    const headers = ["Attendee Name", "Email", "Ticket ID", "Category", "Price", "Quantity", "Status", "Check-in Time", "Purchase Date"];
     
     // Create CSV rows
     const rows = data.tickets.map(ticket => [
       ticket.student_full_name || "N/A",
       ticket.student_email || "N/A",
       ticket.ticket_id || "N/A",
+      ticket.category_name || "General",
+      ticket.total_price || ticket.price_per_ticket || "0",
       ticket.quantity || 0,
       ticket.status || "N/A",
       ticket.checked_in_at ? new Date(ticket.checked_in_at).toLocaleString() : "Not Checked In",
@@ -136,12 +167,16 @@ export default function AnalyticsPage() {
   const confirmedTickets = data.tickets?.filter(t => t.status === 'confirmed').reduce((sum, ticket) => sum + (ticket.quantity || 0), 0) || 0;
   const pendingTickets = data.tickets?.filter(t => t.status === 'pending').reduce((sum, ticket) => sum + (ticket.quantity || 0), 0) || 0;
   const usedTickets = data.tickets?.filter(t => t.status === 'used').reduce((sum, ticket) => sum + (ticket.quantity || 0), 0) || 0;
+  const isPaidEvent = data.pricing_type === "paid";
 
   const stats = [
     { label: "Total Tickets", value: totalTickets, icon: <Ticket className="w-5 h-5 text-rose-500" />, sub: "All Bookings" },
     { label: "Checked In", value: usedTickets, icon: <UserCheck className="w-5 h-5 text-emerald-500" />, sub: "Attended" },
-    { label: "Revenue", value: `₦${data.statistics?.total_revenue?.toLocaleString() || 0}`, icon: <TrendingUp className="w-5 h-5 text-blue-500" />, sub: "Gross Earnings" },
-    { label: "Pending", value: pendingTickets, icon: <CreditCard className="w-5 h-5 text-amber-500" />, sub: "Awaiting Payment" },
+    // Only show revenue for paid events
+    ...(isPaidEvent 
+      ? [{ label: "Revenue", value: `₦${Number(data.statistics?.total_revenue || 0).toLocaleString()}`, icon: <TrendingUp className="w-5 h-5 text-blue-500" />, sub: "Gross Earnings" }]
+      : []),
+    { label: "Pending", value: pendingTickets, icon: <CreditCard className="w-5 h-5 text-amber-500" />, sub: isPaidEvent ? "Awaiting Payment" : "Awaiting Confirmation" },
   ];
 
   return (
@@ -218,6 +253,7 @@ export default function AnalyticsPage() {
                 <tr className="border-b border-white/5 bg-white/2">
                   <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-500">Attendee</th>
                   <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-500">Ticket ID</th>
+                  <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-500">Category</th>
                   <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-500">Quantity</th>
                   <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-500">Status</th>
                   <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-500">Check-in</th>
@@ -241,6 +277,12 @@ export default function AnalyticsPage() {
                       <span className="text-xs font-mono text-gray-400">{t.ticket_id}</span>
                     </td>
                     <td className="px-6 py-5">
+                      <span className="text-xs font-medium text-gray-300">{t.category_name || "General"}</span>
+                      {t.total_price && (
+                        <p className="text-[10px] text-gray-500">₦{parseFloat(t.total_price).toLocaleString()}</p>
+                      )}
+                    </td>
+                    <td className="px-6 py-5">
                       <span className="text-sm font-bold">{t.quantity}</span>
                     </td>
                     <td className="px-6 py-5">
@@ -260,7 +302,7 @@ export default function AnalyticsPage() {
                   </tr>
                 )) : (
                   <tr>
-                    <td colSpan="5" className="px-6 py-20 text-center space-y-3">
+                    <td colSpan="6" className="px-6 py-20 text-center space-y-3">
                       <Users className="w-10 h-10 text-gray-800 mx-auto" />
                       <p className="text-gray-500 font-medium">No attendees found matching your search.</p>
                     </td>

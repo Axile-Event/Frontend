@@ -15,7 +15,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import Loading from '@/components/ui/Loading';
+import { ProfileSkeleton } from '@/components/skeletons';
 import PinPromptModal from '@/components/PinPromptModal';
 import { hasPinSet } from '@/lib/pinPrompt';
 
@@ -88,7 +88,7 @@ export default function ProfilePage() {
   };
 
   if (loadingProfile) {
-    return <Loading />;
+    return <ProfileSkeleton />;
   }
 
   return (

@@ -8,7 +8,7 @@ const Logo = ({ className, iconSize = "h-6 w-6", textSize = "text-xl", showText 
       <div className="flex items-center justify-center">
         <Zap className={cn("fill-current", iconSize)} />
       </div>
-      {showText && <span className={cn("font-bold tracking-tight", textSize)}>Radar</span>}
+      {showText && <span className={cn("font-bold tracking-tight", textSize)}>Axile</span>}
     </div>
   );
 };

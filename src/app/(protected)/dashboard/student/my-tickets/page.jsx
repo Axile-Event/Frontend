@@ -10,6 +10,8 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 
+import { TicketsPageSkeleton } from "@/components/skeletons";
+
 const MyTicketsPage = () => {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -55,11 +57,7 @@ const MyTicketsPage = () => {
   // ... (existing getStatusColor function) ...
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <TicketsPageSkeleton />;
   }
 
   return (

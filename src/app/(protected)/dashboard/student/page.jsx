@@ -7,7 +7,7 @@ import { motion } from "framer-motion";
 import useAuthStore from "@/store/authStore";
 import Link from "next/link";
 import toast from "react-hot-toast";
-import { Skeleton } from "@/components/ui/skeleton";
+import { StudentDashboardSkeleton } from "@/components/skeletons";
 
 const StudentDashboardOverview = () => {
   const { user } = useAuthStore();
@@ -51,41 +51,7 @@ const StudentDashboardOverview = () => {
   }, []);
 
   if (loading) {
-    return (
-      <div className="min-h-screen p-4 md:p-4 space-y-6 md:space-y-8 pt-6 md:pt-10">
-        {/* Header Skeleton */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-          <div className="space-y-2">
-            <Skeleton className="h-8 md:h-10 w-64 md:w-96" />
-            <Skeleton className="h-4 w-48" />
-          </div>
-          <Skeleton className="h-12 w-40 rounded-lg" />
-        </div>
-
-        {/* Content Skeleton */}
-        <div className="bg-[#111] rounded-xl p-6 border border-gray-800/50">
-           <div className="flex items-center justify-between mb-6">
-             <Skeleton className="h-8 w-48" />
-             <Skeleton className="h-5 w-24" />
-           </div>
-           
-           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-             {[1, 2, 3].map((i) => (
-               <div key={i} className="bg-[#1a1a1a] p-5 rounded-xl border border-gray-800 space-y-4">
-                 <div className="space-y-3">
-                   <Skeleton className="h-6 w-3/4" />
-                   <Skeleton className="h-4 w-1/2" />
-                 </div>
-                 <div className="pt-4 border-t border-gray-800 flex justify-between items-center">
-                   <Skeleton className="h-4 w-20" />
-                   <Skeleton className="h-8 w-8 rounded-lg" />
-                 </div>
-               </div>
-             ))}
-           </div>
-        </div>
-      </div>
-    );
+    return <StudentDashboardSkeleton />;
   }
 
   // Calculations

@@ -1,8 +1,22 @@
+"use client";
+
 import Sidebar from '@/components/studentDashboardComponents/Sidebar'
+import { useRoleAuth } from '@/hooks/useRoleAuth'
 import React from 'react'
 import Logo from '@/components/Logo'
+import { DashboardLayoutSkeleton, StudentDashboardSkeleton } from "@/components/skeletons";
 
 const StudentDashboardLayout = ({children}) => {
+  const { loading, authorized } = useRoleAuth('student');
+
+  if (loading || !authorized) {
+    return (
+      <DashboardLayoutSkeleton>
+        <StudentDashboardSkeleton />
+      </DashboardLayoutSkeleton>
+    );
+  }
+
   return (
    <>
     <section className='flex flex-col md:flex-row min-h-screen'>

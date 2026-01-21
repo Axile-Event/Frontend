@@ -37,7 +37,7 @@ export function ModeToggle() {
       </Button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-36 rounded-md border bg-popover p-1 shadow-md z-50">
+        <div className="absolute right-0 mt-2 w-36 rounded-md border bg-popover p-1 shadow-md z-[51]">
           <div className="space-y-1">
             <button
               onClick={() => {

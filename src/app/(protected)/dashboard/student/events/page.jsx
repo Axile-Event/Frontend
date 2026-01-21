@@ -7,6 +7,7 @@ import { Loader2, MapPin, Calendar as CalendarIcon, Search, Clock } from "lucide
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { getImageUrl } from "@/lib/utils";
+import { EventsGridSkeleton } from "@/components/skeletons";
 
 const EventsPage = () => {
   const [events, setEvents] = useState([]);
@@ -74,11 +75,7 @@ const EventsPage = () => {
   const filteredEvents = getFilteredAndSortedEvents();
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <EventsGridSkeleton />;
   }
 
   return (
@@ -147,7 +144,7 @@ const EventsPage = () => {
                   transition={{ duration: 0.3, delay: index * 0.05 }}
                 >
                   <Link href={`/dashboard/student/events/${event.event_id}`}>
-                    <div className="group relative aspect-[4/3] overflow-hidden rounded-xl md:rounded-2xl bg-muted cursor-pointer">
+                    <div className="group relative aspect-4/3 overflow-hidden rounded-xl md:rounded-2xl bg-muted cursor-pointer">
                       {/* Background Image */}
                       {event.event_image ? (
                         <img
@@ -162,7 +159,7 @@ const EventsPage = () => {
                       )}
 
                       {/* Gradient Overlay */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+                      <div className="absolute inset-0 bg-linear-to-t from-black/90 via-black/40 to-transparent" />
 
                       {/* Badges */}
                       <div className="absolute top-3 left-3 flex flex-col gap-2">
@@ -172,7 +169,7 @@ const EventsPage = () => {
                       </div>
 
                       <div className="absolute top-3 right-3">
-                         <div className="px-2 py-1 rounded-lg bg-black/60 backdrop-blur-md text-[10px] font-semibold border border-white/10 text-white">
+                         <div className="px-2 py-1 rounded-lg bg-black/60 backdrop-blur-md text-[10px] font-semibold border border-gray-600/70 text-white">
                            {event.pricing_type === 'free' ? 'Free' : `₦${event.event_price}`}
                          </div>
                       </div>

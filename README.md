@@ -1,8 +1,8 @@
-# Radar - Modern Event Ticketing Platform
+# Axile - Modern Event Ticketing Platform
 
-Radar is a comprehensive event ticketing platform designed to streamline event management and ticket purchasing. Built with modern web technologies, it provides a seamless experience for event organizers, students, and administrators.
+Axile is a comprehensive event ticketing platform designed to streamline event management and ticket purchasing. Built with modern web technologies, it provides a seamless experience for event organizers, students, and administrators.
 
-The PIN module provides functionality for managing Personal Identification Numbers (PINs) for organizers in the Radar system. It handles PIN creation, storage, and recovery operations with secure password hashing.
+The PIN module provides functionality for managing Personal Identification Numbers (PINs) for organizers in the Axile system. It handles PIN creation, storage, and recovery operations with secure password hashing.
 
 - **Framework:** [Next.js 16](https://nextjs.org/) with App Router
 - **Language:** React 19.2
@@ -24,7 +24,7 @@ The PIN module provides functionality for managing Personal Identification Numbe
 
 **Example:**
 ```python
-from radar.PIN.models import Pin
+from Axile.PIN.models import Pin
 
 # Create a new PIN
 pin = Pin.objects.create(
@@ -248,4 +248,4 @@ This project is proprietary and confidential. All rights reserved.
 
 ---
 
-**Built with ❤️ by the Radar Team**
+**Built with ❤️ by the Axile Team**

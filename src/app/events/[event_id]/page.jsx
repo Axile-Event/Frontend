@@ -18,13 +18,13 @@ import { Loader2, MapPin, Calendar, Clock, Ticket, Info, Share2, Copy, Check } f
 import toast from "react-hot-toast";
 import useAuthStore from "@/store/authStore";
 import { getImageUrl } from "@/lib/utils";
-import { Skeleton } from "@/components/ui/skeleton";
+import { EventDetailsSkeleton } from "@/components/skeletons";
 
 const EventDetailsPage = () => {
   const params = useParams();
   const router = useRouter();
   const eventId = decodeURIComponent(params.event_id);
-  const { token } = useAuthStore();
+  const { token, hydrated } = useAuthStore();
 
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -54,13 +54,17 @@ const EventDetailsPage = () => {
         setEvent(response.data);
         
         let cats = [];
-        if (response.data.ticket_categories) {
-           cats = response.data.ticket_categories;
+        if (Array.isArray(response.data.ticket_categories)) {
+          cats = response.data.ticket_categories;
         } else {
            try {
              // Fallback to fetch categories if not present in details response
              const catRes = await api.get(`/tickets/categories/?event_id=${eventId}`);
-             cats = catRes.data.categories || [];
+             if (Array.isArray(catRes.data)) {
+               cats = catRes.data;
+             } else {
+               cats = catRes.data?.categories || [];
+             }
            } catch (err) {
              console.warn("Failed to fetch categories separately", err);
            }
@@ -68,10 +72,12 @@ const EventDetailsPage = () => {
         setCategories(cats);
 
         if (cats.length > 0) {
-          // Priority: Regular (if available) -> First Available -> First (fallback)
-          const regular = cats.find(c => c.name.toLowerCase().includes('regular') && !c.is_sold_out);
-          const firstAvailable = cats.find(c => !c.is_sold_out);
-          setSelectedCategory(regular || firstAvailable || cats[0]);
+          const active = cats.filter((c) => c?.is_active !== false);
+          const regular = active.find(
+            (c) => (c?.name || "").toLowerCase().includes("regular") && !c?.is_sold_out
+          );
+          const firstAvailable = active.find((c) => !c?.is_sold_out);
+          setSelectedCategory(regular || firstAvailable || active[0] || cats[0]);
         }
       } catch (error) {
         console.error("Error fetching event details:", error);
@@ -85,7 +91,23 @@ const EventDetailsPage = () => {
   }, [eventId]);
 
   const handleBookTicket = async () => {
-    if (!token) {
+    // Check Zustand token first (if hydrated), then fallback to localStorage directly
+    // This handles the race condition where Zustand hasn't hydrated yet after signup
+    let isAuthenticated = hydrated ? !!token : false;
+    
+    if (!isAuthenticated && typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('auth-storage');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          isAuthenticated = !!parsed?.state?.token;
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    if (!isAuthenticated) {
       toast.error("Please login to book tickets");
 <<<<<<< HEAD
       // Double encode the eventId so it remains encoded after searchParams decoding
@@ -105,6 +127,12 @@ const EventDetailsPage = () => {
       return;
     }
 
+    // Migration: category_name is REQUIRED for booking
+    if (!selectedCategory?.name) {
+      toast.error("Please select a ticket category");
+      return;
+    }
+
     setBookingLoading(true);
     const toastId = toast.loading("Processing booking...");
 
@@ -112,7 +140,7 @@ const EventDetailsPage = () => {
       const payload = {
         event_id: event?.event_id || event?.id || eventId,
         quantity: parseInt(quantity),
-        category_name: selectedCategory ? selectedCategory.name : undefined
+        category_name: selectedCategory.name,
       };
 
       const response = await api.post("/tickets/book/", payload);
@@ -141,55 +169,7 @@ const EventDetailsPage = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background pb-20">
-        <div className="container mx-auto px-4 pt-24 md:pt-32">
-          <div className="max-w-5xl mx-auto space-y-6 md:space-y-8">
-            {/* Hero Skeleton */}
-            <Skeleton className="w-full h-[200px] md:h-[400px] rounded-xl md:rounded-2xl" />
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-              {/* Main Content Skeleton */}
-              <div className="md:col-span-2 space-y-6">
-                <div className="space-y-4">
-                  <Skeleton className="h-8 md:h-12 w-3/4" />
-                  <div className="flex gap-4">
-                    <Skeleton className="h-4 w-32" />
-                    <Skeleton className="h-4 w-32" />
-                    <Skeleton className="h-4 w-32" />
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <Skeleton className="h-6 w-40" />
-                  <div className="space-y-2">
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-5/6" />
-                    <Skeleton className="h-4 w-4/6" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Sidebar Skeleton */}
-              <div className="md:col-span-1 space-y-6">
-                <Card>
-                  <CardHeader className="p-4 md:p-6 space-y-2">
-                     <Skeleton className="h-6 w-32" />
-                  </CardHeader>
-                  <CardContent className="p-4 md:p-6 pt-0 space-y-4">
-                    <Skeleton className="h-20 w-full rounded-xl" />
-                    <Skeleton className="h-10 w-full" />
-                    <Skeleton className="h-24 w-full" />
-                    <Skeleton className="h-10 w-full" />
-                  </CardContent>
-                </Card>
-                <Skeleton className="h-32 w-full rounded-xl" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <EventDetailsSkeleton />;
   }
 
   if (!event) {
@@ -206,6 +186,16 @@ const EventDetailsPage = () => {
 
   const eventDate = new Date(event.date);
   const isSoldOut = selectedCategory?.is_sold_out;
+
+  const categoryPrices = categories
+    .filter((c) => c?.is_active !== false)
+    .map((c) => parseFloat(String(c?.price ?? "0")))
+    .filter((n) => Number.isFinite(n) && n >= 0);
+  const minCategoryPrice = categoryPrices.length ? Math.min(...categoryPrices) : 0;
+  const displayEventPrice =
+    typeof event?.event_price !== "undefined" && event?.event_price !== null
+      ? Number(event.event_price)
+      : minCategoryPrice;
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -230,7 +220,7 @@ const EventDetailsPage = () => {
                   ? 'bg-green-500 text-white'
                   : 'bg-primary text-primary-foreground'
                 }`}>
-                {event.pricing_type === 'free' ? 'Free' : `₦${event.price}`}
+                {event.pricing_type === 'free' ? 'Free' : `From ₦${displayEventPrice.toLocaleString()}`}
               </span>
             </div>
           </div>
@@ -267,7 +257,7 @@ const EventDetailsPage = () => {
             {/* Booking Card & Share Section */}
             <div className="md:col-span-1">
               <div className="sticky top-24 space-y-6">
-                <Card>
+                <Card className="border-gray-700">
                   <CardHeader className="p-4 md:p-6">
                     <CardTitle className="text-lg md:text-xl">Book Tickets</CardTitle>
                   </CardHeader>
@@ -342,11 +332,9 @@ const EventDetailsPage = () => {
                       <div className="flex justify-between text-xs md:text-sm text-gray-400">
                         <span>Price per ticket</span>
                         <span className="text-white">
-                          {event.pricing_type === 'free' 
-                            ? 'Free' 
-                            : selectedCategory 
-                              ? `₦${(parseFloat(selectedCategory.price) || 0).toLocaleString()}` 
-                              : '₦0'}
+                          {selectedCategory
+                            ? `₦${Number(selectedCategory.price).toLocaleString()}`
+                            : (event.pricing_type === 'free' ? 'Free' : `From ₦${displayEventPrice.toLocaleString()}`)}
                         </span>
                       </div>
                       <div className="flex justify-between font-bold text-base md:text-lg">
@@ -354,9 +342,7 @@ const EventDetailsPage = () => {
                         <span className="text-rose-500">
                           {event.pricing_type === 'free'
                             ? 'Free'
-                            : selectedCategory
-                              ? `₦${((parseFloat(selectedCategory.price) || 0) * quantity).toLocaleString()}`
-                              : '₦0'}
+                            : `₦${(parseFloat(String(selectedCategory?.price ?? displayEventPrice)) * quantity).toLocaleString()}`}
                         </span>
                       </div>
                     </div>
@@ -389,14 +375,14 @@ const EventDetailsPage = () => {
                 </Card>
 
                 {/* Share Section */}
-                <Card className="overflow-hidden">
+                <Card className="overflow-hidden border-gray-700">
                   <CardContent className="p-4 md:p-6">
                     <div className="flex items-center gap-2 mb-4">
                       <Share2 className="h-4 w-4 text-primary" />
                       <h3 className="font-semibold text-sm md:text-base">Share this event</h3>
                     </div>
                     <div className="flex gap-2">
-                      <div className="flex-1 bg-muted px-3 py-2 rounded-md text-xs md:text-sm text-muted-foreground truncate border border-border">
+                      <div className="flex-1 bg-muted px-3 py-2 rounded-md text-xs md:text-sm text-muted-foreground truncate border border-gray-700">
                         {typeof window !== 'undefined' ? `${window.location.origin}/events/${eventId}` : ''}
                       </div>
                       <Button 

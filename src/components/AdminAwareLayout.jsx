@@ -8,6 +8,7 @@ export default function AdminAwareLayout({ children }) {
   const pathname = usePathname();
   const isAdmin = pathname?.startsWith("/lighthouse");
   const isResetPin = pathname === "/reset-pin";
+  const isStudentDashboard = pathname?.startsWith("/dashboard/student");
 
   return (
     <>
@@ -15,7 +16,7 @@ export default function AdminAwareLayout({ children }) {
       <main className="grow">
         {children}
       </main>
-      {!isAdmin && !isResetPin && <Footer />}
+      {!isAdmin && !isResetPin && !isStudentDashboard && <Footer />}
     </>
   );
 }

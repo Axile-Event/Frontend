@@ -91,7 +91,7 @@ export default function AdminLoginPage() {
               <input
                 id="email"
                 type="email"
-                placeholder="admin@radar.com"
+                placeholder="admin@Axile.com"
                 className={`w-full bg-background border rounded-xl py-3.5 pl-12 pr-4 text-foreground transition-all duration-200 
                   ${errors.email ? 'border-destructive focus:border-destructive' : 'border-input hover:border-primary/60 focus:border-primary'}
                   focus:ring-2 focus:ring-primary/20 outline-none placeholder:text-muted-foreground/50`}
