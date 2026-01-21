@@ -35,6 +35,15 @@ const EventDetailsPage = () => {
   const [quantity, setQuantity] = useState(1);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [shareUrl, setShareUrl] = useState("");
+
+  // Set share URL on client side only to avoid hydration mismatch
+  useEffect(() => {
+    if (event) {
+      const eventSlug = generateEventSlug(event.name);
+      setShareUrl(`${window.location.origin}/events/${eventSlug}`);
+    }
+  }, [event]);
 
   const handleCopyLink = () => {
     // Generate slug-based URL for sharing (name only)
@@ -68,10 +77,10 @@ const EventDetailsPage = () => {
             ? allEventsRes.data 
             : (allEventsRes.data.events || []);
           
-          // Normalize the URL slug for comparison
-          const normalizedSlug = slug.toLowerCase().trim();
+          // Normalize the URL slug for comparison (uppercase for initials)
+          const normalizedSlug = slug.toUpperCase().trim();
           
-          // Find event where generated slug matches the URL slug
+          // Find event where generated slug (initials) matches the URL slug
           const matchedEvent = eventsData.find(ev => {
             const eventName = ev.name || ev.event_name;
             const eventSlug = generateEventSlug(eventName);
@@ -395,7 +404,7 @@ const EventDetailsPage = () => {
                     </div>
                     <div className="flex gap-2">
                       <div className="flex-1 bg-secondary/30 px-4 py-3 rounded-xl text-xs md:text-sm text-gray-300 truncate border border-gray-600 hover:border-gray-500 transition-colors">
-                        {typeof window !== 'undefined' ? `${window.location.origin}/events/${event ? generateEventSlug(event.name) : slug}` : ''}
+                        {shareUrl || 'Loading...'}
                       </div>
                       <Button 
                         size="sm" 

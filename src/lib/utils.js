@@ -136,24 +136,27 @@ export function formatNumber(value) {
 }
 
 /**
- * Generates a URL-friendly slug from event name only
- * Creates clean URLs like: /events/tech-conference-2024
+ * Generates a URL-friendly slug from event name using initials
+ * Creates clean URLs like: /events/OMR (for "Outdoor Movie Rave")
  * @param {string} name - Event name
- * @returns {string} URL-friendly slug
+ * @returns {string} URL-friendly slug (initials in uppercase)
  */
 export function generateEventSlug(name) {
   if (!name) return "";
   
-  // Convert name to lowercase, replace spaces with hyphens, remove special chars
-  const slug = name
-    .toLowerCase()
+  // Split the name into words and take the first letter of each
+  const words = name
     .trim()
-    .replace(/[^\w\s-]/g, "") // Remove special characters except spaces and hyphens
-    .replace(/\s+/g, "-") // Replace spaces with hyphens
-    .replace(/-+/g, "-") // Replace multiple hyphens with single hyphen
-    .replace(/^-|-$/g, ""); // Remove leading/trailing hyphens
+    .replace(/[^\w\s]/g, "") // Remove special characters except spaces
+    .split(/\s+/) // Split by whitespace
+    .filter(word => word.length > 0); // Remove empty strings
   
-  return slug;
+  // Take the first letter of each word and join them
+  const initials = words
+    .map(word => word.charAt(0).toUpperCase())
+    .join("");
+  
+  return initials;
 }
 
 /**

@@ -18,7 +18,7 @@ import { Loader2, MapPin, Calendar, Clock, Ticket, Info, Share2, Copy, Check, X,
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import useAuthStore from "@/store/authStore";
-import { getImageUrl } from "@/lib/utils";
+import { getImageUrl, generateEventSlug } from "@/lib/utils";
 import { EventDetailsSkeleton } from "@/components/skeletons";
 
 const EventDetailsClient = ({ event_id, initialEvent }) => {
@@ -36,9 +36,20 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
   const [quantity, setQuantity] = useState(1);
   const [copied, setCopied] = useState(false);
   const [isImageExpanded, setIsImageExpanded] = useState(false);
+  const [shareUrl, setShareUrl] = useState("");
+
+  // Set share URL on client side only to avoid hydration mismatch
+  useEffect(() => {
+    if (event) {
+      const slug = generateEventSlug(event.name);
+      setShareUrl(`${window.location.origin}/events/${slug}`);
+    }
+  }, [event]);
 
   const handleCopyLink = () => {
-    const link = window.location.href;
+    // Generate slug-based URL for sharing (initials format)
+    const eventSlug = event ? generateEventSlug(event.name) : "";
+    const link = `${window.location.origin}/events/${eventSlug}`;
     navigator.clipboard.writeText(link).then(() => {
       setCopied(true);
       toast.success("Link copied to clipboard!");
@@ -48,10 +59,37 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
 
   useEffect(() => {
     const fetchEventDetails = async () => {
+      // Skip fetching if we already have initialEvent from server
+      if (initialEvent) {
+        // Just set up categories from initialEvent
+        let cats = [];
+        if (Array.isArray(initialEvent.ticket_categories)) {
+          cats = initialEvent.ticket_categories;
+        }
+        setCategories(cats);
+        
+        if (cats.length > 0) {
+          const active = cats.filter((c) => c?.is_active !== false);
+          const regular = active.find(
+            (c) => (c?.name || "").toLowerCase().includes("regular") && !c?.is_sold_out
+          );
+          const firstAvailable = active.find((c) => !c?.is_sold_out);
+          setSelectedCategory(regular || firstAvailable || active[0] || cats[0]);
+        }
+        setLoading(false);
+        return;
+      }
+      
       if (!eventId) return;
 
       try {
-        // Only fetch if we don't have initialEvent or if we want to ensure fresh data
+        // Only fetch if eventId looks like a real event ID (starts with "event:")
+        if (!eventId.startsWith("event:")) {
+          toast.error("Event not found");
+          setLoading(false);
+          return;
+        }
+        
         const response = await api.get(`/events/${eventId}/details/`);
         setEvent(response.data);
         
@@ -82,9 +120,7 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
         }
       } catch (error) {
         console.error("Error fetching event details:", error);
-        if (!initialEvent) {
-          toast.error("Failed to load event details");
-        }
+        toast.error("Failed to load event details");
       } finally {
         setLoading(false);
       }
@@ -388,7 +424,7 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
                     </div>
                     <div className="flex gap-2">
                       <div className="flex-1 bg-muted px-3 py-2 rounded-md text-xs md:text-sm text-muted-foreground truncate border border-gray-700">
-                        {typeof window !== 'undefined' ? `${window.location.origin}/events/${eventId}` : ''}
+                        {shareUrl || 'Loading...'}
                       </div>
                       <Button 
                         size="sm" 
