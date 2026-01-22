@@ -21,6 +21,34 @@ async function getEventById(eventId) {
   }
 }
 
+// Helper function to get event image from various possible fields
+function getEventImage(event) {
+  const imageFields = [
+    event?.image,
+    event?.event_image,
+    event?.cover_image,
+    event?.banner_image,
+  ];
+  
+  for (const imageField of imageFields) {
+    if (imageField) {
+      const imageUrl = getImageUrl(imageField);
+      if (imageUrl) {
+        // Ensure absolute URL for Open Graph
+        if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+          return imageUrl;
+        }
+        // If relative URL, make it absolute using SITE_URL
+        return imageUrl.startsWith('/') 
+          ? `${SITE_URL}${imageUrl}` 
+          : `${SITE_URL}/${imageUrl}`;
+      }
+    }
+  }
+  
+  return null;
+}
+
 // Generate dynamic metadata for social sharing
 export async function generateMetadata({ params }) {
   const { event_id } = await params;
@@ -34,17 +62,27 @@ export async function generateMetadata({ params }) {
     };
   }
 
-  const eventName = event.name || event.event_name;
+  const eventName = event.name || event.event_name || "Event";
+  
+  // Clean and truncate description
+  let description = event.description || "";
+  // Remove HTML tags if present
+  description = description.replace(/<[^>]*>/g, "").trim();
+  // Truncate to 160 characters for meta description
+  if (description.length > 160) {
+    description = description.substring(0, 157) + "...";
+  }
+  if (!description) {
+    description = `Get tickets for ${eventName} on Axile - Your event ticketing platform.`;
+  }
+  
   const title = `${eventName} | Axile`;
-  const description = event.description 
-    ? event.description.substring(0, 160) + (event.description.length > 160 ? "..." : "")
-    : `Get tickets for ${eventName} on Axile - Your event ticketing platform.`;
-  const imageUrl = event.image ? getImageUrl(event.image) : null;
-  const eventDate = event.event_date_time || event.date;
+  const imageUrl = getEventImage(event);
+  const eventDate = event.event_date_time || event.date || event.event_date;
   
   // Use event_slug for canonical URL if available, fallback to event_id
   const identifier = event.event_slug || event.event_id || eventId;
-  const canonicalUrl = `${SITE_URL}/events/${identifier}`;
+  const canonicalUrl = `${SITE_URL}/events/${encodeURIComponent(identifier)}`;
 
   return {
     title,
@@ -58,6 +96,7 @@ export async function generateMetadata({ params }) {
       type: "website",
       siteName: "Axile",
       url: canonicalUrl,
+      locale: "en_US",
       ...(imageUrl && {
         images: [
           {
