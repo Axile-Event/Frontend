@@ -41,14 +41,16 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
   // Set share URL on client side only to avoid hydration mismatch
   useEffect(() => {
     if (event) {
-      // Use event ID for sharing
-      setShareUrl(`${window.location.origin}/events/${event.event_id}`);
+      // Use event_slug if available, fallback to event_id
+      const identifier = event.event_slug || event.event_id;
+      setShareUrl(`${window.location.origin}/events/${identifier}`);
     }
   }, [event]);
 
   const handleCopyLink = () => {
-    // Use event ID for sharing
-    const link = `${window.location.origin}/events/${event?.event_id || eventId}`;
+    // Use event_slug if available, fallback to event_id
+    const identifier = event?.event_slug || event?.event_id || eventId;
+    const link = `${window.location.origin}/events/${identifier}`;
     navigator.clipboard.writeText(link).then(() => {
       setCopied(true);
       toast.success("Link copied to clipboard!");

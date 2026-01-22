@@ -143,7 +143,7 @@ const EventsPage = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.3, delay: index * 0.05 }}
                 >
-                  <Link href={`/dashboard/student/events/${event.event_id}`}>
+                  <Link href={`/dashboard/student/events/${event.event_slug || event.event_id}`}>
                     <div className="group relative aspect-4/3 overflow-hidden rounded-xl md:rounded-2xl bg-muted cursor-pointer">
                       {/* Background Image */}
                       {event.event_image ? (

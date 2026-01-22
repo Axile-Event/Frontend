@@ -365,8 +365,9 @@ export default function EventDetailsPage() {
 
   const handleCopyLink = () => {
     if (!event) return;
-    // Use event ID for sharing
-    const link = `${window.location.origin}/events/${encodeURIComponent(event.event_id)}`;
+    // Use event_slug if available, fallback to event_id
+    const identifier = event.event_slug || event.event_id;
+    const link = `${window.location.origin}/events/${encodeURIComponent(identifier)}`;
     navigator.clipboard.writeText(link).then(() => {
       toast.success("Link copied to clipboard!");
     }).catch(() => {
