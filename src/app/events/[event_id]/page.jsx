@@ -2,6 +2,7 @@ import { getImageUrl } from "@/lib/utils";
 import EventDetailsClient from "./EventDetailsClient";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://radar-ufvb.onrender.com/";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.axile.ng";
 
 // Helper function to fetch event data server-side by event ID
 async function getEventById(eventId) {
@@ -40,15 +41,23 @@ export async function generateMetadata({ params }) {
     : `Get tickets for ${eventName} on Axile - Your event ticketing platform.`;
   const imageUrl = event.image ? getImageUrl(event.image) : null;
   const eventDate = event.event_date_time || event.date;
+  
+  // Use event_slug for canonical URL if available, fallback to event_id
+  const identifier = event.event_slug || event.event_id || eventId;
+  const canonicalUrl = `${SITE_URL}/events/${identifier}`;
 
   return {
     title,
     description,
+    alternates: {
+      canonical: canonicalUrl,
+    },
     openGraph: {
       title: eventName,
       description,
       type: "website",
       siteName: "Axile",
+      url: canonicalUrl,
       ...(imageUrl && {
         images: [
           {
