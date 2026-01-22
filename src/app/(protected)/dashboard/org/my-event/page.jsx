@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import api from "../../../../../lib/axios";
 import { Loader2, Copy, Check, ExternalLink, Plus, Clock, Search } from "lucide-react";
 import toast from "react-hot-toast";
-import { getImageUrl, generateEventSlug } from "../../../../../lib/utils";
+import { getImageUrl } from "../../../../../lib/utils";
 import { Input } from "@/components/ui/input";
 import { OrganizerEventsPageSkeleton } from "@/components/skeletons";
 
@@ -147,9 +147,8 @@ const MyEvent = () => {
 
   const handleCopyLink = (e, eventId, eventName) => {
     e.stopPropagation();
-    // Generate slug-based URL for sharing (name only)
-    const slug = generateEventSlug(eventName);
-    const link = `${window.location.origin}/events/${slug}`;
+    // Use event ID for sharing
+    const link = `${window.location.origin}/events/${encodeURIComponent(eventId)}`;
     navigator.clipboard.writeText(link).then(() => {
       toast.success("Link copied to clipboard!");
     }).catch(() => {

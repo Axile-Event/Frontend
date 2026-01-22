@@ -7,7 +7,7 @@ import { Loader2, MapPin, Calendar as CalendarIcon, Search, ArrowLeft } from "lu
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { getImageUrl, generateEventSlug } from "@/lib/utils";
+import { getImageUrl } from "@/lib/utils";
 import { EventsGridSkeleton } from "@/components/skeletons";
 
 const PublicEventsPage = () => {
@@ -163,7 +163,7 @@ const PublicEventsPage = () => {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3, delay: index * 0.05 }}
                   >
-                    <Link href={`/events/${generateEventSlug(event.name || event.event_name)}`}>
+                    <Link href={`/events/${event.event_id}`}>
                       <div className="group relative aspect-[4/3] overflow-hidden rounded-2xl bg-[#0F0F16] border border-white/10 cursor-pointer hover:border-primary/50 transition-all duration-300 shadow-xl">
                         {/* Background Image */}
                         {event.event_image ? (

@@ -17,7 +17,7 @@ import {
 import { Loader2, MapPin, Calendar, Clock, Ticket, Info, CheckCircle2, Share2, Copy, Check } from "lucide-react";
 import toast from "react-hot-toast";
 import { motion } from "framer-motion";
-import { getImageUrl, generateEventSlug } from "@/lib/utils";
+import { getImageUrl } from "@/lib/utils";
 import { EventDetailsSkeleton } from "@/components/skeletons";
 
 const EventDetailsPage = () => {
@@ -40,15 +40,14 @@ const EventDetailsPage = () => {
   // Set share URL on client side only to avoid hydration mismatch
   useEffect(() => {
     if (event) {
-      const eventSlug = generateEventSlug(event.name);
-      setShareUrl(`${window.location.origin}/events/${eventSlug}`);
+      setShareUrl(`${window.location.origin}/events/${encodeURIComponent(event.event_id)}`);
     }
   }, [event]);
 
   const handleCopyLink = () => {
-    // Generate slug-based URL for sharing (name only)
-    const eventSlug = event ? generateEventSlug(event.name) : slug;
-    const link = `${window.location.origin}/events/${eventSlug}`;
+    // Use event ID for sharing
+    const id = event?.event_id || slug;
+    const link = `${window.location.origin}/events/${encodeURIComponent(id)}`;
     navigator.clipboard.writeText(link).then(() => {
       setCopied(true);
       toast.success("Link copied to clipboard!");
@@ -61,51 +60,9 @@ const EventDetailsPage = () => {
       if (!slug) return;
       
       try {
-        let eventData = null;
-        let foundEventId = null;
-
-        // Check if slug is already an event ID (legacy support)
-        if (slug.startsWith("event:") || slug.startsWith("event%3A")) {
-          const decodedId = decodeURIComponent(slug);
-          const response = await api.get(`/events/${decodedId}/details/`);
-          eventData = response.data;
-          foundEventId = decodedId;
-        } else {
-          // Fetch all events and find by slug match
-          const allEventsRes = await api.get("/event/");
-          const eventsData = Array.isArray(allEventsRes.data) 
-            ? allEventsRes.data 
-            : (allEventsRes.data.events || []);
-          
-          // Normalize the URL slug for comparison (uppercase for initials)
-          const normalizedSlug = slug.toUpperCase().trim();
-          
-          // Find event where generated slug (initials) matches the URL slug
-          const matchedEvent = eventsData.find(ev => {
-            const eventName = ev.name || ev.event_name;
-            const eventSlug = generateEventSlug(eventName);
-            return eventSlug === normalizedSlug;
-          });
-          
-          if (matchedEvent) {
-            const detailsRes = await api.get(`/events/${matchedEvent.event_id}/details/`);
-            eventData = detailsRes.data;
-            foundEventId = matchedEvent.event_id;
-          } else {
-            // Try direct lookup as fallback (in case slug IS the event ID)
-            try {
-              const directRes = await api.get(`/events/${slug}/details/`);
-              if (directRes.data) {
-                eventData = directRes.data;
-                foundEventId = slug;
-              }
-            } catch {
-              toast.error("Event not found");
-              setLoading(false);
-              return;
-            }
-          }
-        }
+        // Use event ID directly for fetching
+        const response = await api.get(`/events/${slug}/details/`);
+        const eventData = response.data;
 
         if (!eventData) {
           toast.error("Event not found");
@@ -114,7 +71,7 @@ const EventDetailsPage = () => {
         }
 
         setEvent(eventData);
-        setEventId(foundEventId);
+        setEventId(slug);
         
         // Set default category if available
         if (eventData.ticket_categories && eventData.ticket_categories.length > 0) {

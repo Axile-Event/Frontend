@@ -1,4 +1,4 @@
-# TreEvents Event Platform - Complete API Documentation
+# Axile Event Platform - Complete API Documentation
 
 Complete API documentation for frontend developers. This document covers all endpoints, request/response formats, and implementation examples.
 
@@ -151,13 +151,23 @@ headers: {
 }
 ```
 
-**Error Response (400 Bad Request):**
+**Error Response (400 Bad Request - Validation Error):**
 ```json
 {
   "Email": ["Enter a valid email address."],
   "Firstname": ["This field is required."]
 }
 ```
+
+**Error Response (400 Bad Request - Already Registered):**
+```json
+{
+  "error": "Email already registered",
+  "message": "An account with this email already exists. Please sign in instead."
+}
+```
+
+**Note:** An email cannot be registered as both a student and an organizer. If an email is already registered as an organizer, it cannot be used to register as a student, and vice versa.
 
 **Error Response (500 Internal Server Error):**
 ```json
@@ -1218,6 +1228,16 @@ Or alternatively:
 | `refresh` | string | JWT refresh token |
 | `is_new_user` | boolean | `true` if user needs to complete profile (missing name or profile incomplete) |
 
+**Error Response (400 Bad Request - Already Registered as Organizer):**
+```json
+{
+  "error": "Email already registered as organizer",
+  "detail": "This email is already registered as an organizer. Please use organizer login instead."
+}
+```
+
+**Note:** An email cannot be registered as both a student and an organizer. If an email is already registered as an organizer, it cannot be used to sign up as a student via Google, and vice versa.
+
 **Frontend Implementation:**
 ```typescript
 import { useGoogleLogin } from '@react-oauth/google'
@@ -1290,6 +1310,16 @@ Or alternatively:
 | `access` | string | JWT access token for API calls |
 | `refresh` | string | JWT refresh token |
 | `is_new_user` | boolean | `true` if user needs to complete profile (missing Organization_Name or Phone) |
+
+**Error Response (400 Bad Request - Already Registered as Student):**
+```json
+{
+  "error": "Email already registered as student",
+  "detail": "This email is already registered as a student. Please use student login instead."
+}
+```
+
+**Note:** An email cannot be registered as both a student and an organizer. If an email is already registered as a student, it cannot be used to sign up as an organizer via Google, and vice versa.
 
 **Frontend Implementation:**
 ```typescript
@@ -1399,7 +1429,7 @@ const eventTypes = config.event_types; // Array of {value, label}
     "event_location": "OAU Campus",
     "event_date": "2024-12-15T10:00:00Z",
     "event_price": 5000.00,  // Minimum price from ticket categories (for display purposes)
-    "event_image": "https://res.cloudinary.com/your_cloud_name/image/upload/v1234567890/TreEvents/events/tech.jpg",
+    "event_image": "https://res.cloudinary.com/your_cloud_name/image/upload/v1234567890/radar/events/tech.jpg",
     "event_type": "tech",
     "pricing_type": "paid"
   },
@@ -1439,14 +1469,14 @@ async function getAllEvents() {
 
 ### 3. Get Event Details
 
-**Endpoint:** `GET /events/<event_id>/details/`
+**Endpoint:** `GET /events/<identifier>/details/`
 
-**Description:** Get detailed information about a specific event.
+**Description:** Get detailed information about a specific event. Accepts both event ID and event slug.
 
 **Authentication:** Optional
 
 **URL Parameters:**
-- `event_id`: Event ID (e.g., "event:TE-12345")
+- `identifier`: Event ID (e.g., "event:TE-12345") or event slug (e.g., "tech-conference-2024")
 
 **Success Response (200 OK):**
 ```json
@@ -1646,12 +1676,13 @@ const response = await fetch('http://localhost:8000/event/', {
     {
       "category_id": "category:ABC-12345",
       "name": "General",
-  "price": "5000.00",
+      "price": "5000.00",
       "max_tickets": 100,
       "is_active": true
     }
   ],
-  "image": "https://res.cloudinary.com/your_cloud_name/image/upload/v1234567890/TreEvents/events/tech.jpg"
+  "image": "https://res.cloudinary.com/your_cloud_name/image/upload/v1234567890/radar/events/tech.jpg",
+  "message": "Event creation status sent to organizer@example.com"
 }
 ```
 
@@ -1852,7 +1883,7 @@ await createEvent(freeEventData);
    ```
 
 **Note:** 
-- Images are uploaded to Cloudinary and stored in the `TreEvents/events/` folder
+- Images are uploaded to Cloudinary and stored in the `radar/events/` folder
 - The returned image URL will be a Cloudinary CDN URL
 - If image is sent as a dict/object, it will be ignored (set to null)
 - Always use FormData when creating events (even without images) for consistency
@@ -1863,7 +1894,7 @@ await createEvent(freeEventData);
 
 **Endpoint:** `GET /organizer/events/`
 
-**Description:** Get all events created by the authenticated organizer.
+**Description:** Get all events created by the authenticated organizer. Includes event statistics and platform fee information.
 
 **Authentication:** Required (JWT token, Organizer only)
 
@@ -1872,16 +1903,20 @@ await createEvent(freeEventData);
 {
   "events": [
     {
+      "status": "verified",
       "event_id": "event:TE-12345",
+      "event_slug": "tech-conference-2024",
       "name": "Tech Conference 2024",
       "description": "Annual tech conference",
       "event_type": "tech",
       "pricing_type": "paid",
       "location": "OAU Campus",
       "date": "2024-12-15T10:00:00Z",
-      "capacity": 100,
-      "price": 5000.00,
-      "image": "/media/event/images/tech.jpg",
+      "image": "https://res.cloudinary.com/your_cloud_name/image/upload/v1234567890/radar/events/tech.jpg",
+      "is_featured": false,
+      "platform_fee_percentage": 6.0,
+      "using_system_default_fees": false,
+      "created_at": "2024-12-01T10:00:00Z",
       "ticket_stats": {
         "total_tickets": 50,
         "confirmed_tickets": 45,
@@ -1895,6 +1930,34 @@ await createEvent(freeEventData);
 }
 ```
 
+**Response Fields:**
+| Field | Type | Description |
+|-------|------|-------------|
+| `status` | string | Event status: `pending`, `verified`, `rejected`, `cancelled` |
+| `event_id` | string | Unique event identifier (e.g., "event:TE-12345") |
+| `event_slug` | string | URL-friendly event identifier |
+| `name` | string | Event name |
+| `description` | string | Event description |
+| `event_type` | string | Event type (e.g., "tech", "cultural") |
+| `pricing_type` | string | Pricing type: `"free"` or `"paid"` |
+| `location` | string | Event location |
+| `date` | datetime | Event date and time (ISO 8601) |
+| `image` | string/null | Event image URL (Cloudinary CDN) or null |
+| `is_featured` | boolean | Whether the event is featured |
+| `platform_fee_percentage` | float/null | Platform fee percentage (paid events only, null for free events) |
+| `using_system_default_fees` | boolean/null | Whether using system default fees (paid events only, null for free events) |
+| `created_at` | datetime | Event creation timestamp |
+| `ticket_stats` | object | Ticket statistics (see below) |
+
+**Ticket Stats Fields:**
+| Field | Type | Description |
+|-------|------|-------------|
+| `total_tickets` | integer | Total number of tickets sold |
+| `confirmed_tickets` | integer | Number of confirmed tickets |
+| `pending_tickets` | integer | Number of pending tickets (awaiting payment) |
+| `total_revenue` | float | Total revenue from confirmed tickets |
+| `available_spots` | integer | Available spots remaining |
+
 **Frontend Implementation:**
 ```javascript
 async function getOrganizerEvents() {
@@ -1907,9 +1970,273 @@ async function getOrganizerEvents() {
     },
   });
   
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to fetch organizer events');
+  }
+  
   return await response.json();
 }
 ```
+
+---
+
+### 6. Update Event
+
+**Endpoint:** `PATCH /events/<event_id>/update/` or `PUT /events/<event_id>/update/`
+
+**Description:** Update an event. Only the organizer who created the event can update it. Supports both PATCH (partial update) and PUT (full update).
+
+**Authentication:** Required (JWT token, Organizer only)
+
+**URL Parameters:**
+- `event_id`: Event ID (e.g., "event:TE-12345")
+
+**Content-Type:** `multipart/form-data` (use FormData) - **REQUIRED** when sending images
+
+**⚠️ IMPORTANT: Data Format Requirements**
+
+- ✅ **DO**: Send `image` as a File object via FormData
+- ❌ **DON'T**: Send `image` as `{data: "...", type: "..."}` or base64 string in JSON
+- ✅ **DO**: Send all string fields as plain strings
+- ❌ **DON'T**: Send string fields as objects/dictionaries
+- ⚠️ **NOTE**: `price` field is ignored (price is set at ticket category level, not event level)
+- ⚠️ **NOTE**: `platform_fee_percentage` and `platform_fee_fixed` fields are removed (admin-only fields)
+
+**Request Body (FormData - PATCH for partial update):**
+
+All fields are optional for PATCH. Only include fields you want to update.
+
+| Field | Type | Required | Example Value | Notes |
+|-------|------|----------|---------------|-------|
+| `name` | string | No | `"Tech Conference 2024"` | Max 200 characters |
+| `description` | string | No | `"Annual tech conference..."` | Text field |
+| `pricing_type` | string | No | `"paid"` or `"free"` | Must be exactly one of these |
+| `event_type` | string | No | `"tech"` | See event types in configuration |
+| `location` | string | No | `"OAU Campus"` | Max 200 characters |
+| `date` | string | No | `"2024-12-15T10:00:00Z"` | ISO 8601 datetime format |
+| `max_quantity_per_booking` | integer/string | No | `5` or `"5"` | Maximum tickets per booking |
+| `image` | File | No | File object | Must be actual File, not dict/object |
+
+**Request Body (FormData - PUT for full update):**
+
+All required fields must be included for PUT (same as creating an event).
+
+**Example Request (PATCH - Partial Update):**
+```javascript
+// Create FormData
+const formData = new FormData();
+
+// Only include fields you want to update
+formData.append('name', 'Updated Tech Conference 2024');
+formData.append('location', 'New Venue Location');
+
+// Add image file if updating image
+if (imageFile) {
+  formData.append('image', imageFile); // imageFile must be a File object
+}
+
+// Send PATCH request
+const response = await fetch(`http://localhost:8000/events/${eventId}/update/`, {
+  method: 'PATCH',
+  headers: {
+    'Authorization': `Bearer ${token}`,
+    // DO NOT set Content-Type header - browser will set it automatically with boundary
+  },
+  body: formData,
+});
+```
+
+**Example Request (PUT - Full Update):**
+```javascript
+// Create FormData with all required fields
+const formData = new FormData();
+formData.append('name', 'Tech Conference 2024');
+formData.append('description', 'Annual tech conference featuring industry leaders');
+formData.append('pricing_type', 'paid');
+formData.append('event_type', 'tech');
+formData.append('location', 'OAU Campus');
+formData.append('date', '2024-12-15T10:00:00Z');
+formData.append('max_quantity_per_booking', '5');
+
+if (imageFile) {
+  formData.append('image', imageFile);
+}
+
+// Send PUT request
+const response = await fetch(`http://localhost:8000/events/${eventId}/update/`, {
+  method: 'PUT',
+  headers: {
+    'Authorization': `Bearer ${token}`,
+  },
+  body: formData,
+});
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "message": "Event updated successfully",
+  "event": {
+    "name": "Updated Tech Conference 2024",
+    "description": "Annual tech conference featuring industry leaders",
+    "pricing_type": "paid",
+    "event_type": "tech",
+    "location": "New Venue Location",
+    "date": "2024-12-15T10:00:00Z",
+    "max_quantity_per_booking": 5,
+    "ticket_categories": [
+      {
+        "category_id": "category:ABC-12345",
+        "name": "General",
+        "price": "5000.00",
+        "max_tickets": 100,
+        "is_active": true
+      }
+    ],
+    "image": "https://res.cloudinary.com/your_cloud_name/image/upload/v1234567890/radar/events/tech.jpg"
+  }
+}
+```
+
+**Error Responses:**
+
+**400 Bad Request (Validation Error):**
+```json
+{
+  "name": ["This field is required."],
+  "date": ["Date must be a valid datetime."]
+}
+```
+
+**401 Unauthorized:**
+```json
+{
+  "error": "Authentication required. Please provide a valid JWT token."
+}
+```
+
+**403 Forbidden:**
+```json
+{
+  "error": "You can only update events you created"
+}
+```
+
+**404 Not Found:**
+```json
+{
+  "error": "Event not found"
+}
+```
+
+**Complete Frontend Implementation:**
+```javascript
+/**
+ * Update an event (partial or full update)
+ * @param {string} eventId - Event ID (e.g., "event:TE-12345")
+ * @param {Object} eventData - Event data object (only include fields to update for PATCH)
+ * @param {string} [eventData.name] - Event name
+ * @param {string} [eventData.description] - Event description
+ * @param {string} [eventData.pricing_type] - "free" or "paid"
+ * @param {string} [eventData.event_type] - Event type
+ * @param {string} [eventData.location] - Event location
+ * @param {Date|string} [eventData.date] - Event date (Date object or ISO string)
+ * @param {number} [eventData.max_quantity_per_booking] - Maximum tickets per booking
+ * @param {File|null} [eventData.image] - Image file (optional)
+ * @param {boolean} [partial=true] - If true, use PATCH (partial update), else PUT (full update)
+ * @returns {Promise<Object>} Updated event data
+ */
+async function updateEvent(eventId, eventData, partial = true) {
+  const token = localStorage.getItem('access_token');
+  
+  if (!token) {
+    throw new Error('Authentication token not found');
+  }
+  
+  // Create FormData
+  const formData = new FormData();
+  
+  // Add fields that are provided
+  if (eventData.name !== undefined) {
+    formData.append('name', String(eventData.name));
+  }
+  if (eventData.description !== undefined) {
+    formData.append('description', String(eventData.description));
+  }
+  if (eventData.pricing_type !== undefined) {
+    formData.append('pricing_type', String(eventData.pricing_type));
+  }
+  if (eventData.event_type !== undefined) {
+    formData.append('event_type', String(eventData.event_type));
+  }
+  if (eventData.location !== undefined) {
+    formData.append('location', String(eventData.location));
+  }
+  if (eventData.date !== undefined) {
+    const dateValue = eventData.date instanceof Date 
+      ? eventData.date.toISOString() 
+      : String(eventData.date);
+    formData.append('date', dateValue);
+  }
+  if (eventData.max_quantity_per_booking !== undefined) {
+    formData.append('max_quantity_per_booking', String(eventData.max_quantity_per_booking));
+  }
+  
+  // Add image file if provided (must be File object, not dict/object)
+  if (eventData.image && eventData.image instanceof File) {
+    formData.append('image', eventData.image);
+  }
+  
+  try {
+    const method = partial ? 'PATCH' : 'PUT';
+    const response = await fetch(`http://localhost:8000/events/${eventId}/update/`, {
+      method,
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        // DO NOT set Content-Type - browser sets it automatically with boundary
+      },
+      body: formData,
+    });
+    
+    const data = await response.json();
+    
+    if (!response.ok) {
+      // Handle error responses
+      throw new Error(data.error || data.detail || 'Failed to update event');
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error updating event:', error);
+    throw error;
+  }
+}
+
+// Example usage - Partial update (PATCH):
+await updateEvent('event:TE-12345', {
+  name: 'Updated Event Name',
+  location: 'New Location'
+}, true); // true = partial update
+
+// Example usage - Full update (PUT):
+await updateEvent('event:TE-12345', {
+  name: 'Tech Conference 2024',
+  description: 'Annual tech conference',
+  pricing_type: 'paid',
+  event_type: 'tech',
+  location: 'OAU Campus',
+  date: '2024-12-15T10:00:00Z',
+  max_quantity_per_booking: 5
+}, false); // false = full update
+```
+
+**Notes:**
+- Use PATCH for partial updates (only send fields you want to change)
+- Use PUT for full updates (must include all required fields)
+- Price and capacity are set at the ticket category level, not event level
+- Platform fee fields cannot be updated by organizers (admin-only)
+- Cache is automatically invalidated after successful update
 
 ---
 
@@ -2204,10 +2531,21 @@ All ticket responses include the following fields:
 }
 ```
 
+**Error Response (404 Not Found - Event Not Found):**
+```json
+{
+  "error": "Event not found",
+  "message": "Event with ID 'event:TE-12345' does not exist. Please check the event ID and try again.",
+  "event_id": "event:TE-12345"
+}
+```
+
 **Error Response (403 Forbidden - Not Your Event):**
 ```json
 {
-  "error": "You can only book tickets for your own events"
+  "error": "You can only book tickets for your own events",
+  "message": "This event does not belong to you. You can only book tickets for events you created.",
+  "event_id": "event:TE-12345"
 }
 ```
 
@@ -3262,23 +3600,23 @@ All event images are uploaded to **Cloudinary** and served via their CDN. This p
 
 ### Image URL Format
 
-Images are stored in the `TreEvents/events/` folder and URLs follow this format:
+Images are stored in the `radar/events/` folder and URLs follow this format:
 ```
-https://res.cloudinary.com/{cloud_name}/image/upload/v{version}/TreEvents/events/{filename}.{ext}
+https://res.cloudinary.com/{cloud_name}/image/upload/v{version}/radar/events/{filename}.{ext}
 ```
 
 ### Image Upload Requirements
 
 - **Supported formats:** JPEG, PNG, GIF, WebP
 - **Max file size:** 10MB (Cloudinary default)
-- **Storage location:** `TreEvents/events/` folder in Cloudinary
+- **Storage location:** `radar/events/` folder in Cloudinary
 - **Content-Type:** `multipart/form-data` (use FormData)
 
 ### Example Image Response
 
 ```json
 {
-  "image": "https://res.cloudinary.com/dyup8vl0j/image/upload/v1766324617/TreEvents/events/fsz2wfyxpd2p6ayefwud.png"
+  "image": "https://res.cloudinary.com/dyup8vl0j/image/upload/v1766324617/radar/events/fsz2wfyxpd2p6ayefwud.png"
 }
 ```
 
@@ -4093,7 +4431,7 @@ async function getEventsSummary() {
 {
   "status": "healthy",
   "timestamp": "2024-12-30T10:00:00Z",
-  "service": "TreEvents API",
+  "service": "Axile API",
   "database": "connected"
 }
 ```
@@ -4103,7 +4441,7 @@ async function getEventsSummary() {
 {
   "status": "degraded",
   "timestamp": "2024-12-30T10:00:00Z",
-  "service": "TreEvents API",
+  "service": "Axile API",
   "database": "disconnected",
   "database_error": "Connection timeout"
 }
@@ -5571,7 +5909,7 @@ await processWithdrawal('WDR-ABC123', 'failed', 'Invalid bank details');
     "max_events_per_organizer": 50,
     "min_withdrawal_amount": "1000.00",
     "max_withdrawal_amount": "1000000.00",
-    "support_email": "support@TreEvents.app",
+    "support_email": "support@axile.app",
     "updated_at": "2024-12-15T10:00:00Z",
     "updated_by": "admin@example.com"
   },
@@ -5638,7 +5976,7 @@ async function getSystemSettings() {
   "max_events_per_organizer": 50,
   "min_withdrawal_amount": 1000.00,
   "max_withdrawal_amount": 1000000.00,
-  "support_email": "support@TreEvents.app"
+  "support_email": "support@radar.app"
 }
 ```
 
@@ -5656,7 +5994,7 @@ async function getSystemSettings() {
     "max_events_per_organizer": 50,
     "min_withdrawal_amount": "1000.00",
     "max_withdrawal_amount": "1000000.00",
-    "support_email": "support@TreEvents.app",
+    "support_email": "support@axile.app",
     "updated_at": "2024-12-15T11:00:00Z",
     "updated_by": "admin@example.com"
   },
@@ -5905,6 +6243,8 @@ const organizers = await getUsers({ role: 'organizer' });
 | GET | `/event/` | Optional | List all events |
 | POST | `/event/` | Yes (Org) | Create event |
 | GET | `/events/<event_id>/details/` | Optional | Get event details |
+| PATCH | `/events/<event_id>/update/` | Yes (Org) | Update event (partial) |
+| PUT | `/events/<event_id>/update/` | Yes (Org) | Update event (full) |
 | GET | `/organizer/events/` | Yes (Org) | Get organizer events |
 | **Admin - Authentication** |
 | POST | `/api/admin/auth/login/` | No | Admin login |
@@ -5930,6 +6270,8 @@ const organizers = await getUsers({ role: 'organizer' });
 | **Admin - Withdrawal Management** |
 | GET | `/api/admin/withdrawals/` | Yes (Admin) | Get all withdrawals (filtering & pagination) |
 | PATCH | `/api/admin/withdrawals/<transaction_id>/status/` | Yes (Admin) | Approve/reject withdrawal |
+| **Admin - Payment Transactions** |
+| GET | `/api/admin/payment-transactions/` | Yes (Admin) | Get all payment transactions (filtering & pagination) |
 | **Admin - System Settings** |
 | GET | `/api/admin/settings/` | Yes (Admin) | Get system settings |
 | PATCH | `/api/admin/settings/` | Yes (Admin) | Update system settings |
@@ -6197,2021 +6539,3 @@ The API follows professional Django/DRF best practices:
 ---
 
 This documentation covers all endpoints with request/response examples and frontend implementation guides. Use this as your reference for frontend development! 🚀
-# Radar Admin Module Documentation
-
-## Overview
-
-The Admin Module provides a comprehensive set of endpoints for platform administrators to manage users, events, tickets, withdrawals, and system settings. All admin endpoints require authentication with a staff/superuser account.
-
-**Base URL:** `/api/admin/`
-
----
-
-## Table of Contents
-
-1. [Authentication](#1-authentication)
-2. [Dashboard](#2-dashboard)
-3. [User Management](#3-user-management)
-4. [Event Management](#4-event-management)
-5. [Ticket Management](#5-ticket-management)
-6. [Withdrawal Management](#6-withdrawal-management)
-7. [Payment Transactions](#7-payment-transactions)
-8. [System Settings](#8-system-settings)
-9. [Audit Logs](#9-audit-logs)
-10. [Models](#10-models)
-11. [Error Handling](#11-error-handling)
-
----
-
-## 1. Authentication
-
-### 1.1 Admin Login
-
-Authenticate as an admin user and receive JWT tokens.
-
-**Endpoint:** `POST /api/admin/auth/login/`
-
-**Authentication Required:** No
-
-**Request Body:**
-```json
-{
-  "email": "admin@example.com",
-  "password": "your_password"
-}
-```
-
-**Success Response (200):**
-```json
-{
-  "message": "Login successful",
-  "email": "admin@example.com",
-  "is_staff": true,
-  "access": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
-  "refresh": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
-}
-```
-
-**Error Response (401):**
-```json
-{
-  "error": "Invalid credentials or insufficient permissions"
-}
-```
-
-**Notes:**
-- The user must have `is_staff=True` to log in
-- The `username` field in Django User must match the email
-- Use the `access` token in the `Authorization` header for subsequent requests
-
----
-
-### 1.2 Admin Logout
-
-Logout the admin user.
-
-**Endpoint:** `POST /api/admin/auth/logout/`
-
-**Authentication Required:** Yes (Admin)
-
-**Headers:**
-```
-Authorization: Bearer <access_token>
-```
-
-**Success Response (200):**
-```json
-{
-  "message": "Logout successful"
-}
-```
-
----
-
-## 2. Dashboard
-
-### 2.1 Dashboard Analytics
-
-Get comprehensive platform statistics.
-
-**Endpoint:** `GET /api/admin/dashboard/analytics/`
-
-**Authentication Required:** Yes (Admin)
-
-**Success Response (200):**
-```json
-{
-  "analytics": {
-    "total_users": 150,
-    "total_students": 120,
-    "total_organisers": 30,
-    "total_events": 45,
-    "total_revenue": 125000.00
-  },
-  "message": "Dashboard analytics retrieved successfully"
-}
-```
-
-**Field Descriptions:**
-| Field | Type | Description |
-|-------|------|-------------|
-| `total_users` | Integer | Total Django User accounts |
-| `total_students` | Integer | Total StudentRegistration records |
-| `total_organisers` | Integer | Total OrganizerRegistration records |
-| `total_events` | Integer | Total Event records |
-| `total_revenue` | Decimal | Platform revenue (5% of confirmed ticket sales) |
-
-**Caching:** Results are cached for 2 minutes.
-
----
-
-### 2.2 Recent Events
-
-Get recently created events.
-
-**Endpoint:** `GET /api/admin/dashboard/recent-events/`
-
-**Authentication Required:** Yes (Admin)
-
-**Query Parameters:**
-| Parameter | Type | Default | Max | Description |
-|-----------|------|---------|-----|-------------|
-| `limit` | Integer | 10 | 100 | Number of events to return |
-
-**Example Request:**
-```
-GET /api/admin/dashboard/recent-events/?limit=5
-```
-
-**Success Response (200):**
-```json
-{
-  "events": [
-    {
-      "event_id": "evt_abc123",
-      "event_name": "Tech Conference 2026",
-      "organisation_name": "TechOrg Ltd",
-      "date": "2026-03-15T09:00:00Z",
-      "status": "verified",
-      "event_type": "conference",
-      "location": "Lagos, Nigeria",
-      "pricing_type": "paid",
-      "price": 5000.00,
-      "created_at": "2026-01-10T14:30:00Z"
-    }
-  ],
-  "count": 5,
-  "message": "Recent events retrieved successfully"
-}
-```
-
-**Caching:** Results are cached for 3 minutes.
-
----
-
-## 3. User Management
-
-### 3.1 List All Users
-
-Get all users with server-side filtering and pagination.
-
-**Endpoint:** `GET /api/admin/users/`
-
-**Authentication Required:** Yes (Admin)
-
-**Query Parameters:**
-| Parameter | Type | Default | Max | Description |
-|-----------|------|---------|-----|-------------|
-| `page` | Integer | 1 | - | Page number (1-indexed) |
-| `page_size` | Integer | 20 | 100 | Items per page |
-| `role` | String | null | - | Filter by role: `student`, `organizer`, or omit for all |
-
-**Example Requests:**
-```
-GET /api/admin/users/
-GET /api/admin/users/?role=student&page=1&page_size=20
-GET /api/admin/users/?role=organizer&page=2
-```
-
-**Success Response (200):**
-```json
-{
-  "users": [
-    {
-      "id": "org_abc123",
-      "email": "organizer@example.com",
-      "role": "organizer",
-      "name": "TechOrg Ltd",
-      "phone": "+2348012345678",
-      "created_at": "2026-01-05T10:00:00Z",
-      "total_events": 5,
-      "event_preferences": null
-    },
-    {
-      "id": "1",
-      "email": "student@example.com",
-      "role": "student",
-      "name": "John Doe",
-      "phone": null,
-      "created_at": "2026-01-08T15:30:00Z",
-      "total_events": null,
-      "event_preferences": ["music", "tech"]
-    }
-  ],
-  "pagination": {
-    "current_page": 1,
-    "total_pages": 5,
-    "total_count": 100,
-    "page_size": 20,
-    "has_next": true,
-    "has_previous": false
-  },
-  "filters": {
-    "role": null
-  },
-  "message": "Users retrieved successfully"
-}
-```
-
-**Caching:** Results are cached for 2 minutes.
-
----
-
-### 3.2 Get User Details
-
-Get detailed information about a specific user.
-
-**Endpoint:** `GET /api/admin/users/<user_id>/?role=<role>`
-
-**Authentication Required:** Yes (Admin)
-
-**Path Parameters:**
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `user_id` | String | User ID (student id or organiser_id) |
-
-**Query Parameters:**
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `role` | String | Yes | `student` or `organizer` |
-
-**Example Request:**
-```
-GET /api/admin/users/org_abc123/?role=organizer
-```
-
-**Success Response for Student (200):**
-```json
-{
-  "user": {
-    "id": "1",
-    "email": "student@example.com",
-    "role": "student",
-    "name": "John Doe",
-    "firstname": "John",
-    "lastname": "Doe",
-    "preferred_name": "Johnny",
-    "date_of_birth": "2000-05-15",
-    "phone": null,
-    "is_active": true,
-    "created_at": "2026-01-08T15:30:00Z",
-    "event_preferences": ["music", "tech"],
-    "ticket_count": 12
-  },
-  "message": "User details retrieved successfully"
-}
-```
-
-**Success Response for Organizer (200):**
-```json
-{
-  "user": {
-    "id": "org_abc123",
-    "email": "organizer@example.com",
-    "role": "organizer",
-    "name": "TechOrg Ltd",
-    "phone": "+2348012345678",
-    "is_active": true,
-    "is_verified": true,
-    "created_at": "2026-01-05T10:00:00Z",
-    "total_events": 5,
-    "wallet_balance": 150000.00,
-    "total_earnings": 500000.00
-  },
-  "message": "User details retrieved successfully"
-}
-```
-
----
-
-### 3.3 Toggle User Status (Enable/Disable)
-
-Enable or disable a user account.
-
-**Endpoint:** `PATCH /api/admin/users/<user_id>/status/?role=<role>`
-
-**Authentication Required:** Yes (Admin)
-
-**Path Parameters:**
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `user_id` | String | User ID |
-
-**Query Parameters:**
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `role` | String | Yes | `student` or `organizer` |
-
-**Request Body:**
-```json
-{
-  "is_active": false
-}
-```
-
-**Success Response (200):**
-```json
-{
-  "message": "User disabled successfully",
-  "id": "org_abc123",
-  "email": "organizer@example.com",
-  "is_active": false
-}
-```
-
-**Notes:**
-- Disabling a user prevents them from logging in
-- Also updates the associated Django User's `is_active` field
-
----
-
-### 3.4 Verify/Unverify Organizer
-
-Toggle organizer verification status.
-
-**Endpoint:** `PATCH /api/admin/users/<organiser_id>/verify/`
-
-**Authentication Required:** Yes (Admin)
-
-**Path Parameters:**
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `organiser_id` | String | Organizer ID |
-
-**Request Body:**
-```json
-{
-  "is_verified": true
-}
-```
-
-**Success Response (200):**
-```json
-{
-  "message": "Organizer verified successfully",
-  "id": "org_abc123",
-  "email": "organizer@example.com",
-  "is_verified": true
-}
-```
-
-**Notes:**
-- Verified organizers may have additional privileges
-- This is separate from account activation status
-
----
-
-### 3.5 Delete User
-
-Permanently delete a user account and all associated data.
-
-**Endpoint:** `DELETE /api/admin/users/<user_id>/delete/?role=<role>`
-
-**Authentication Required:** Yes (Admin)
-
-**Path Parameters:**
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `user_id` | String | User ID |
-
-**Query Parameters:**
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `role` | String | Yes | `student` or `organizer` |
-
-**Success Response (200):**
-```json
-{
-  "message": "User deleted successfully",
-  "id": "org_abc123",
-  "email": "organizer@example.com",
-  "role": "organizer",
-  "deleted": true
-}
-```
-
-**⚠️ Warning:**
-- This action is **irreversible**
-- Deletes the Django User account
-- For organizers: cascades to profile, events, wallet, transactions
-- For students: cascades to profile and ticket records
-
----
-
-## 4. Event Management
-
-### 4.1 List All Events
-
-Get all events in the system.
-
-**Endpoint:** `GET /api/admin/events/`
-
-**Authentication Required:** Yes (Admin)
-
-**Success Response (200):**
-```json
-{
-  "events": [
-    {
-      "event_id": "evt_abc123",
-      "event_name": "Tech Conference 2026",
-      "organisation_name": "TechOrg Ltd",
-      "date": "2026-03-15T09:00:00Z",
-      "status": "verified",
-      "event_type": "conference",
-      "location": "Lagos, Nigeria",
-      "pricing_type": "paid",
-      "price": 5000.00,
-      "capacity": 500,
-      "created_at": "2026-01-10T14:30:00Z"
-    }
-  ],
-  "count": 45,
-  "message": "All events retrieved successfully"
-}
-```
-
-**Caching:** Results are cached for 5 minutes.
-
----
-
-### 4.2 Update Event Status
-
-Approve, verify, or deny an event.
-
-**Endpoint:** `PATCH /api/admin/events/<event_id>/status/`
-
-**Authentication Required:** Yes (Admin)
-
-**Path Parameters:**
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `event_id` | String | Event ID |
-
-**Request Body:**
-```json
-{
-  "status": "verified"
-}
-```
-
-**Valid Status Values:**
-- `pending` - Awaiting review
-- `verified` - Approved and visible to users
-- `denied` - Rejected by admin
-
-**Success Response (200):**
-```json
-{
-  "message": "Event status updated to verified",
-  "event_id": "evt_abc123",
-  "event_name": "Tech Conference 2026",
-  "status": "verified"
-}
-```
-
----
-
-### 4.3 Feature/Unfeature Event
-
-Toggle event featured status for homepage display.
-
-**Endpoint:** `PATCH /api/admin/events/<event_id>/featured/`
-
-**Authentication Required:** Yes (Admin)
-
-**Path Parameters:**
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `event_id` | String | Event ID |
-
-**Request Body:**
-```json
-{
-  "is_featured": true
-}
-```
-
-**Success Response (200):**
-```json
-{
-  "message": "Event featured successfully",
-  "event_id": "evt_abc123",
-  "event_name": "Tech Conference 2026",
-  "is_featured": true
-}
-```
-
----
-
-### 4.4 Delete Event
-
-Permanently delete an event and all associated tickets.
-
-**Endpoint:** `DELETE /api/admin/events/<event_id>/delete/`
-
-**Authentication Required:** Yes (Admin)
-
-**Path Parameters:**
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `event_id` | String | Event ID |
-
-**Success Response (200):**
-```json
-{
-  "message": "Event deleted successfully",
-  "event_id": "evt_abc123",
-  "event_name": "Tech Conference 2026",
-  "deleted": true
-}
-```
-
-**⚠️ Warning:**
-- This action is **irreversible**
-- All associated tickets will be deleted
-- Consider denying events instead of deleting
-
----
-
-## 5. Ticket Management
-
-### 5.1 List All Tickets
-
-Get all tickets with pagination and filtering.
-
-**Endpoint:** `GET /api/admin/tickets/`
-
-**Authentication Required:** Yes (Admin)
-
-**Query Parameters:**
-| Parameter | Type | Default | Max | Description |
-|-----------|------|---------|-----|-------------|
-| `page` | Integer | 1 | - | Page number |
-| `page_size` | Integer | 20 | 100 | Items per page |
-| `status` | String | null | - | Filter by status |
-| `event_id` | String | null | - | Filter by event ID |
-
-**Valid Status Values:**
-- `pending`
-- `confirmed`
-- `cancelled`
-- `checked_in`
-
-**Example Request:**
-```
-GET /api/admin/tickets/?status=confirmed&page=1&page_size=20
-GET /api/admin/tickets/?event_id=evt_abc123
-```
-
-**Success Response (200):**
-```json
-{
-  "tickets": [
-    {
-      "ticket_id": "tkt_xyz789",
-      "event_id": "evt_abc123",
-      "event_name": "Tech Conference 2026",
-      "student_email": "student@example.com",
-      "student_name": "John Doe",
-      "quantity": 2,
-      "total_price": 10000.00,
-      "status": "confirmed",
-      "seat_number": "A1, A2",
-      "created_at": "2026-01-12T09:00:00Z"
-    }
-  ],
-  "pagination": {
-    "current_page": 1,
-    "total_pages": 10,
-    "total_count": 200,
-    "page_size": 20,
-    "has_next": true,
-    "has_previous": false
-  },
-  "filters": {
-    "status": "confirmed",
-    "event_id": null
-  },
-  "message": "Tickets retrieved successfully"
-}
-```
-
----
-
-## 6. Withdrawal Management
-
-### 6.1 List All Withdrawals
-
-Get all withdrawal requests with pagination.
-
-**Endpoint:** `GET /api/admin/withdrawals/`
-
-**Authentication Required:** Yes (Admin)
-
-**Query Parameters:**
-| Parameter | Type | Default | Max | Description |
-|-----------|------|---------|-----|-------------|
-| `page` | Integer | 1 | - | Page number |
-| `page_size` | Integer | 20 | 100 | Items per page |
-| `status` | String | null | - | Filter by status |
-
-**Valid Status Values:**
-- `pending` - Awaiting admin action
-- `completed` - Successfully processed
-- `failed` - Rejected or failed
-
-**Example Request:**
-```
-GET /api/admin/withdrawals/?status=pending
-```
-
-**Success Response (200):**
-```json
-{
-  "withdrawals": [
-    {
-      "transaction_id": "txn_abc123",
-      "organizer_email": "organizer@example.com",
-      "organizer_name": "TechOrg Ltd",
-      "amount": 50000.00,
-      "status": "pending",
-      "bank_name": "GTBank",
-      "account_name": "TechOrg Limited",
-      "transfer_reference": null,
-      "created_at": "2026-01-10T11:00:00Z",
-      "completed_at": null
-    }
-  ],
-  "pagination": {
-    "current_page": 1,
-    "total_pages": 3,
-    "total_count": 45,
-    "page_size": 20,
-    "has_next": true,
-    "has_previous": false
-  },
-  "filters": {
-    "status": "pending"
-  },
-  "message": "Withdrawals retrieved successfully"
-}
-```
-
----
-
-### 6.2 Approve/Reject Withdrawal
-
-Update the status of a withdrawal request.
-
-**Endpoint:** `PATCH /api/admin/withdrawals/<transaction_id>/status/`
-
-**Authentication Required:** Yes (Admin)
-
-**Path Parameters:**
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `transaction_id` | String | Transaction ID |
-
-**Request Body:**
-```json
-{
-  "status": "completed"
-}
-```
-
-**Valid Status Values:**
-- `completed` - Approve the withdrawal
-- `failed` - Reject the withdrawal
-
-**Success Response (200):**
-```json
-{
-  "message": "Withdrawal approved successfully",
-  "transaction_id": "txn_abc123",
-  "status": "completed",
-  "amount": 50000.00
-}
-```
-
-**Notes:**
-- Only `pending` withdrawals can be updated
-- Rejecting a withdrawal (`failed`) automatically refunds the amount to the organizer's wallet
-
----
-
-## 7. Payment Transactions
-
-### 7.1 List All Payment Transactions
-
-Get all ticket payment transactions with user details, event details, and payment information.
-
-**Endpoint:** `GET /api/admin/payment-transactions/`
-
-**Authentication Required:** Yes (Admin)
-
-**Query Parameters:**
-| Parameter | Type | Default | Max | Description |
-|-----------|------|---------|-----|-------------|
-| `limit` | Integer | 50 | 200 | Number of results per page |
-| `offset` | Integer | 0 | - | Number of results to skip |
-| `status` | String | null | - | Filter by transaction status |
-| `event_id` | String | null | - | Filter by event ID |
-| `user_email` | String | null | - | Filter by user/student email |
-| `organizer_email` | String | null | - | Filter by organizer email |
-| `date_from` | String | null | - | Filter transactions from this date (YYYY-MM-DD) |
-| `date_to` | String | null | - | Filter transactions to this date (YYYY-MM-DD) |
-
-**Valid Status Values:**
-- `pending` - Payment pending
-- `completed` - Payment completed
-- `failed` - Payment failed
-- `cancelled` - Payment cancelled
-
-**Example Request:**
-```
-GET /api/admin/payment-transactions/?status=completed&limit=50&offset=0&event_id=event:ABC123
-```
-
-**Success Response (200):**
-```json
-{
-  "transactions": [
-    {
-      "transaction_id": "transaction:ABC12-XYZ34",
-      "paystack_reference": "ref_123456",
-      "amount": "5000.00",
-      "platform_fee": "300.00",
-      "organizer_earnings": "4700.00",
-      "status": "completed",
-      "status_display": "Completed",
-      "user_name": "John Doe",
-      "user_email": "john@example.com",
-      "user_firstname": "John",
-      "user_lastname": "Doe",
-      "event_id": "event:ABC123",
-      "event_name": "Tech Conference 2024",
-      "event_date": "2024-12-15T10:00:00Z",
-      "event_location": "Convention Center",
-      "ticket_id": "ticket:TC-12345",
-      "booking_id": "booking:ABC12-XYZ34",
-      "ticket_quantity": 1,
-      "ticket_status": "confirmed",
-      "category_name": "Early Bird",
-      "category_price": "5000.00",
-      "organizer_name": "Event Organizer",
-      "organizer_email": "organizer@example.com",
-      "created_at": "2024-12-01T10:00:00Z",
-      "completed_at": "2024-12-01T10:05:00Z"
-    }
-  ],
-  "count": 1,
-  "total_count": 150,
-  "limit": 50,
-  "offset": 0,
-  "has_more": true,
-  "message": "Payment transactions retrieved successfully"
-}
-```
-
-**Response Fields:**
-| Field | Type | Description |
-|-------|------|-------------|
-| `transaction_id` | String | Unique transaction ID |
-| `paystack_reference` | String | Paystack payment reference |
-| `amount` | Decimal | Total transaction amount |
-| `platform_fee` | Decimal | Platform fee deducted |
-| `organizer_earnings` | Decimal | Amount credited to organizer |
-| `status` | String | Transaction status |
-| `status_display` | String | Human-readable status |
-| `user_name` | String | Full name of ticket buyer |
-| `user_email` | String | Email of ticket buyer |
-| `user_firstname` | String | First name of ticket buyer |
-| `user_lastname` | String | Last name of ticket buyer |
-| `event_id` | String | Event ID |
-| `event_name` | String | Event name |
-| `event_date` | DateTime | Event date and time |
-| `event_location` | String | Event location |
-| `ticket_id` | String | Ticket ID |
-| `booking_id` | String | Booking ID (groups multiple tickets) |
-| `ticket_quantity` | Integer | Number of tickets in this transaction |
-| `ticket_status` | String | Ticket status (pending, confirmed, etc.) |
-| `category_name` | String | Ticket category name |
-| `category_price` | Decimal | Ticket category price |
-| `organizer_name` | String | Organizer full name |
-| `organizer_email` | String | Organizer email |
-| `created_at` | DateTime | Transaction creation timestamp |
-| `completed_at` | DateTime | Transaction completion timestamp |
-
-**Notes:**
-- Returns only `ticket_sale` transaction type
-- Results are ordered by creation date (newest first)
-- Use pagination (`limit` and `offset`) for large datasets
-- Date filters use UTC timezone
-
-**Example: Filter by Date Range**
-```
-GET /api/admin/payment-transactions/?date_from=2024-12-01&date_to=2024-12-31
-```
-
-**Example: Filter by User Email**
-```
-GET /api/admin/payment-transactions/?user_email=john@example.com
-```
-
-**Example: Filter by Organizer**
-```
-GET /api/admin/payment-transactions/?organizer_email=organizer@example.com
-```
-
----
-
-## 8. System Settings
-
-### 8.1 Get System Settings
-
-Retrieve current platform-wide settings.
-
-**Endpoint:** `GET /api/admin/settings/`
-
-**Authentication Required:** Yes (Admin)
-
-**Success Response (200):**
-```json
-{
-  "settings": {
-    "platform_fee_percentage": 0.05,
-    "maintenance_mode": false,
-    "maintenance_message": "We're currently performing maintenance. Please check back soon.",
-    "allow_student_registration": true,
-    "allow_organizer_registration": true,
-    "require_event_approval": true,
-    "max_events_per_organizer": 50,
-    "min_withdrawal_amount": 1000.00,
-    "max_withdrawal_amount": 1000000.00,
-    "support_email": "support@radar.app",
-    "updated_at": "2026-01-10T15:00:00Z",
-    "updated_by": "admin@radar.app"
-  },
-  "message": "System settings retrieved successfully"
-}
-```
-
----
-
-### 8.2 Update System Settings
-
-Update one or more platform settings.
-
-**Endpoint:** `PATCH /api/admin/settings/`
-
-**Authentication Required:** Yes (Admin)
-
-**Request Body (all fields optional):**
-```json
-{
-  "platform_fee_percentage": 0.07,
-  "maintenance_mode": true,
-  "maintenance_message": "Scheduled maintenance until 6 PM",
-  "allow_student_registration": true,
-  "allow_organizer_registration": false,
-  "require_event_approval": true,
-  "max_events_per_organizer": 100,
-  "min_withdrawal_amount": 2000.00,
-  "max_withdrawal_amount": 500000.00,
-  "support_email": "help@radar.app"
-}
-```
-
-**Setting Descriptions:**
-
-| Setting | Type | Default | Description |
-|---------|------|---------|-------------|
-| `platform_fee_percentage` | Decimal | 0.05 | Platform fee (0.05 = 5%) |
-| `maintenance_mode` | Boolean | false | Enable maintenance mode |
-| `maintenance_message` | String | - | Message shown during maintenance |
-| `allow_student_registration` | Boolean | true | Allow new student signups |
-| `allow_organizer_registration` | Boolean | true | Allow new organizer signups |
-| `require_event_approval` | Boolean | true | Require admin approval for events |
-| `max_events_per_organizer` | Integer | 50 | Max events per organizer |
-| `min_withdrawal_amount` | Decimal | 1000.00 | Minimum withdrawal (Naira) |
-| `max_withdrawal_amount` | Decimal | 1000000.00 | Maximum withdrawal (Naira) |
-| `support_email` | Email | support@radar.app | Support email address |
-
-**Success Response (200):**
-```json
-{
-  "settings": {
-    "platform_fee_percentage": 0.07,
-    "maintenance_mode": true,
-    "maintenance_message": "Scheduled maintenance until 6 PM",
-    "allow_student_registration": true,
-    "allow_organizer_registration": false,
-    "require_event_approval": true,
-    "max_events_per_organizer": 100,
-    "min_withdrawal_amount": 2000.00,
-    "max_withdrawal_amount": 500000.00,
-    "support_email": "help@radar.app",
-    "updated_at": "2026-01-10T16:30:00Z",
-    "updated_by": "admin@radar.app"
-  },
-  "message": "System settings updated successfully"
-}
-```
-
-**Notes:**
-- Only include fields you want to update
-- Changes are logged in the audit log
-- Cache is invalidated on update
-
----
-
-## 9. Audit Logs
-
-### 9.1 Get Audit Logs
-
-Retrieve admin action history.
-
-**Endpoint:** `GET /api/admin/audit-logs/`
-
-**Authentication Required:** Yes (Admin)
-
-**Query Parameters:**
-| Parameter | Type | Default | Max | Description |
-|-----------|------|---------|-----|-------------|
-| `page` | Integer | 1 | - | Page number |
-| `page_size` | Integer | 20 | 100 | Items per page |
-| `action` | String | null | - | Filter by action type |
-| `admin_email` | String | null | - | Filter by admin email |
-
-**Valid Action Types:**
-| Action | Description |
-|--------|-------------|
-| `settings_update` | System settings changed |
-| `user_disable` | User account disabled |
-| `user_enable` | User account enabled |
-| `user_delete` | User account deleted |
-| `organizer_verify` | Organizer verified |
-| `organizer_unverify` | Organizer unverified |
-| `event_approve` | Event approved |
-| `event_deny` | Event denied |
-| `event_feature` | Event featured |
-| `event_unfeature` | Event unfeatured |
-| `event_delete` | Event deleted |
-| `withdrawal_approve` | Withdrawal approved |
-| `withdrawal_reject` | Withdrawal rejected |
-
-**Example Request:**
-```
-GET /api/admin/audit-logs/?action=settings_update&page=1
-```
-
-**Success Response (200):**
-```json
-{
-  "logs": [
-    {
-      "id": 1,
-      "admin_email": "admin@radar.app",
-      "action": "settings_update",
-      "target_type": "settings",
-      "target_id": "system_settings",
-      "details": {
-        "changes": {
-          "platform_fee_percentage": {
-            "old": "0.05",
-            "new": "0.07"
-          }
-        }
-      },
-      "ip_address": "192.168.1.1",
-      "created_at": "2026-01-10T16:30:00Z"
-    }
-  ],
-  "pagination": {
-    "current_page": 1,
-    "total_pages": 5,
-    "total_count": 100,
-    "page_size": 20,
-    "has_next": true,
-    "has_previous": false
-  },
-  "filters": {
-    "action": "settings_update",
-    "admin_email": null
-  },
-  "message": "Audit logs retrieved successfully"
-}
-```
-
----
-
-## 10. Models
-
-### 10.1 SystemSettings Model
-
-Singleton model for platform-wide configuration.
-
-```python
-class SystemSettings(models.Model):
-    # Platform Fee
-    platform_fee_percentage = DecimalField(default=0.05)  # 5%
-    
-    # Maintenance
-    maintenance_mode = BooleanField(default=False)
-    maintenance_message = TextField(default="...")
-    
-    # Registration
-    allow_student_registration = BooleanField(default=True)
-    allow_organizer_registration = BooleanField(default=True)
-    
-    # Events
-    require_event_approval = BooleanField(default=True)
-    max_events_per_organizer = IntegerField(default=50)
-    
-    # Withdrawals
-    min_withdrawal_amount = DecimalField(default=1000.00)
-    max_withdrawal_amount = DecimalField(default=1000000.00)
-    
-    # Email
-    support_email = EmailField(default="support@radar.app")
-    
-    # Metadata
-    updated_at = DateTimeField(auto_now=True)
-    updated_by = CharField(max_length=255)
-```
-
-**Usage:**
-```python
-from radar.admin.models import SystemSettings
-
-# Get settings (creates if not exists)
-settings = SystemSettings.get_settings()
-
-# Access values
-fee = settings.platform_fee_percentage
-```
-
----
-
-### 10.2 AuditLog Model
-
-Track all admin actions for accountability.
-
-```python
-class AuditLog(models.Model):
-    admin_email = EmailField()
-    action = CharField(max_length=50, choices=ACTION_CHOICES)
-    target_type = CharField(max_length=50)
-    target_id = CharField(max_length=255)
-    details = JSONField(default=dict)
-    ip_address = GenericIPAddressField(null=True)
-    created_at = DateTimeField(auto_now_add=True)
-```
-
----
-
-## 11. Error Handling
-
-### Standard Error Responses
-
-**400 Bad Request:**
-```json
-{
-  "error": "Invalid role. Must be 'student', 'organizer', or omit for all."
-}
-```
-
-**401 Unauthorized:**
-```json
-{
-  "detail": "Authentication credentials were not provided."
-}
-```
-
-**403 Forbidden:**
-```json
-{
-  "detail": "You do not have permission to perform this action."
-}
-```
-
-**404 Not Found:**
-```json
-{
-  "error": "User with ID xyz not found"
-}
-```
-
-**500 Internal Server Error:**
-```json
-{
-  "error": "Failed to retrieve users"
-}
-```
-
----
-
-## Quick Reference: All Admin Endpoints
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| **Authentication** | | |
-| POST | `/api/admin/auth/login/` | Admin login |
-| POST | `/api/admin/auth/logout/` | Admin logout |
-| **Dashboard** | | |
-| GET | `/api/admin/dashboard/analytics/` | Get platform statistics |
-| GET | `/api/admin/dashboard/recent-events/` | Get recent events |
-| **Users** | | |
-| GET | `/api/admin/users/` | List all users (paginated) |
-| GET | `/api/admin/users/<id>/?role=` | Get user details |
-| PATCH | `/api/admin/users/<id>/status/?role=` | Enable/disable user |
-| PATCH | `/api/admin/users/<id>/verify/` | Verify organizer |
-| DELETE | `/api/admin/users/<id>/delete/?role=` | Delete user |
-| **Events** | | |
-| GET | `/api/admin/events/` | List all events |
-| PATCH | `/api/admin/events/<id>/status/` | Update event status |
-| PATCH | `/api/admin/events/<id>/featured/` | Feature/unfeature event |
-| DELETE | `/api/admin/events/<id>/delete/` | Delete event |
-| **Tickets** | | |
-| GET | `/api/admin/tickets/` | List all tickets (paginated) |
-| **Withdrawals** | | |
-| GET | `/api/admin/withdrawals/` | List all withdrawals (paginated) |
-| PATCH | `/api/admin/withdrawals/<id>/status/` | Approve/reject withdrawal |
-| **Settings** | | |
-| GET | `/api/admin/settings/` | Get system settings |
-| PATCH | `/api/admin/settings/` | Update system settings |
-| **Audit** | | |
-| GET | `/api/admin/audit-logs/` | Get audit logs (paginated) |
-
----
-
-## Authorization Header Format
-
-For all authenticated endpoints, include the JWT access token:
-
-```
-Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...
-```
-
----
-
-## Caching Strategy
-
-| Endpoint | Cache Duration |
-|----------|----------------|
-| Dashboard Analytics | 2 minutes |
-| Recent Events | 3 minutes |
-| All Events | 5 minutes |
-| Users List | 2 minutes |
-
-Caches are automatically invalidated when relevant data is modified.
-
----
-
-*Last Updated: January 10, 2026*
-
-# Payout Request System Documentation
-
-## Overview
-
-The payout request system allows organizers to request payouts from their wallet balance. Instead of automatic withdrawals, organizers submit payout requests that are reviewed and processed by administrators. This provides better control and oversight over fund disbursements.
-
-## Key Changes
-
-### 1. **Removed 7-Day Holding Period**
-- Money from ticket sales now goes directly to `available_balance`
-- No more `pending_balance` holding period
-- Organizers can request payouts immediately after ticket sales
-
-### 2. **Manual Payout Approval**
-- Organizers submit payout requests (not automatic withdrawals)
-- Admins review and approve/reject requests
-- **Admin transfers money manually** (not via Paystack)
-- Admin marks transaction as completed after manual transfer
-
-### 3. **Email Notifications**
-- Organizers receive confirmation emails when they submit requests
-- Admins receive notification emails for new payout requests
-- Admin dashboard shows pending payout requests count
-
-### 4. **Request Validation**
-- Prevents duplicate requests (same amount, same bank account within 1 hour)
-- Validates total pending requests don't exceed available balance
-- Clear error messages guide organizers
-
----
-
-## System Flow
-
-```
-Ticket Sale → Money Credited to available_balance → Organizer Requests Payout → 
-Admin Reviews → Admin Approves → Wallet Debited → Transaction Created (pending) → 
-Admin Transfers Money Manually → Admin Marks Transaction Completed → 
-PayoutRequest Status → completed → Shows in Payout Transactions
-```
-
----
-
-## Organizer Endpoints
-
-### 1. Request Payout
-
-**Endpoint:** `POST /wallet/withdraw/`
-
-**Description:** Submit a payout request. Creates a pending payout request that admin will review.
-
-**Authentication:** Required (JWT token, Organizer only)
-
-**Request Body:**
-```json
-{
-  "amount": 5000.00,
-  "bank_account_number": "0123456789",  // Optional if already saved
-  "bank_name": "Access Bank",           // Optional if already saved
-  "account_name": "John Doe",          // Optional if already saved
-  "bank_code": "044"                   // Optional if already saved
-}
-```
-
-**Request Fields:**
-- `amount` (required): Payout amount (must be ≥ ₦1,000 and ≤ available balance)
-- `bank_account_number` (optional): Bank account number (uses saved if not provided)
-- `bank_name` (optional): Bank name (uses saved if not provided)
-- `account_name` (optional): Account holder name (uses saved if not provided)
-- `bank_code` (optional): Paystack bank code (uses saved if not provided)
-
-**Success Response (200 OK):**
-```json
-{
-  "message": "Payout request submitted successfully",
-  "request_id": "payout:ABC12-XYZ34",
-  "amount": "5000.00",
-  "status": "pending",
-  "current_wallet_balance": "15000.00",
-  "note": "Your payout request is being reviewed. You will receive a confirmation email once it's processed."
-}
-```
-
-**Error Responses:**
-
-**Insufficient Balance (400 Bad Request):**
-```json
-{
-  "error": "Insufficient balance",
-  "available_balance": "3000.00",
-  "requested_amount": "5000.00"
-}
-```
-
-**Multiple Pending Requests Exceed Balance (400 Bad Request):**
-```json
-{
-  "error": "Insufficient balance. You have pending payout requests that exceed your available balance.",
-  "available_balance": "10000.00",
-  "total_pending_requests": "8000.00",
-  "requested_amount": "5000.00",
-  "total_if_approved": "13000.00"
-}
-```
-
-**Duplicate Request (400 Bad Request):**
-```json
-{
-  "error": "A similar payout request was submitted recently. Please wait before submitting again.",
-  "message": "Duplicate request prevented"
-}
-```
-
-**Bank Account Not Configured (400 Bad Request):**
-```json
-{
-  "error": "Bank account not configured. Please add bank account details first."
-}
-```
-
-**Amount Too Low (400 Bad Request):**
-```json
-{
-  "amount": ["Minimum withdrawal amount is ₦1,000.00"]
-}
-```
-
-**Frontend Implementation:**
-```javascript
-async function requestPayout(amount, bankDetails = null) {
-  const token = localStorage.getItem('access_token');
-  
-  const body = {
-    amount: amount
-  };
-  
-  // Optionally include bank details if not already saved
-  if (bankDetails) {
-    body.bank_account_number = bankDetails.accountNumber;
-    body.bank_name = bankDetails.bankName;
-    body.account_name = bankDetails.accountName;
-    body.bank_code = bankDetails.bankCode;
-  }
-  
-  const response = await fetch('http://localhost:8000/wallet/withdraw/', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  });
-  
-  const data = await response.json();
-  return data;
-}
-```
-
----
-
-### 2. Get Bank Account Details
-
-**Endpoint:** `GET /wallet/bank-account/`
-
-**Description:** Get saved bank account details (can be used to pre-fill payout form).
-
-**Authentication:** Required (JWT token, Organizer only)
-
-**Success Response (200 OK):**
-```json
-{
-  "bank_account_number": "0123456789",
-  "bank_name": "Access Bank",
-  "account_name": "John Doe",
-  "bank_code": "044",
-  "has_bank_account": true
-}
-```
-
----
-
-### 3. Update Bank Account Details
-
-**Endpoint:** `POST /wallet/bank-account/`
-
-**Description:** Save or update bank account details for future payout requests.
-
-**Authentication:** Required (JWT token, Organizer only)
-
-**Request Body:**
-```json
-{
-  "bank_account_number": "0123456789",
-  "bank_name": "Access Bank",
-  "account_name": "John Doe",
-  "bank_code": "044"
-}
-```
-
----
-
-## Admin Endpoints
-
-### 1. List All Payout Requests
-
-**Endpoint:** `GET /api/admin/payout-requests/`
-
-**Description:** Get all payout requests with pagination and filtering.
-
-**Authentication:** Required (Admin)
-
-**Query Parameters:**
-| Parameter | Type | Default | Max | Description |
-|-----------|------|---------|-----|-------------|
-| `page` | Integer | 1 | - | Page number |
-| `page_size` | Integer | 20 | 100 | Items per page |
-| `status` | String | null | - | Filter by status (`pending`, `approved`, `rejected`, `completed`) |
-
-**Example Request:**
-```
-GET /api/admin/payout-requests/?status=pending&page=1&page_size=20
-```
-
-**Success Response (200 OK):**
-```json
-{
-  "payout_requests": [
-    {
-      "request_id": "payout:ABC12-XYZ34",
-      "organizer_email": "organizer@example.com",
-      "organizer_name": "TechOrg Ltd",
-      "amount": "50000.00",
-      "current_wallet_balance": "75000.00",
-      "bank_account_number": "0123456789",
-      "bank_name": "GTBank",
-      "account_name": "TechOrg Limited",
-      "bank_code": "058",
-      "status": "pending",
-      "transfer_reference": null,
-      "admin_notes": null,
-      "created_at": "2026-01-19T18:00:00Z",
-      "updated_at": "2026-01-19T18:00:00Z",
-      "processed_at": null
-    }
-  ],
-  "pagination": {
-    "current_page": 1,
-    "total_pages": 3,
-    "total_count": 45,
-    "page_size": 20,
-    "has_next": true,
-    "has_previous": false
-  },
-  "filters": {
-    "status": "pending"
-  },
-  "message": "Payout requests retrieved successfully"
-}
-```
-
----
-
-### 2. Approve/Reject Payout Request
-
-**Endpoint:** `PATCH /api/admin/payout-requests/<request_id>/status/`
-
-**Description:** Approve or reject a payout request. When approved, debits wallet and creates Transaction record. Admin will transfer money manually (not via Paystack).
-
-**Authentication:** Required (Admin)
-
-**Path Parameters:**
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `request_id` | String | Payout request ID (e.g., `payout:ABC12-XYZ34`) |
-
-**Request Body:**
-```json
-{
-  "status": "approved",
-  "admin_notes": "Payment processed successfully"
-}
-```
-
-**Request Fields:**
-- `status` (required): `"approved"` or `"rejected"`
-- `admin_notes` (optional): Notes for approval/rejection
-
-**Success Response (200 OK):**
-```json
-{
-  "message": "Payout request approved successfully",
-  "request_id": "payout:ABC12-XYZ34",
-  "organizer_email": "organizer@example.com",
-  "organizer_name": "TechOrg Ltd",
-  "amount": "50000.00",
-  "status": "approved",
-  "transfer_reference": null
-}
-```
-
-**Error Responses:**
-
-**Invalid Status (400 Bad Request):**
-```json
-{
-  "error": "Cannot update payout request with status 'approved'"
-}
-```
-
-**Insufficient Balance (400 Bad Request):**
-```json
-{
-  "error": "Insufficient balance. Available: 30000.00, Requested: 50000.00"
-}
-```
-
-**Notes:**
-- Only `pending` payout requests can be updated
-- Approving a request:
-  - Debits organizer's wallet immediately
-  - Creates Transaction record with `pending` status
-  - Updates payout request status to `approved`
-  - **Admin must transfer money manually** to the organizer's bank account
-  - Admin can update Transaction status to `completed` after manual transfer using `PATCH /api/admin/withdrawals/<transaction_id>/status/`
-- Rejecting a request:
-  - Updates status to `rejected`
-  - Does NOT debit wallet
-  - Admin can add notes explaining rejection
-
----
-
-### 3. Mark Transaction as Completed
-
-**Endpoint:** `PATCH /api/admin/withdrawals/<transaction_id>/status/`
-
-**Description:** Mark a withdrawal transaction as completed after manual transfer. Also updates related PayoutRequest status to `completed`.
-
-**Authentication:** Required (Admin)
-
-**Path Parameters:**
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `transaction_id` | String | Transaction ID (e.g., `transaction:ABC12-XYZ34`) |
-
-**Request Body:**
-```json
-{
-  "status": "completed"
-}
-```
-
-**Valid Status Values:**
-- `completed` - Mark transaction as completed (after manual transfer)
-- `failed` - Mark transaction as failed (refunds wallet)
-
-**Success Response (200 OK):**
-```json
-{
-  "message": "Withdrawal approved successfully",
-  "transaction_id": "transaction:ABC12-XYZ34",
-  "status": "completed",
-  "amount": "50000.00"
-}
-```
-
-**Notes:**
-- Updates Transaction status to `completed`
-- Automatically updates related PayoutRequest status to `completed`
-- Sets `completed_at` timestamp
-- If status is `failed`, refunds amount back to wallet
-
----
-
-### 4. View Payout Transactions
-
-**Endpoint:** `GET /api/admin/withdrawals/`
-
-**Description:** Get all payout transactions (from approved payout requests).
-
-**Authentication:** Required (Admin)
-
-**Query Parameters:**
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `page` | Integer | 1 | Page number |
-| `page_size` | Integer | 20 | Items per page |
-| `status` | String | null | Filter by status (`pending`, `completed`, `failed`) |
-
-**Success Response (200 OK):**
-```json
-{
-  "withdrawals": [
-    {
-      "transaction_id": "transaction:XYZ12-ABC34",
-      "organizer_email": "organizer@example.com",
-      "organizer_name": "TechOrg Ltd",
-      "amount": "50000.00",
-      "status": "completed",
-      "bank_name": "GTBank",
-      "account_name": "TechOrg Limited",
-      "transfer_reference": "TRF_abc123def456",
-      "created_at": "2026-01-19T18:30:00Z",
-      "completed_at": "2026-01-19T18:35:00Z"
-    }
-  ],
-  "pagination": {
-    "current_page": 1,
-    "total_pages": 1,
-    "total_count": 1,
-    "page_size": 20,
-    "has_next": false,
-    "has_previous": false
-  },
-  "filters": {
-    "status": "completed"
-  },
-  "message": "Withdrawals retrieved successfully"
-}
-```
-
----
-
-### 5. Get Payout Request Notifications
-
-**Endpoint:** `GET /api/admin/notifications/payout-requests/`
-
-**Description:** Get payout request notifications for admin dashboard. Returns count of pending requests and recent requests.
-
-**Authentication:** Required (Admin)
-
-**Success Response (200 OK):**
-```json
-{
-  "pending_count": 5,
-  "has_pending": true,
-  "recent_requests": [
-    {
-      "request_id": "payout:ABC12-XYZ34",
-      "organizer_name": "TechOrg Ltd",
-      "organizer_email": "organizer@example.com",
-      "amount": 50000.00,
-      "created_at": "2026-01-19T18:00:00Z"
-    }
-  ],
-  "message": "Payout request notifications retrieved successfully"
-}
-```
-
-**Response Fields:**
-- `pending_count`: Total number of pending payout requests
-- `has_pending`: Boolean flag (true if count > 0)
-- `recent_requests`: Array of 5 most recent pending requests
-
-**Frontend Implementation:**
-```javascript
-async function getPayoutNotifications() {
-  const token = localStorage.getItem('admin_access_token');
-  
-  const response = await fetch(
-    'http://localhost:8000/api/admin/notifications/payout-requests/',
-    {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',
-      },
-    }
-  );
-  
-  const data = await response.json();
-  
-  // Show notification badge if has_pending is true
-  if (data.has_pending) {
-    showNotificationBadge(data.pending_count);
-  }
-  
-  return data;
-}
-```
-
----
-
-### 6. Dashboard Analytics (Updated)
-
-**Endpoint:** `GET /api/admin/dashboard/analytics/`
-
-**Description:** Get dashboard analytics including pending payout requests count.
-
-**Authentication:** Required (Admin)
-
-**Success Response (200 OK):**
-```json
-{
-  "analytics": {
-    "total_users": 150,
-    "total_students": 120,
-    "total_organisers": 30,
-    "total_events": 45,
-    "total_revenue": 125000.00,
-    "pending_payout_requests": 5
-  },
-  "message": "Dashboard analytics retrieved successfully"
-}
-```
-
-**New Field:**
-- `pending_payout_requests`: Number of pending payout requests requiring admin attention
-
----
-
-## Database Models
-
-### PayoutRequest Model
-
-**Fields:**
-- `request_id` (String, unique): Auto-generated ID (e.g., `payout:ABC12-XYZ34`)
-- `wallet` (ForeignKey): Reference to organizer's wallet
-- `amount` (Decimal): Requested payout amount
-- `current_wallet_balance` (Decimal): Wallet balance at time of request
-- `bank_account_number` (String): Bank account number
-- `bank_name` (String): Bank name
-- `account_name` (String): Account holder name
-- `bank_code` (String): Bank code (optional)
-- `status` (String): `pending`, `approved`, `rejected`, or `completed`
-- `transaction` (OneToOneField): Related Transaction (created when approved)
-- `transfer_reference` (String): Manual transfer reference (can be added by admin)
-- `admin_notes` (Text): Admin notes for approval/rejection
-- `created_at` (DateTime): Request creation timestamp
-- `updated_at` (DateTime): Last update timestamp
-- `processed_at` (DateTime): When request was processed
-
-**Status Flow:**
-```
-pending → approved → Transaction created (pending) → Admin transfers manually → 
-Admin marks Transaction completed → PayoutRequest → completed
-pending → rejected
-```
-
----
-
-## Email Notifications
-
-### Organizer Email
-
-Sent when organizer submits a payout request.
-
-**Subject:** `Payout Request Received - ₦{amount}`
-
-**Content:**
-- Confirmation that request was received
-- Request ID
-- Amount requested
-- Note that payment will be processed soon
-
-### Admin Email
-
-Sent to admin when organizer submits a payout request.
-
-**Subject:** `New Payout Request: ₦{amount} from {organizer_name}`
-
-**Content:**
-- Organizer name and email
-- Request ID
-- Amount requested
-- Current wallet balance
-- Link to admin panel
-
-**Admin Email Configuration:**
-The admin email is configured in System Settings (`support_email` field). Default: `support@radar.app`
-
----
-
-## Migration Guide
-
-### Running Migrations
-
-```bash
-python manage.py migrate wallet
-```
-
-This will create the `PayoutRequest` table.
-
-### Data Migration
-
-**No data migration needed** - existing withdrawal transactions remain unchanged. New payout requests will be created going forward.
-
-### Code Updates Required
-
-1. **Frontend:** Update withdrawal form to submit payout requests instead of expecting immediate processing
-2. **Frontend:** Update UI to show payout request status (pending, approved, rejected)
-3. **Admin Panel:** Add payout request management interface
-
----
-
-## Example Workflows
-
-### Workflow 1: Organizer Requests Payout with Saved Bank Details
-
-1. Organizer navigates to wallet page
-2. Clicks "Request Payout"
-3. Enters amount (e.g., ₦50,000)
-4. System validates:
-   - No duplicate request (same amount, same bank account within 1 hour)
-   - Total pending requests + new amount don't exceed balance
-   - Sufficient available balance
-5. System uses saved bank account details
-6. Payout request created with status `pending`
-7. Organizer receives confirmation email
-8. Admin receives notification email
-9. Admin sees notification in dashboard (pending count)
-10. Admin reviews request in admin panel
-11. Admin approves request
-12. Wallet debited immediately
-13. Transaction created with `pending` status
-14. PayoutRequest status → `approved`
-15. Admin transfers money manually to organizer's bank account
-16. Admin marks transaction as `completed` via `PATCH /api/admin/withdrawals/<transaction_id>/status/`
-17. Transaction status → `completed`
-18. PayoutRequest status → `completed` (automatically updated)
-19. Transaction appears in payout transactions list
-
-### Workflow 2: Organizer Requests Payout with New Bank Details
-
-1. Organizer navigates to wallet page
-2. Clicks "Request Payout"
-3. Enters amount and bank details
-4. System validates (same as Workflow 1)
-5. System saves bank details to wallet (if not already saved)
-6. Payout request created
-7. (Rest same as Workflow 1)
-
-### Workflow 3: Duplicate Request Prevention
-
-1. Organizer submits payout request for ₦5,000
-2. Organizer accidentally clicks submit again (or network retry)
-3. System detects duplicate (same amount, same bank account within 1 hour)
-4. Request rejected with error message
-5. Original request remains pending
-
-### Workflow 4: Multiple Pending Requests Validation
-
-1. Organizer has wallet balance: ₦10,000
-2. Organizer submits Request 1: ₦8,000 (pending)
-3. Organizer tries to submit Request 2: ₦5,000
-4. System calculates: ₦8,000 (pending) + ₦5,000 (new) = ₦13,000 > ₦10,000 (balance)
-5. Request 2 rejected with detailed error showing pending total
-6. Organizer can wait for Request 1 to be approved, or reduce amount
-
-### Workflow 5: Admin Rejects Payout Request
-
-1. Admin reviews payout request
-2. Admin rejects request (e.g., insufficient documentation)
-3. Admin adds rejection notes
-4. Payout request status updated to `rejected`
-5. Wallet balance remains unchanged
-6. Organizer can submit new request
-
-### Workflow 6: Admin Completes Manual Transfer
-
-1. Admin approves payout request
-2. Wallet debited, Transaction created with `pending` status
-3. Admin transfers money manually to organizer's bank account
-4. Admin marks transaction as completed: `PATCH /api/admin/withdrawals/<transaction_id>/status/` with `{"status": "completed"}`
-5. Transaction status → `completed`
-6. PayoutRequest status → `completed` (automatically updated)
-7. Both appear in payout transactions list
-
----
-
-## Security Considerations
-
-1. **Balance Validation:** Wallet balance is checked both when creating request and when approving
-2. **Multiple Pending Requests Validation:** Total pending requests are validated to prevent exceeding balance
-3. **Duplicate Prevention:** Prevents duplicate requests within 1 hour window
-4. **Race Condition Prevention:** Database locks prevent concurrent withdrawals
-5. **Admin Authorization:** Only admins can approve/reject requests
-6. **Audit Trail:** All admin actions are logged in audit logs
-7. **Email Verification:** Emails sent to verified organizer and admin addresses
-
----
-
-## Error Handling
-
-### Common Errors
-
-1. **Insufficient Balance**
-   - Checked at request creation
-   - Re-checked at approval (in case balance changed)
-   - Returns clear error message with available balance
-
-2. **Multiple Pending Requests Exceed Balance**
-   - Validates total pending requests + new amount
-   - Returns detailed error with pending total and available balance
-   - Helps organizer understand why request was rejected
-
-3. **Duplicate Request**
-   - Detects same amount + same bank account within 1 hour
-   - Returns clear error message
-   - Prevents accidental double-submission
-
-4. **Bank Account Not Configured**
-   - Organizer must provide bank details (either saved or in request)
-   - Clear error message guides organizer
-
-5. **Invalid Status Updates**
-   - Cannot update non-pending requests
-   - Clear error messages
-
----
-
-## Testing Checklist
-
-### Organizer Features
-- [ ] Organizer can request payout with saved bank details
-- [ ] Organizer can request payout with new bank details
-- [ ] Bank details are saved when provided in request
-- [ ] Duplicate request prevention works (same request within 1 hour)
-- [ ] Multiple pending requests validation works
-- [ ] Insufficient balance is caught at request creation
-- [ ] Error messages are clear and helpful
-
-### Admin Features
-- [ ] Admin can list all payout requests
-- [ ] Admin can filter payout requests by status
-- [ ] Admin can approve payout request
-- [ ] Admin can reject payout request
-- [ ] Admin can mark transaction as completed
-- [ ] Approved requests debit wallet
-- [ ] Approved requests create Transaction record
-- [ ] Rejected requests don't debit wallet
-- [ ] Transaction completion updates PayoutRequest status
-- [ ] Dashboard analytics shows pending count
-- [ ] Notifications endpoint returns pending requests
-
-### Validation & Security
-- [ ] Insufficient balance is caught at approval
-- [ ] Multiple pending requests validation prevents exceeding balance
-- [ ] Duplicate requests are prevented
-- [ ] Race conditions are prevented (database locks)
-- [ ] Only admins can approve/reject requests
-
-### Notifications
-- [ ] Email sent to organizer on request
-- [ ] Email sent to admin on request
-- [ ] Dashboard shows pending count
-- [ ] Notifications endpoint works correctly
-
-### Tracking
-- [ ] Payout transactions appear in withdrawals list
-- [ ] Audit logs created for admin actions
-- [ ] Status updates work correctly (pending → approved → completed)
-
----
-
-## API Summary
-
-### Organizer Endpoints
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| POST | `/wallet/withdraw/` | Organizer | Request payout (with duplicate & balance validation) |
-| GET | `/wallet/bank-account/` | Organizer | Get bank details |
-| POST | `/wallet/bank-account/` | Organizer | Update bank details |
-
-### Admin Endpoints
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| GET | `/api/admin/payout-requests/` | Admin | List payout requests |
-| PATCH | `/api/admin/payout-requests/<id>/status/` | Admin | Approve/reject request |
-| GET | `/api/admin/withdrawals/` | Admin | View payout transactions |
-| PATCH | `/api/admin/withdrawals/<id>/status/` | Admin | Mark transaction as completed |
-| GET | `/api/admin/notifications/payout-requests/` | Admin | Get payout request notifications |
-| GET | `/api/admin/dashboard/analytics/` | Admin | Dashboard analytics (includes pending count) |
-
----
-
-## Validation Features
-
-### 1. Duplicate Request Prevention
-- Prevents same request (same amount + same bank account) within 1 hour
-- Helps prevent accidental double-submission
-- Returns clear error message
-
-### 2. Multiple Pending Requests Validation
-- Validates total pending requests + new amount don't exceed balance
-- Returns detailed error with pending total and available balance
-- Helps organizers understand why request was rejected
-
-### 3. Balance Validation
-- Checks available balance at request creation
-- Re-checks balance at approval (in case it changed)
-- Prevents race conditions with database locks
-
-## Admin Notifications
-
-### Dashboard Integration
-- Dashboard analytics endpoint includes `pending_payout_requests` count
-- Admin can see pending count at a glance
-- Cached for 2 minutes for performance
-
-### Notifications Endpoint
-- Dedicated endpoint for payout request notifications
-- Returns pending count, has_pending flag, and recent 5 requests
-- Can be polled periodically for real-time updates
-- Useful for showing notification badges in admin UI
-
-## Support
-
-For issues or questions:
-- Check audit logs for admin actions
-- Review payout request status in admin panel
-- Check dashboard analytics for pending count
-- Use notifications endpoint for detailed pending requests
-- Verify wallet balance matches expectations
-
----
-
-**Last Updated:** January 19, 2026
-**Version:** 2.0.0
-
-**Recent Updates:**
-- Removed Paystack integration (manual transfers only)
-- Added duplicate request prevention
-- Added multiple pending requests validation
-- Added admin dashboard notifications
-- Updated transaction completion workflow

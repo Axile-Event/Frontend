@@ -136,35 +136,10 @@ export function formatNumber(value) {
 }
 
 /**
- * Generates a URL-friendly slug from event name using initials
- * Creates clean URLs like: /events/OMR (for "Outdoor Movie Rave")
- * @param {string} name - Event name
- * @returns {string} URL-friendly slug (initials in uppercase)
- */
-export function generateEventSlug(name) {
-  if (!name) return "";
-  
-  // Split the name into words and take the first letter of each
-  const words = name
-    .trim()
-    .replace(/[^\w\s]/g, "") // Remove special characters except spaces
-    .split(/\s+/) // Split by whitespace
-    .filter(word => word.length > 0); // Remove empty strings
-  
-  // Take the first letter of each word and join them
-  const initials = words
-    .map(word => word.charAt(0).toUpperCase())
-    .join("");
-  
-  return initials;
-}
-
-/**
- * Gets the event URL for sharing/linking
- * @param {string} name - Event name
+ * Gets the event URL for sharing/linking using event ID
+ * @param {string} eventId - Event ID
  * @returns {string} Full event URL path
  */
-export function getEventUrl(name) {
-  const slug = generateEventSlug(name);
-  return `/events/${slug}`;
+export function getEventUrl(eventId) {
+  return `/events/${eventId}`;
 }

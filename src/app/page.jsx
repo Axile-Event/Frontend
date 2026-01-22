@@ -12,7 +12,7 @@ import useAuthStore from "@/store/authStore";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import api from "@/lib/axios";
-import { getImageUrl, generateEventSlug } from "@/lib/utils";
+import { getImageUrl } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const LandingPage = () => {
@@ -248,7 +248,7 @@ const LandingPage = () => {
                   key={event.event_id}
                   variants={fadeInScale}
                 >
-                  <Link href={`/events/${generateEventSlug(event.name || event.event_name)}`}>
+                  <Link href={`/events/${event.event_id}`}>
                     <div className="group relative aspect-[4/5] overflow-hidden rounded-[2.5rem] bg-card border border-border hover:border-primary/50 transition-all duration-500 hover:shadow-2xl hover:shadow-primary/10">
                       {/* Image */}
                       <div className="absolute inset-0">

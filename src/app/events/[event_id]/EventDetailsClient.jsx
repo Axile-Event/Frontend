@@ -18,7 +18,7 @@ import { Loader2, MapPin, Calendar, Clock, Ticket, Info, Share2, Copy, Check, X,
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import useAuthStore from "@/store/authStore";
-import { getImageUrl, generateEventSlug } from "@/lib/utils";
+import { getImageUrl } from "@/lib/utils";
 import { EventDetailsSkeleton } from "@/components/skeletons";
 
 const EventDetailsClient = ({ event_id, initialEvent }) => {
@@ -41,15 +41,14 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
   // Set share URL on client side only to avoid hydration mismatch
   useEffect(() => {
     if (event) {
-      const slug = generateEventSlug(event.name);
-      setShareUrl(`${window.location.origin}/events/${slug}`);
+      // Use event ID for sharing
+      setShareUrl(`${window.location.origin}/events/${event.event_id}`);
     }
   }, [event]);
 
   const handleCopyLink = () => {
-    // Generate slug-based URL for sharing (initials format)
-    const eventSlug = event ? generateEventSlug(event.name) : "";
-    const link = `${window.location.origin}/events/${eventSlug}`;
+    // Use event ID for sharing
+    const link = `${window.location.origin}/events/${event?.event_id || eventId}`;
     navigator.clipboard.writeText(link).then(() => {
       setCopied(true);
       toast.success("Link copied to clipboard!");
@@ -83,13 +82,6 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
       if (!eventId) return;
 
       try {
-        // Only fetch if eventId looks like a real event ID (starts with "event:")
-        if (!eventId.startsWith("event:")) {
-          toast.error("Event not found");
-          setLoading(false);
-          return;
-        }
-        
         const response = await api.get(`/events/${eventId}/details/`);
         setEvent(response.data);
         
