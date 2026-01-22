@@ -145,10 +145,11 @@ const MyEvent = () => {
     }
   };
 
-  const handleCopyLink = (e, eventId, eventName) => {
+  const handleCopyLink = (e, event) => {
     e.stopPropagation();
-    // Use event ID for sharing
-    const link = `${window.location.origin}/events/${encodeURIComponent(eventId)}`;
+    // Use event_slug if available, fallback to event_id
+    const identifier = event.event_slug || event.event_id;
+    const link = `${window.location.origin}/events/${encodeURIComponent(identifier)}`;
     navigator.clipboard.writeText(link).then(() => {
       toast.success("Link copied to clipboard!");
     }).catch(() => {
@@ -348,7 +349,7 @@ const MyEvent = () => {
                     </div>
                     
                     <button
-                      onClick={(e) => ev.status === 'verified' ? handleCopyLink(e, id, ev.name) : e.stopPropagation()}
+                      onClick={(e) => ev.status === 'verified' ? handleCopyLink(e, ev) : e.stopPropagation()}
                       disabled={ev.status !== 'verified'}
                       className={`flex items-center gap-1.5 px-2.5 py-1.5 border rounded-lg transition-all font-medium ${
                         ev.status === 'verified'
