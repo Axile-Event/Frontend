@@ -63,16 +63,16 @@ function getEventImage(event) {
 // Generate dynamic metadata for social sharing
 export async function generateMetadata({ params }) {
   try {
-    const { event_id } = await params;
+  const { event_id } = await params;
     const identifier = decodeURIComponent(event_id);
     const event = await getEventById(identifier);
-    
-    if (!event) {
-      return {
-        title: "Event Not Found | Axile",
-        description: "The event you're looking for could not be found.",
-      };
-    }
+  
+  if (!event) {
+    return {
+      title: "Event Not Found | Axile",
+      description: "The event you're looking for could not be found.",
+    };
+  }
 
     const eventName = event.name || event.event_name || "Event";
     
@@ -88,49 +88,49 @@ export async function generateMetadata({ params }) {
       description = `Get tickets for ${eventName} on Axile - Your event ticketing platform.`;
     }
     
-    const title = `${eventName} | Axile`;
+  const title = `${eventName} | Axile`;
     const imageUrl = getEventImage(event);
     const eventDate = event.event_date_time || event.date || event.event_date;
-    
-    // Use event_slug for canonical URL if available, fallback to event_id
+  
+  // Use event_slug for canonical URL if available, fallback to event_id
     const canonicalIdentifier = event.event_slug || event.event_id || identifier;
     const canonicalUrl = `${SITE_URL}/events/${encodeURIComponent(canonicalIdentifier)}`;
 
-    return {
-      title,
+  return {
+    title,
+    description,
+    alternates: {
+      canonical: canonicalUrl,
+    },
+    openGraph: {
+      title: eventName,
       description,
-      alternates: {
-        canonical: canonicalUrl,
-      },
-      openGraph: {
-        title: eventName,
-        description,
-        type: "website",
-        siteName: "Axile",
-        url: canonicalUrl,
+      type: "website",
+      siteName: "Axile",
+      url: canonicalUrl,
         locale: "en_US",
-        ...(imageUrl && {
-          images: [
-            {
-              url: imageUrl,
-              width: 1200,
-              height: 630,
-              alt: eventName,
-            },
-          ],
-        }),
-      },
-      twitter: {
-        card: imageUrl ? "summary_large_image" : "summary",
-        title: eventName,
-        description,
-        ...(imageUrl && { images: [imageUrl] }),
-      },
-      other: {
-        ...(event.location && { "og:locality": event.location }),
-        ...(eventDate && { "event:start_time": eventDate }),
-      },
-    };
+      ...(imageUrl && {
+        images: [
+          {
+            url: imageUrl,
+            width: 1200,
+            height: 630,
+            alt: eventName,
+          },
+        ],
+      }),
+    },
+    twitter: {
+      card: imageUrl ? "summary_large_image" : "summary",
+      title: eventName,
+      description,
+      ...(imageUrl && { images: [imageUrl] }),
+    },
+    other: {
+      ...(event.location && { "og:locality": event.location }),
+      ...(eventDate && { "event:start_time": eventDate }),
+    },
+  };
   } catch (error) {
     console.error("Error generating metadata:", error);
     // Return default metadata if generation fails
