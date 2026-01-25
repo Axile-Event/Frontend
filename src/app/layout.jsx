@@ -22,21 +22,21 @@ const geistMono = Geist_Mono({
 
 export const metadata = {
   title: {
-    default: "Axile - Modern Event Ticketing Platform",
+    default: "Axile | Event Ticketing and Management Platform for Nigeria",
     template: "%s | Axile",
   },
-  description: "Discover and book tickets for the hottest events. Axile is your go-to platform for seamless event management and ticket purchasing.",
-  keywords: ["events", "tickets", "event management", "ticket booking", "concerts", "festivals", "campus events"],
+  description: "Discover popular events or host your own. Axile provides secure digital ticketing, event analytics, and seamless payments for organizers across Nigeria.",
+  keywords: ["event ticketing Nigeria", "buy tickets online Nigeria", "event management software", "Lagos events", "Nigerian ticketing platform", "secure event payments"],
   authors: [{ name: "Axile Team" }],
   creator: "Axile",
   publisher: "Axile",
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://Axile-events.app'),
+  metadataBase: new URL('https://axile.ng'),
   openGraph: {
     type: "website",
-    locale: "en_US",
-    url: "/",
-    title: "Axile - Modern Event Ticketing Platform",
-    description: "Discover and book tickets for the hottest events. Axile is your go-to platform for seamless event management and ticket purchasing.",
+    locale: "en_NG",
+    url: "https://axile.ng",
+    title: "Axile | Sell and Discover Events in Nigeria",
+    description: "The unified platform for Nigerian events. Manage ticket sales, track attendance, and discover the best experiences around you.",
     siteName: "Axile",
     images: [
       {
@@ -49,8 +49,8 @@ export const metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Axile - Modern Event Ticketing Platform",
-    description: "Discover and book tickets for the hottest events.",
+    title: "Axile | Modern Event Ticketing for Nigeria",
+    description: "Create events and sell tickets securely. Discover and book experiences across Nigeria with the Axile event platform.",
     images: ["/og-image.png"],
   },
   icons: {
@@ -58,7 +58,6 @@ export const metadata = {
     apple: "/Axile logo.png",
   },
   manifest: "/site.webmanifest",
-
 };
 
 export const viewport = {
@@ -78,6 +77,24 @@ export default function RootLayout({ children }) {
         suppressHydrationWarning
         className={`${plusJakartaSans.variable} ${geistMono.variable} antialiased bg-background text-foreground flex flex-col min-h-screen`}
       >
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebApplication",
+              "name": "Axile",
+              "url": "https://axile.ng",
+              "description": "A comprehensive event management and ticketing platform designed for Nigeria, enabling organizers to host events and attendees to book tickets securely.",
+              "applicationCategory": "BusinessApplication",
+              "operatingSystem": "Web",
+              "areaServed": {
+                "@type": "Country",
+                "name": "Nigeria"
+              }
+            })
+          }}
+        />
         <GoogleAuthProvider>
           <ThemeProvider
             attribute="class"
