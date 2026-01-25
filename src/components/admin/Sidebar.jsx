@@ -127,13 +127,11 @@ export function AdminSidebar({ className }) {
     )}>
       <div className="p-5 border-b border-border/40">
         <Link href="/lighthouse/dashboard" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
-          <div className="w-8 h-8 rounded-lg bg-foreground flex items-center justify-center">
-            <span className="text-background font-bold text-sm">A</span>
-          </div>
-          <div>
-            <h1 className="text-sm font-semibold text-foreground">Axile</h1>
-            <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Admin Console</p>
-          </div>
+          <img 
+            src="/axile frame 2 (1).png" 
+            alt="Axile Admin" 
+            className="h-7 w-auto object-contain"
+          />
         </Link>
       </div>
 

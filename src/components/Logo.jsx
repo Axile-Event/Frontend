@@ -1,14 +1,28 @@
 import React from "react";
-import { Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const Logo = ({ className, iconSize = "h-6 w-6", textSize = "text-xl", showText = true }) => {
+const Logo = ({
+  className,
+  iconSize = "h-8 w-8",
+  textSize = "text-xl",
+  showText = true,
+}) => {
   return (
     <div className={cn("flex items-center gap-2 text-foreground", className)}>
-      <div className="flex items-center justify-center">
-        <Zap className={cn("fill-current", iconSize)} />
-      </div>
-      {showText && <span className={cn("font-bold tracking-tight", textSize)}>Axile</span>}
+      {showText ? (
+        <img
+          src="/axile frame 2 (1).png"
+          alt="Axile"
+          className={cn("h-8 w-auto object-contain", className)}
+          style={{ height: "32px" }}
+        />
+      ) : (
+        <img
+          src="/Axile logo.png"
+          alt="Axile"
+          className={cn("object-contain", iconSize)}
+        />
+      )}
     </div>
   );
 };
