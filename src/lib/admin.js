@@ -35,6 +35,7 @@ export const adminService = {
   },
   getEventDetails: async (eventId) => {
     // 1. Fetch public details (rich content: description, images, etc.)
+    // This now includes tickets_sold and total_revenue from the backend
     const publicResponse = await api.get(`/events/${eventId}/details/`);
     const publicData = publicResponse.data;
 
@@ -78,6 +79,10 @@ export const adminService = {
       // Ensure we have an ID for fetching user details if needed
       organizer:
         adminData.organizer || adminData.organizer_id || publicData.organizer,
+      
+      // Use ticket statistics from backend (now included in publicData)
+      tickets_sold: publicData.tickets_sold || 0,
+      revenue: publicData.total_revenue || 0, // Backend returns 'total_revenue', frontend expects 'revenue'
     };
   },
   updateEventStatus: async (eventId, status) => {

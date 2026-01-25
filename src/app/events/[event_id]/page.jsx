@@ -4,28 +4,68 @@ import EventDetailsClient from "./EventDetailsClient";
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://radar-ufvb.onrender.com/";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.axile.ng";
 
-// Helper function to fetch event data server-side by event ID
-async function getEventById(eventId) {
+// Helper function to fetch event data server-side by event ID or slug
+async function getEventById(identifier) {
   try {
-    const decodedId = decodeURIComponent(eventId);
+    const decodedId = decodeURIComponent(identifier);
     
-    const res = await fetch(`${API_BASE_URL}events/${decodedId}/details/`, {
+    // Ensure the API URL doesn't have double slashes
+    const apiUrl = `${API_BASE_URL.replace(/\/$/, '')}/events/${decodedId}/details/`;
+    
+    const res = await fetch(apiUrl, {
       next: { revalidate: 60 },
+      headers: {
+        'Accept': 'application/json',
+      },
     });
     
-    if (!res.ok) return null;
-    return await res.json();
+    if (!res.ok) {
+      console.error(`Failed to fetch event: ${res.status} ${res.statusText}`);
+      return null;
+    }
+    
+    const data = await res.json();
+    return data;
   } catch (error) {
     console.error("Error fetching event:", error);
     return null;
   }
 }
 
+// Helper function to get event image from various possible fields
+function getEventImage(event) {
+  const imageFields = [
+    event?.image,
+    event?.event_image,
+    event?.cover_image,
+    event?.banner_image,
+  ];
+  
+  for (const imageField of imageFields) {
+    if (imageField) {
+      const imageUrl = getImageUrl(imageField);
+      if (imageUrl) {
+        // Ensure absolute URL for Open Graph
+        if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
+          return imageUrl;
+        }
+        // If relative URL, make it absolute using SITE_URL
+        return imageUrl.startsWith('/') 
+          ? `${SITE_URL}${imageUrl}` 
+          : `${SITE_URL}/${imageUrl}`;
+      }
+    }
+  }
+  
+  return null;
+}
+
 // Generate dynamic metadata for social sharing
 export async function generateMetadata({ params }) {
+  try {
   const { event_id } = await params;
-  const eventId = decodeURIComponent(event_id);
-  const event = await getEventById(eventId);
+    const identifier = decodeURIComponent(event_id);
+    const event = await getEventById(identifier);
   
   if (!event) {
     return {
@@ -34,17 +74,27 @@ export async function generateMetadata({ params }) {
     };
   }
 
-  const eventName = event.name || event.event_name;
+    const eventName = event.name || event.event_name || "Event";
+    
+    // Clean and truncate description
+    let description = event.description || "";
+    // Remove HTML tags if present
+    description = description.replace(/<[^>]*>/g, "").trim();
+    // Truncate to 160 characters for meta description
+    if (description.length > 160) {
+      description = description.substring(0, 157) + "...";
+    }
+    if (!description) {
+      description = `Get tickets for ${eventName} on Axile - Your event ticketing platform.`;
+    }
+    
   const title = `${eventName} | Axile`;
-  const description = event.description 
-    ? event.description.substring(0, 160) + (event.description.length > 160 ? "..." : "")
-    : `Get tickets for ${eventName} on Axile - Your event ticketing platform.`;
-  const imageUrl = event.image ? getImageUrl(event.image) : null;
-  const eventDate = event.event_date_time || event.date;
+    const imageUrl = getEventImage(event);
+    const eventDate = event.event_date_time || event.date || event.event_date;
   
   // Use event_slug for canonical URL if available, fallback to event_id
-  const identifier = event.event_slug || event.event_id || eventId;
-  const canonicalUrl = `${SITE_URL}/events/${identifier}`;
+    const canonicalIdentifier = event.event_slug || event.event_id || identifier;
+    const canonicalUrl = `${SITE_URL}/events/${encodeURIComponent(canonicalIdentifier)}`;
 
   return {
     title,
@@ -58,6 +108,7 @@ export async function generateMetadata({ params }) {
       type: "website",
       siteName: "Axile",
       url: canonicalUrl,
+        locale: "en_US",
       ...(imageUrl && {
         images: [
           {
@@ -80,13 +131,21 @@ export async function generateMetadata({ params }) {
       ...(eventDate && { "event:start_time": eventDate }),
     },
   };
+  } catch (error) {
+    console.error("Error generating metadata:", error);
+    // Return default metadata if generation fails
+    return {
+      title: "Event | Axile",
+      description: "Discover and book tickets for events on Axile.",
+    };
+  }
 }
 
 // Server Component - renders the client component
 export default async function Page({ params }) {
   const { event_id } = await params;
-  const eventId = decodeURIComponent(event_id);
-  const initialEvent = await getEventById(eventId);
+  const identifier = decodeURIComponent(event_id);
+  const initialEvent = await getEventById(identifier);
   
-  return <EventDetailsClient event_id={eventId} initialEvent={initialEvent} />;
+  return <EventDetailsClient event_id={identifier} initialEvent={initialEvent} />;
 }
