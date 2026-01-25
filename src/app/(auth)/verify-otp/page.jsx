@@ -149,8 +149,8 @@ const VerifyOTPContent = () => {
         transition={{ duration: 0.5, ease: "easeOut" }}
         className="w-full lg:w-1/2 flex flex-col items-center justify-center px-6 py-12 lg:px-16 xl:px-24 overflow-y-auto">
         <div className="w-full max-w-md">
-          <div className="flex justify-center mb-8">
-            <Logo textSize="text-3xl" iconSize="h-8 w-8" />
+          <div className="flex justify-center mb-4">
+            <Logo textSize="text-3xl" iconSize="h-38 w-auto" />
           </div>
 
           <h1 className="text-4xl font-bold text-white mb-2 text-center">

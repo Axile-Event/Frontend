@@ -42,7 +42,7 @@ const OrganizerHeader = () => {
         <div className="flex items-center gap-2">
           {/* Logo */}
           <Link href="/">
-            <Logo className="text-white" textSize="text-lg" iconSize="h-5 w-5" />
+            <Logo  iconSize="h-18 w-auto" scale="scale-[2]" className="origin-left items-center"/>
           </Link>
         </div>
 

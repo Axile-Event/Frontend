@@ -199,13 +199,8 @@ const LoginContent = () => {
         className="w-full lg:w-1/2 flex flex-col items-center justify-center px-6 py-8 md:py-12 lg:px-16 xl:px-24 overflow-y-auto"
       >
         <div className="w-full max-w-md">
-          <div className="hidden lg:flex justify-center mb-6 md:mb-8">
-            <Logo
-              href="/"
-              textColor="white"
-              textSize="text-2xl md:text-3xl"
-              iconSize="h-6 w-6 md:h-8 md:w-8"
-            />
+          <div className="hidden lg:flex justify-center mb-4">
+            <Logo href="/" iconSize="h-16 w-auto" />
           </div>
 
           <h1 className="text-2xl md:text-4xl font-bold text-white mb-2 text-center">

@@ -46,7 +46,7 @@ const Footer = () => {
           {/* Brand Column */}
           <div className="lg:col-span-2 space-y-6">
             <Link href="/" className="inline-block">
-              <Logo textSize="text-2xl" iconSize="h-8 w-8" />
+              <Logo />
             </Link>
             <p className="text-muted-foreground text-base max-w-xs leading-relaxed">
               Empowering event organizers and attendees with a seamless, 

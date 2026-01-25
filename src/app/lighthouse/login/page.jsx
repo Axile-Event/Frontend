@@ -58,11 +58,11 @@ export default function AdminLoginPage() {
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-md">
-        <div className="flex justify-center mb-8">
+        <div className="flex justify-center mb-4">
           <Logo
             href="/"
             textSize="text-3xl"
-            iconSize="h-8 w-8"
+            iconSize="h-38 w-auto"
             className="text-foreground"
           />
         </div>

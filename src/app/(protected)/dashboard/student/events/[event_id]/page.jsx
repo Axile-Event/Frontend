@@ -14,9 +14,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select-component";
-import { Loader2, MapPin, Calendar, Clock, Ticket, Info, CheckCircle2, Share2, Copy, Check } from "lucide-react";
+import { Loader2, MapPin, Calendar, Clock, Ticket, Info, CheckCircle2, Share2, Copy, Check, X, Maximize2 } from "lucide-react";
 import toast from "react-hot-toast";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { getImageUrl } from "@/lib/utils";
 import { EventDetailsSkeleton } from "@/components/skeletons";
 
@@ -36,6 +36,7 @@ const EventDetailsPage = () => {
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [copied, setCopied] = useState(false);
   const [shareUrl, setShareUrl] = useState("");
+  const [isImageExpanded, setIsImageExpanded] = useState(false);
 
   // Set share URL on client side only to avoid hydration mismatch
   useEffect(() => {
@@ -177,13 +178,23 @@ const EventDetailsPage = () => {
   return (
     <div className="max-w-5xl mx-auto space-y-6 md:space-y-8 pb-20">
       {/* Hero Section */}
-      <div className="relative w-full h-[200px] md:h-[400px] rounded-xl md:rounded-2xl overflow-hidden bg-muted">
+      <div 
+        className="relative w-full h-[200px] md:h-[400px] rounded-xl md:rounded-2xl overflow-hidden bg-muted cursor-pointer group"
+        onClick={() => event.image && setIsImageExpanded(true)}
+      >
         {event.image ? (
-          <img 
-            src={getImageUrl(event.image)} 
-            alt={event.name} 
-            className="w-full h-full object-cover"
-          />
+          <>
+            <img 
+              src={getImageUrl(event.image)} 
+              alt={event.name} 
+              className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+            />
+            <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <div className="bg-white/20 backdrop-blur-md p-3 rounded-full blur-none">
+                <Maximize2 className="h-6 w-6 text-white" />
+              </div>
+            </div>
+          </>
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-secondary">
             <Calendar className="h-12 w-12 md:h-20 md:w-20 text-muted-foreground/50" />
@@ -267,7 +278,7 @@ const EventDetailsPage = () => {
                                 </span>
                                 <span className="text-xs font-bold text-white">₦{(parseFloat(cat.price) || 0).toLocaleString()}</span>
                               </div>
-                              {cat.description && <p className="text-[10px] text-gray-500">{cat.description}</p>}
+                              {cat.description && <p className="text-[12px] text-white">{cat.description}</p>}
                               {cat.is_sold_out && <span className="text-[10px] text-rose-500 font-bold uppercase mt-1">Sold Out</span>}
                             </button>
                           ))}
@@ -376,6 +387,45 @@ const EventDetailsPage = () => {
               </div>
             </div>
       </div>
+
+      {/* Image Lightbox */}
+      <AnimatePresence>
+        {isImageExpanded && event.image && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 p-4 md:p-10"
+            onClick={() => setIsImageExpanded(false)}
+          >
+            <motion.button
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="absolute top-5 right-5 z-[101] p-2 bg-white/10 hover:bg-white/20 rounded-full backdrop-blur-md transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                setIsImageExpanded(false);
+              }}
+            >
+              <X className="h-6 w-6 text-white" />
+            </motion.button>
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: "spring", damping: 25, stiffness: 300 }}
+              className="relative max-w-7xl max-h-full overflow-hidden rounded-lg md:rounded-2xl shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <img
+                src={getImageUrl(event.image)}
+                alt={event.name}
+                className="w-full h-auto max-h-[90vh] object-contain"
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

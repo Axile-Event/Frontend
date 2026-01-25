@@ -122,8 +122,8 @@ export default function Sidebar() {
 
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex flex-col w-64 h-screen bg-black border-r border-gray-900 text-white px-6 py-8 fixed left-0 top-0">
-        <div className="mb-8 flex items-center px-2">
-          <Logo className="text-white" textSize="text-2xl" />
+        <div className="mb-4 flex items-center px-2">
+          <Logo  iconSize="h-18 w-auto" scale="scale-[2]" className="origin-left" />
         </div>
         <nav className="flex-1 flex flex-col gap-4">
           {OrganizationDashboardNavLinks.map((link) => (

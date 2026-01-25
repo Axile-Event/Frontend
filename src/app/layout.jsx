@@ -54,8 +54,8 @@ export const metadata = {
     images: ["/og-image.png"],
   },
   icons: {
-    icon: "/Axile logo.png",
-    apple: "/Axile logo.png",
+    icon: "/axile-logo.png",
+    apple: "/apple-touch-icon.png",
   },
   manifest: "/site.webmanifest",
 };

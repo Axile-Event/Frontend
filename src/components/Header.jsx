@@ -72,8 +72,8 @@ const Header = () => {
       <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-md">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           {/* Logo */}
-          <Link href="/" onClick={closeMenu}>
-            <Logo />
+          <Link href="/" onClick={closeMenu} className="flex items-center">
+            <Logo iconSize="h-18 w-auto" scale="scale-[2]" className="origin-left"/>
           </Link>
 
           <nav className="hidden md:flex items-center gap-6">
