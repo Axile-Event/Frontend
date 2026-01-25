@@ -3,7 +3,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Twitter, Instagram, Linkedin, Github, ChevronRight } from 'lucide-react';
+import { Twitter, Instagram, Linkedin, Music2, ChevronRight } from 'lucide-react';
 import Logo from './Logo';
 
 const Footer = () => {
@@ -30,9 +30,9 @@ const Footer = () => {
 
   const socialLinks = [
     { icon: Twitter, href: 'https://twitter.com', label: 'Twitter' },
-    { icon: Instagram, href: 'https://instagram.com', label: 'Instagram' },
+    { icon: Instagram, href: 'https://www.instagram.com/axile.ng', label: 'Instagram' },
     { icon: Linkedin, href: 'https://linkedin.com', label: 'LinkedIn' },
-    { icon: Github, href: 'https://github.com', label: 'GitHub' },
+    { icon: Music2, href: 'https://vm.tiktok.com/ZSHoKr9Gebx6p-cnxUo/', label: 'TikTok' },
   ];
 
   return (
