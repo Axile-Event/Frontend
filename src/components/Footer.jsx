@@ -32,7 +32,7 @@ const Footer = () => {
     { icon: Twitter, href: 'https://twitter.com', label: 'Twitter' },
     { icon: Instagram, href: 'https://www.instagram.com/axile.ng', label: 'Instagram' },
     { icon: Linkedin, href: 'https://linkedin.com', label: 'LinkedIn' },
-    { icon: Music2, href: 'https://vm.tiktok.com/ZSHoKr9Gebx6p-cnxUo/', label: 'TikTok' },
+    { icon: Music2, href: 'https://www.tiktok.com/@axile.ng', label: 'TikTok' },
   ];
 
   return (
