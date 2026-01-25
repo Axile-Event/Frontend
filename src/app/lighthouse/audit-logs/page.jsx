@@ -113,8 +113,8 @@ export default function AuditLogsPage() {
               <tr className="border-b border-border/40">
                 <th className="text-left p-4 text-xs font-medium text-muted-foreground uppercase tracking-wide">Admin</th>
                 <th className="text-left p-4 text-xs font-medium text-muted-foreground uppercase tracking-wide">Action</th>
-                <th className="text-left p-4 text-xs font-medium text-muted-foreground uppercase tracking-wide hidden md:table-cell">Target</th>
-                <th className="text-left p-4 text-xs font-medium text-muted-foreground uppercase tracking-wide hidden lg:table-cell">Details</th>
+                <th className="text-left p-4 text-xs font-medium text-muted-foreground uppercase tracking-wide">Target</th>
+                <th className="text-left p-4 text-xs font-medium text-muted-foreground uppercase tracking-wide">Details</th>
                 <th className="text-right p-4 text-xs font-medium text-muted-foreground uppercase tracking-wide">Time</th>
               </tr>
             </thead>
@@ -135,13 +135,13 @@ export default function AuditLogsPage() {
                     <td className="p-4">
                       <ActionBadge action={log.action} />
                     </td>
-                    <td className="p-4 hidden md:table-cell">
+                    <td className="p-4">
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-foreground">{log.target_type}</p>
                         <p className="text-xs text-muted-foreground font-mono truncate max-w-[120px]">{log.target_id}</p>
                       </div>
                     </td>
-                    <td className="p-4 hidden lg:table-cell max-w-[280px]">
+                    <td className="p-4 max-w-[280px]">
                       <pre className="text-[10px] text-muted-foreground bg-muted/30 p-2 rounded overflow-x-auto max-h-16">
                         {JSON.stringify(log.details, null, 2)}
                       </pre>
