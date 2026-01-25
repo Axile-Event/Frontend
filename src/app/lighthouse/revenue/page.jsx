@@ -402,11 +402,11 @@ export default function RevenuePage() {
                       <tr className="border-b border-border/40">
                         <th className="text-left pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Transaction</th>
                         <th className="text-left pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Buyer</th>
-                        <th className="text-left pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide hidden md:table-cell">Event</th>
-                        <th className="text-left pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Amount</th>
-                        <th className="text-left pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide hidden lg:table-cell">Platform Fee</th>
-                        <th className="text-left pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Status</th>
-                        <th className="text-right pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide hidden xl:table-cell">Date</th>
+                        <th className="text-left pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide border-b border-border/40">Event</th>
+                        <th className="text-left pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide border-b border-border/40">Amount</th>
+                        <th className="text-left pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide border-b border-border/40">Platform Fee</th>
+                        <th className="text-left pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide border-b border-border/40">Status</th>
+                        <th className="text-right pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide border-b border-border/40">Date</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border/40">
@@ -426,7 +426,7 @@ export default function RevenuePage() {
                               <p className="text-xs text-muted-foreground truncate max-w-[120px]">{txn.user_email || '—'}</p>
                             </div>
                           </td>
-                          <td className="py-3 hidden md:table-cell">
+                          <td className="py-3">
                             <div className="min-w-0">
                               <p className="text-sm font-medium text-foreground truncate max-w-[150px]">{txn.event_name || '—'}</p>
                               <p className="text-xs text-muted-foreground">{txn.category_name || 'Standard'}</p>
@@ -435,13 +435,13 @@ export default function RevenuePage() {
                           <td className="py-3">
                             <p className="text-sm font-semibold text-foreground">{formatCurrency(txn.amount || 0)}</p>
                           </td>
-                          <td className="py-3 hidden lg:table-cell">
+                          <td className="py-3">
                             <p className="text-sm text-emerald-600 font-medium">{formatCurrency(txn.platform_fee || 0)}</p>
                           </td>
                           <td className="py-3">
                             <StatusBadge status={txn.status || 'pending'} />
                           </td>
-                          <td className="py-3 text-right hidden xl:table-cell">
+                          <td className="py-3 text-right">
                             <p className="text-sm text-muted-foreground">
                               {txn.created_at ? new Date(txn.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
                             </p>
@@ -500,10 +500,10 @@ export default function RevenuePage() {
                       <tr className="border-b border-border/40">
                         <th className="text-left pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Transaction</th>
                         <th className="text-left pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Organizer</th>
-                        <th className="text-left pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide hidden md:table-cell">Bank</th>
+                        <th className="text-left pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Bank</th>
                         <th className="text-left pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Amount</th>
                         <th className="text-left pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Status</th>
-                        <th className="text-right pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide hidden lg:table-cell">Date</th>
+                        <th className="text-right pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Date</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border/40">
@@ -520,7 +520,7 @@ export default function RevenuePage() {
                               <p className="text-xs text-muted-foreground truncate max-w-[120px]">{withdrawal.organizer_email || '—'}</p>
                             </div>
                           </td>
-                          <td className="py-3 hidden md:table-cell">
+                          <td className="py-3">
                             <div className="min-w-0">
                               <p className="text-sm font-medium text-foreground">{withdrawal.bank_name || '—'}</p>
                               <p className="text-xs text-muted-foreground">{withdrawal.account_name || '—'}</p>
@@ -532,7 +532,7 @@ export default function RevenuePage() {
                           <td className="py-3">
                             <StatusBadge status={withdrawal.status || 'pending'} />
                           </td>
-                          <td className="py-3 text-right hidden lg:table-cell">
+                          <td className="py-3 text-right">
                             <p className="text-sm text-muted-foreground">
                               {withdrawal.created_at ? new Date(withdrawal.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—'}
                             </p>

@@ -94,7 +94,7 @@ export default function OrganizationsPage() {
           <CardTitle className="text-base">Registered Organizations ({organizers.length})</CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <div className="border-t">
+          <div className="border-t overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead className="bg-muted/40 text-muted-foreground text-xs uppercase tracking-wide">
                 <tr>

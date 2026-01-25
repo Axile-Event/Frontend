@@ -184,8 +184,8 @@ export default function EventsPage() {
             <thead>
               <tr className="border-b border-border/40">
                 <th className="text-left p-4 text-xs font-medium text-muted-foreground uppercase tracking-wide">Event</th>
-                <th className="text-left p-4 text-xs font-medium text-muted-foreground uppercase tracking-wide hidden md:table-cell">Organizer</th>
-                <th className="text-left p-4 text-xs font-medium text-muted-foreground uppercase tracking-wide hidden lg:table-cell">Date & Location</th>
+                <th className="text-left p-4 text-xs font-medium text-muted-foreground uppercase tracking-wide">Organizer</th>
+                <th className="text-left p-4 text-xs font-medium text-muted-foreground uppercase tracking-wide">Date & Location</th>
                 <th className="text-left p-4 text-xs font-medium text-muted-foreground uppercase tracking-wide">Status</th>
                 <th className="text-right p-4 text-xs font-medium text-muted-foreground uppercase tracking-wide">Actions</th>
               </tr>
@@ -219,12 +219,12 @@ export default function EventsPage() {
                         </div>
                       </div>
                     </td>
-                    <td className="p-4 hidden md:table-cell">
+                    <td className="p-4">
                       <p className="text-sm text-muted-foreground truncate max-w-[180px]">
                         {event.organisation_name}
                       </p>
                     </td>
-                    <td className="p-4 hidden lg:table-cell">
+                    <td className="p-4">
                       <div className="space-y-1">
                         <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                           <Calendar className="h-3.5 w-3.5 shrink-0" />

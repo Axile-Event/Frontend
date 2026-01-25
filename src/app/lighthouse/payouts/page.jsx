@@ -361,11 +361,11 @@ export default function PayoutsPage() {
                 <thead>
                   <tr className="border-b border-border/40">
                     <th className="text-left pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Organizer</th>
-                    <th className="text-left pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide hidden md:table-cell">Bank Details</th>
+                    <th className="text-left pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Bank Details</th>
                     <th className="text-left pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Amount</th>
-                    <th className="text-left pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide hidden lg:table-cell">Wallet Balance</th>
+                    <th className="text-left pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Wallet Balance</th>
                     <th className="text-left pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Status</th>
-                    <th className="text-right pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide hidden xl:table-cell">Date</th>
+                    <th className="text-right pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Date</th>
                     <th className="text-right pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Actions</th>
                   </tr>
                 </thead>
@@ -378,7 +378,7 @@ export default function PayoutsPage() {
                           <p className="text-xs text-muted-foreground truncate max-w-[120px]">{request.organizer_email || '—'}</p>
                         </div>
                       </td>
-                      <td className="py-3 hidden md:table-cell">
+                      <td className="py-3">
                         <div className="min-w-0">
                           <p className="text-sm font-medium text-foreground">{request.bank_name || '—'}</p>
                           <p className="text-xs text-muted-foreground">{request.account_name || '—'}</p>
@@ -388,13 +388,13 @@ export default function PayoutsPage() {
                       <td className="py-3">
                         <p className="text-sm font-semibold text-foreground">{formatCurrency(request.amount || 0)}</p>
                       </td>
-                      <td className="py-3 hidden lg:table-cell">
+                      <td className="py-3">
                         <p className="text-sm text-muted-foreground">{formatCurrency(request.current_wallet_balance || 0)}</p>
                       </td>
                       <td className="py-3">
                         <StatusBadge status={request.status || 'pending'} />
                       </td>
-                      <td className="py-3 text-right hidden xl:table-cell">
+                      <td className="py-3 text-right">
                         <p className="text-sm text-muted-foreground">
                           {request.created_at ? new Date(request.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
                         </p>

@@ -112,9 +112,9 @@ export default function TicketsPage() {
               <tr className="border-b border-border/40">
                 <th className="text-left p-4 text-xs font-medium text-muted-foreground uppercase tracking-wide">Ticket ID</th>
                 <th className="text-left p-4 text-xs font-medium text-muted-foreground uppercase tracking-wide">Event</th>
-                <th className="text-left p-4 text-xs font-medium text-muted-foreground uppercase tracking-wide hidden md:table-cell">Attendee</th>
+                <th className="text-left p-4 text-xs font-medium text-muted-foreground uppercase tracking-wide">Attendee</th>
                 <th className="text-left p-4 text-xs font-medium text-muted-foreground uppercase tracking-wide">Status</th>
-                <th className="text-left p-4 text-xs font-medium text-muted-foreground uppercase tracking-wide hidden lg:table-cell">Price</th>
+                <th className="text-left p-4 text-xs font-medium text-muted-foreground uppercase tracking-wide">Price</th>
                 <th className="text-right p-4 text-xs font-medium text-muted-foreground uppercase tracking-wide">Date</th>
               </tr>
             </thead>
@@ -141,7 +141,7 @@ export default function TicketsPage() {
                         <p className="text-xs text-muted-foreground font-mono">{t.event_id}</p>
                       </div>
                     </td>
-                    <td className="p-4 hidden md:table-cell">
+                    <td className="p-4">
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-foreground">{t.student_name}</p>
                         <p className="text-xs text-muted-foreground truncate max-w-[150px]">{t.student_email}</p>
@@ -150,7 +150,7 @@ export default function TicketsPage() {
                     <td className="p-4">
                       <StatusBadge status={t.status} />
                     </td>
-                    <td className="p-4 hidden lg:table-cell">
+                    <td className="p-4">
                       <p className="text-sm font-semibold text-foreground">{formatCurrency(t.total_price)}</p>
                     </td>
                     <td className="p-4 text-right">

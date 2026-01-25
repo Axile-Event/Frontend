@@ -224,10 +224,10 @@ export default function UsersPage() {
             <thead>
               <tr className="border-b border-border/40">
                 <th className="text-left p-4 text-xs font-medium text-muted-foreground uppercase tracking-wide">User</th>
-                <th className="text-left p-4 text-xs font-medium text-muted-foreground uppercase tracking-wide hidden md:table-cell">Email</th>
-                <th className="text-left p-4 text-xs font-medium text-muted-foreground uppercase tracking-wide hidden lg:table-cell">Role</th>
-                <th className="text-left p-4 text-xs font-medium text-muted-foreground uppercase tracking-wide hidden lg:table-cell">Status</th>
-                <th className="text-left p-4 text-xs font-medium text-muted-foreground uppercase tracking-wide hidden xl:table-cell">Joined</th>
+                <th className="text-left p-4 text-xs font-medium text-muted-foreground uppercase tracking-wide">Email</th>
+                <th className="text-left p-4 text-xs font-medium text-muted-foreground uppercase tracking-wide">Role</th>
+                <th className="text-left p-4 text-xs font-medium text-muted-foreground uppercase tracking-wide">Status</th>
+                <th className="text-left p-4 text-xs font-medium text-muted-foreground uppercase tracking-wide">Joined</th>
                 <th className="text-right p-4 text-xs font-medium text-muted-foreground uppercase tracking-wide">Actions</th>
               </tr>
             </thead>
@@ -256,25 +256,22 @@ export default function UsersPage() {
                               <ShieldCheck className="w-3.5 h-3.5 text-blue-500 shrink-0" />
                             )}
                           </div>
-                          <p className="text-xs text-muted-foreground md:hidden truncate max-w-[150px]">
-                            {user.email}
-                          </p>
                         </div>
                       </div>
                     </td>
-                    <td className="p-4 hidden md:table-cell">
+                    <td className="p-4">
                       <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                         <Mail className="w-3.5 h-3.5 shrink-0" />
                         <span className="truncate max-w-[200px]">{user.email}</span>
                       </div>
                     </td>
-                    <td className="p-4 hidden lg:table-cell">
+                    <td className="p-4">
                       <RoleBadge role={user.role} />
                     </td>
-                    <td className="p-4 hidden lg:table-cell">
+                    <td className="p-4">
                       <StatusBadge active={user.is_active} />
                     </td>
-                    <td className="p-4 text-sm text-muted-foreground hidden xl:table-cell">
+                    <td className="p-4 text-sm text-muted-foreground">
                       {new Date(user.created_at).toLocaleDateString('en-US', { 
                         month: 'short', 
                         day: 'numeric', 
