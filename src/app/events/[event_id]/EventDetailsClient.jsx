@@ -169,7 +169,16 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
       };
 
       const response = await api.post("/tickets/book/", payload);
+      
+      const bookingId = response.data.booking_id || response.data.id || response.data.data?.booking_id;
+      
+      if (bookingId) {
+        toast.success("Booking created! Redirecting to payment...", { id: toastId });
+        router.push(`/checkout/payment/${bookingId}`);
+        return;
+      }
 
+      // Fallback for cases where booking_id isn't directly returned but payment_url is
       if (response.data.payment_url) {
         toast.success("Redirecting to payment...", { id: toastId });
         window.location.href = response.data.payment_url;
