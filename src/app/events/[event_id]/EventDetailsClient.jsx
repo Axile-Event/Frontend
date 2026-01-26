@@ -171,8 +171,24 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
       const response = await api.post("/tickets/book/", payload);
       
       const bookingId = response.data.booking_id || response.data.id || response.data.data?.booking_id;
+      const tickets = response.data.tickets || [];
       
       if (bookingId) {
+        // Store booking data in localStorage for checkout page
+        const bookingDataForCheckout = {
+          booking_id: bookingId,
+          event_name: event?.name || tickets[0]?.event_name || "Event",
+          event_id: event?.event_id || event?.id || eventId,
+          category_name: selectedCategory?.name || tickets[0]?.category_name || "Standard",
+          quantity: parseInt(quantity),
+          price_per_ticket: parseFloat(selectedCategory?.price || tickets[0]?.category_price || 0),
+          payment_url: response.data.payment_url,
+          payment_reference: response.data.payment_reference,
+          tickets: tickets,
+          created_at: new Date().toISOString()
+        };
+        localStorage.setItem(`booking_${bookingId}`, JSON.stringify(bookingDataForCheckout));
+        
         toast.success("Booking created! Redirecting to payment...", { id: toastId });
         router.push(`/checkout/payment/${bookingId}`);
         return;
