@@ -1,7 +1,7 @@
 import React from "react";
 import { cn } from "@/lib/utils";
 
-const Logo = ({ className, iconSize = "h-14 w-auto", style }) => {
+const Logo = ({ className, iconSize = "h-16 w-auto", scale = "scale-100", style }) => {
   return (
     <div 
       className={cn("flex items-center justify-center", className)} 
@@ -10,7 +10,7 @@ const Logo = ({ className, iconSize = "h-14 w-auto", style }) => {
         <img 
           src="/axile-logo-main.png?v=9" 
           alt="Axile Logo" 
-          className={cn("object-contain origin-center transform-gpu", iconSize)}
+          className={cn("object-contain origin-center transform-gpu", iconSize, scale)}
         />
     </div>
   );
