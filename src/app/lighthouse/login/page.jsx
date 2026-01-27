@@ -58,12 +58,13 @@ export default function AdminLoginPage() {
   return (
     <div className="min-h-screen w-full flex items-center justify-center bg-background px-4">
       <div className="w-full max-w-md">
-        <div className="flex justify-center mb-4">
+        <div className="flex justify-center mb-0 relative">
           <Logo
             href="/"
             textSize="text-3xl"
-            iconSize="h-38 w-auto"
+            iconSize="h-32 w-auto"
             className="text-foreground"
+            style={{ marginTop: '-20px', marginBottom: '-20px' }}
           />
         </div>
 

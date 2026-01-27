@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import api from "@/lib/axios";
 import { Button } from "@/components/ui/button";
@@ -14,11 +14,23 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select-component";
-import { Loader2, MapPin, Calendar, Clock, Ticket, Info, CheckCircle2, Share2, Copy, Check, X, Maximize2 } from "lucide-react";
+import { Loader2, MapPin, Calendar, Clock, Ticket, Info, CheckCircle2, Share2, Copy, Check, X, Maximize2, Plus, Minus, ShoppingCart } from "lucide-react";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { getImageUrl } from "@/lib/utils";
 import { EventDetailsSkeleton } from "@/components/skeletons";
+
+// Platform fee constants
+const PLATFORM_SERVICE_FEE = 80; // ₦80 service fee
+
+// Calculate Paystack fee: 1.5% + ₦100 (₦100 waived under ₦2500, capped at ₦2000)
+const calculatePaystackFee = (amount) => {
+  if (amount <= 0) return 0;
+  const percentageFee = amount * 0.015; // 1.5%
+  const flatFee = amount >= 2500 ? 100 : 0; // ₦100 waived under ₦2500
+  const totalFee = percentageFee + flatFee;
+  return Math.min(totalFee, 2000); // Cap at ₦2000
+};
 
 const EventDetailsPage = () => {
   const params = useParams();
@@ -31,9 +43,8 @@ const EventDetailsPage = () => {
   const [loading, setLoading] = useState(true);
   const [bookingLoading, setBookingLoading] = useState(false);
   
-  // Booking state
-  const [quantity, setQuantity] = useState(1);
-  const [selectedCategory, setSelectedCategory] = useState(null);
+  // Multi-ticket selection state
+  const [ticketSelections, setTicketSelections] = useState({});
   const [copied, setCopied] = useState(false);
   const [shareUrl, setShareUrl] = useState("");
   const [isImageExpanded, setIsImageExpanded] = useState(false);
@@ -75,17 +86,6 @@ const EventDetailsPage = () => {
 
         setEvent(eventData);
         setEventId(slug);
-        
-        // Set default category if available
-        if (eventData.ticket_categories && eventData.ticket_categories.length > 0) {
-          const activeCategories = eventData.ticket_categories.filter(c => c.is_active && !c.is_sold_out);
-          if (activeCategories.length > 0) {
-            setSelectedCategory(activeCategories[0]);
-          }
-        } else if (eventData.ticket_categories?.length > 0) {
-           // If no active/unsold categories, select the first one anyway so we can show it's sold out
-           setSelectedCategory(eventData.ticket_categories[0]);
-        }
       } catch (error) {
         console.error("Error fetching event details:", error);
         toast.error("Failed to load event details");
@@ -95,17 +95,64 @@ const EventDetailsPage = () => {
     };
 
     fetchEventDetails();
-  }, [eventId]);
+  }, [slug]);
 
-  const handleBookTicket = async () => {
-    if (quantity < 1) {
-      toast.error("Please select at least one ticket");
-      return;
+  // Handle quantity change for a category
+  const handleQuantityChange = (categoryId, delta) => {
+    setTicketSelections(prev => {
+      const current = prev[categoryId] || 0;
+      const newQty = Math.max(0, current + delta);
+      const maxPerBooking = event?.max_quantity_per_booking || 10;
+      
+      if (newQty > maxPerBooking) {
+        toast.error(`Maximum ${maxPerBooking} tickets per category`);
+        return prev;
+      }
+      
+      if (newQty === 0) {
+        const { [categoryId]: _, ...rest } = prev;
+        return rest;
+      }
+      return { ...prev, [categoryId]: newQty };
+    });
+  };
+
+  // Calculate order summary with fees
+  const orderSummary = useMemo(() => {
+    if (!event?.ticket_categories) {
+      return { selectedItems: [], subtotal: 0, platformFee: 0, total: 0, totalQuantity: 0 };
     }
 
-    // Migration: category_name is REQUIRED for booking
-    if (!selectedCategory?.name) {
-      toast.error("Please select a ticket category");
+    const selectedItems = Object.entries(ticketSelections)
+      .filter(([_, qty]) => qty > 0)
+      .map(([categoryId, quantity]) => {
+        const category = event.ticket_categories.find(c => c.category_id === categoryId);
+        if (!category) return null;
+        const price = parseFloat(category.price) || 0;
+        return {
+          category_id: categoryId,
+          name: category.name,
+          price,
+          quantity,
+          total: price * quantity
+        };
+      })
+      .filter(Boolean);
+
+    const subtotal = selectedItems.reduce((sum, item) => sum + item.total, 0);
+    const totalQuantity = selectedItems.reduce((sum, item) => sum + item.quantity, 0);
+    
+    // Calculate combined platform fee (service fee + Paystack fee)
+    const paystackFee = event.pricing_type === 'free' ? 0 : calculatePaystackFee(subtotal);
+    const platformFee = event.pricing_type === 'free' ? 0 : PLATFORM_SERVICE_FEE + paystackFee;
+    const total = subtotal + platformFee;
+
+    return { selectedItems, subtotal, platformFee, total, totalQuantity };
+  }, [ticketSelections, event]);
+
+  const handleBookTicket = async () => {
+    if (orderSummary.totalQuantity < 1) {
+      toast.error("Please select at least one ticket");
       return;
     }
 
@@ -113,15 +160,45 @@ const EventDetailsPage = () => {
     const toastId = toast.loading("Processing booking...");
 
     try {
+      // Book tickets for the first selected category
+      // Backend currently supports single category booking
+      const firstSelection = orderSummary.selectedItems[0];
+      
       const payload = {
         event_id: event.event_id || event.id || eventId,
-        quantity: parseInt(quantity),
-        category_name: selectedCategory?.name,
+        quantity: firstSelection.quantity,
+        category_name: firstSelection.name,
       };
 
       const response = await api.post("/tickets/book/", payload);
       
-      // Handle Paid Event (Redirect to Paystack)
+      const bookingId = response.data.booking_id || response.data.id || response.data.data?.booking_id;
+      const tickets = response.data.tickets || [];
+      
+      // Handle Paid Event - Save booking data and redirect to checkout
+      if (bookingId) {
+        // Store booking data in localStorage for checkout page
+        const bookingData = {
+          booking_id: bookingId,
+          event_name: event.name,
+          event_id: event.event_id || event.id || eventId,
+          event_image: event.image,
+          category_name: firstSelection.name,
+          quantity: firstSelection.quantity,
+          price_per_ticket: firstSelection.price,
+          payment_url: response.data.payment_url,
+          payment_reference: response.data.payment_reference,
+          tickets: tickets,
+          created_at: new Date().toISOString()
+        };
+        localStorage.setItem(`booking_${bookingId}`, JSON.stringify(bookingData));
+        
+        toast.success("Booking created! Redirecting to checkout...", { id: toastId });
+        router.push(`/checkout/payment/${bookingId}`);
+        return;
+      }
+
+      // Fallback: If there's a direct payment URL, redirect to it
       if (response.data.payment_url) {
         toast.success("Redirecting to payment...", { id: toastId });
         window.location.href = response.data.payment_url;
@@ -161,12 +238,13 @@ const EventDetailsPage = () => {
   }
 
   const eventDate = new Date(event.date);
-  const isSoldOut = selectedCategory?.is_sold_out;
 
-  const activeCategories = Array.isArray(event.ticket_categories)
+  const categories = Array.isArray(event.ticket_categories)
     ? event.ticket_categories.filter((c) => c?.is_active !== false)
     : [];
-  const categoryPrices = activeCategories
+  const allSoldOut = categories.length > 0 && categories.every(c => c.is_sold_out);
+  
+  const categoryPrices = categories
     .map((c) => parseFloat(String(c?.price ?? "0")))
     .filter((n) => Number.isFinite(n) && n >= 0);
   const minCategoryPrice = categoryPrices.length ? Math.min(...categoryPrices) : 0;
@@ -211,182 +289,332 @@ const EventDetailsPage = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
-        {/* Main Content */}
-        <div className="md:col-span-2 space-y-4 md:space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+        {/* Main Content - Left Column */}
+        <div className="lg:col-span-2 space-y-6 md:space-y-8">
+          {/* Event Title & Info */}
           <div>
-            <h1 className="text-2xl md:text-4xl font-bold mb-2">{event.name}</h1>
-            <div className="flex flex-wrap gap-3 md:gap-4 text-muted-foreground text-sm md:text-base">
-              <div className="flex items-center gap-1.5 md:gap-2">
-                <Calendar className="h-3.5 w-3.5 md:h-4 md:w-4" />
-                <span>{eventDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+            <h1 className="text-2xl md:text-4xl font-bold mb-3">{event.name}</h1>
+            <div className="flex flex-wrap gap-4 text-muted-foreground text-sm md:text-base">
+              <div className="flex items-center gap-2 bg-muted/30 px-3 py-1.5 rounded-full">
+                <Calendar className="h-4 w-4 text-rose-500" />
+                <span>{eventDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</span>
               </div>
-              <div className="flex items-center gap-1.5 md:gap-2">
-                <Clock className="h-3.5 w-3.5 md:h-4 md:w-4" />
+              <div className="flex items-center gap-2 bg-muted/30 px-3 py-1.5 rounded-full">
+                <Clock className="h-4 w-4 text-rose-500" />
                 <span>{eventDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</span>
               </div>
-              <div className="flex items-center gap-1.5 md:gap-2">
-                <MapPin className="h-3.5 w-3.5 md:h-4 md:w-4" />
+              <div className="flex items-center gap-2 bg-muted/30 px-3 py-1.5 rounded-full">
+                <MapPin className="h-4 w-4 text-rose-500" />
                 <span>{event.location}</span>
               </div>
             </div>
           </div>
 
-          <div className="space-y-3 md:space-y-4">
-            <h3 className="text-lg md:text-xl font-semibold">About this Event</h3>
-            <div className="prose dark:prose-invert max-w-none text-muted-foreground whitespace-pre-wrap text-sm md:text-base">
+          {/* About Section */}
+          <div className="space-y-3">
+            <h2 className="text-lg md:text-xl font-semibold">About this Event</h2>
+            <div className="prose dark:prose-invert max-w-none text-muted-foreground whitespace-pre-wrap text-sm md:text-base leading-relaxed">
               {event.description}
             </div>
           </div>
-        </div>
 
-            {/* Booking Card & Share Section */}
-            <div className="md:col-span-1">
-              <div className="sticky top-24 space-y-6">
-                <Card className="border-gray-700">
-                  <CardHeader className="p-4 md:p-6">
-                    <CardTitle className="text-lg md:text-xl">Book Tickets</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4 md:space-y-6 p-4 md:p-6 pt-0 md:pt-0">
-                    {/* Sold Out Banner */}
-                    {isSoldOut && (
-                      <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-sm font-medium text-center animate-in fade-in zoom-in-95 duration-300">
-                        😔 This ticket category is sold out
-                      </div>
-                    )}
+          {/* Ticket Selection Section */}
+          <div className="space-y-4">
+            <h2 className="text-lg md:text-xl font-semibold flex items-center gap-2">
+              <Ticket className="h-5 w-5 text-rose-500" />
+              Select Tickets
+            </h2>
 
-                    {/* Category Selector */}
-                    {event.ticket_categories?.length > 0 && (
-                      <div className="space-y-3">
-                        <Label className="text-xs md:text-sm">Ticket Category</Label>
-                        <div className="grid grid-cols-1 gap-2">
-                          {event.ticket_categories?.map((cat) => (
-                            <button
-                              key={cat.category_id}
-                              type="button"
-                              disabled={!cat.is_active || cat.is_sold_out}
-                              onClick={() => setSelectedCategory(cat)}
-                              className={`flex flex-col p-3 rounded-xl border text-left transition-all ${
-                                selectedCategory?.category_id === cat.category_id
-                                  ? "border-rose-600 bg-rose-600/5 ring-1 ring-rose-600"
-                                  : "border-gray-600 bg-gray-600/5 hover:border-gray-500"
-                              } ${(!cat.is_active || cat.is_sold_out) ? "opacity-50 cursor-not-allowed grayscale" : ""}`}
-                            >
-                              <div className="flex justify-between items-center mb-1">
-                                <span className={`text-sm font-bold ${selectedCategory?.category_id === cat.category_id ? "text-rose-500" : "text-white"}`}>
-                                  {cat.name}
-                                </span>
-                                <span className="text-xs font-bold text-white">₦{(parseFloat(cat.price) || 0).toLocaleString()}</span>
-                              </div>
-                              {cat.description && <p className="text-[12px] text-white">{cat.description}</p>}
-                              {cat.is_sold_out && <span className="text-[10px] text-rose-500 font-bold uppercase mt-1">Sold Out</span>}
-                            </button>
-                          ))}
+            {/* All Sold Out Banner */}
+            {allSoldOut && (
+              <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-sm font-medium text-center animate-in fade-in zoom-in-95 duration-300">
+                😔 All tickets are sold out for this event
+              </div>
+            )}
+
+            {/* Ticket Category Cards */}
+            {categories.length > 0 && (
+              <div className="space-y-3">
+                {categories.map((cat) => {
+                  const qty = ticketSelections[cat.category_id] || 0;
+                  const price = parseFloat(cat.price) || 0;
+                  const isCatSoldOut = cat.is_sold_out;
+                  
+                  return (
+                    <div
+                      key={cat.category_id}
+                      className={`p-4 rounded-2xl border-2 transition-all duration-200 ${
+                        qty > 0
+                          ? "border-rose-500 bg-rose-500/5 shadow-lg shadow-rose-500/10"
+                          : "border-border bg-card hover:border-border/80 hover:bg-card/80"
+                      } ${isCatSoldOut ? "opacity-50 grayscale" : ""}`}
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        {/* Category Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className={`font-bold text-base md:text-lg ${qty > 0 ? "text-rose-500" : "text-foreground"}`}>
+                              {cat.name}
+                            </h3>
+                            {isCatSoldOut && (
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/20 text-red-500 font-bold uppercase">
+                                Sold Out
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xl md:text-2xl font-bold text-foreground">
+                            {event.pricing_type === 'free' ? 'Free' : `₦${price.toLocaleString()}`}
+                          </p>
+                          {cat.description && (
+                            <p className="text-sm text-muted-foreground mt-2 leading-relaxed">{cat.description}</p>
+                          )}
+                        </div>
+
+                        {/* Quantity Controls */}
+                        <div className="flex items-center gap-2 bg-muted/30 rounded-full p-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className={`h-10 w-10 rounded-full transition-all ${
+                              qty > 0 
+                                ? "bg-rose-500 text-white hover:bg-rose-600" 
+                                : "hover:bg-muted"
+                            }`}
+                            onClick={() => handleQuantityChange(cat.category_id, -1)}
+                            disabled={qty === 0 || isCatSoldOut || bookingLoading}
+                          >
+                            <Minus className="h-4 w-4" />
+                          </Button>
+                          <span className={`w-8 text-center font-bold text-lg ${qty > 0 ? "text-rose-500" : "text-muted-foreground"}`}>
+                            {qty}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className={`h-10 w-10 rounded-full transition-all ${
+                              qty > 0 
+                                ? "bg-rose-500 text-white hover:bg-rose-600" 
+                                : "hover:bg-muted"
+                            }`}
+                            onClick={() => handleQuantityChange(cat.category_id, 1)}
+                            disabled={isCatSoldOut || bookingLoading}
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
-                    )}
-
-                    {!event.ticket_categories?.length && event.pricing_type === 'paid' && (
-                      <div className="p-4 rounded-lg bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 text-sm text-center">
-                        No ticket categories available yet. Please check back later.
-                      </div>
-                    )}
-
-                    <div className="space-y-2">
-                      <Label className="text-xs md:text-sm text-muted-foreground">Quantity</Label>
-                      <Select
-                        value={quantity.toString()}
-                        onValueChange={(val) => setQuantity(parseInt(val))}
-                        disabled={bookingLoading}
-                      >
-                        <SelectTrigger className="h-10 border-gray-600 bg-gray-600/5">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {Array.from({ length: event?.max_quantity_per_booking || 3 }, (_, i) => i + 1).map((num) => (
-                            <SelectItem key={num} value={num.toString()}>
-                              {num} {num === 1 ? 'Ticket' : 'Tickets'}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <p className="text-[10px] md:text-xs text-muted-foreground/80">
-                        Maximum {event?.max_quantity_per_booking || 3} tickets per booking. Each ticket gets a unique QR code.
-                      </p>
                     </div>
-
-                    {/* Price Summary */}
-                    <div className="pt-4 border-t border-gray-600 space-y-2">
-                      <div className="flex justify-between text-xs md:text-sm text-gray-400">
-                        <span>Price per ticket</span>
-                        <span className="text-white">
-                          {selectedCategory
-                            ? `₦${Number(selectedCategory.price).toLocaleString()}`
-                            : (event.pricing_type === 'free' ? 'Free' : `From ₦${displayEventPrice.toLocaleString()}`)}
-                        </span>
-                      </div>
-                      <div className="flex justify-between font-bold text-base md:text-lg">
-                        <span>Total</span>
-                        <span className="text-rose-500">
-                          {event.pricing_type === 'free'
-                            ? 'Free'
-                            : `₦${(parseFloat(String(selectedCategory?.price ?? displayEventPrice)) * quantity).toLocaleString()}`}
-                        </span>
-                      </div>
-                    </div>
-                  </CardContent>
-                  <CardFooter className="p-4 md:p-6 pt-0 md:pt-0">
-                    <Button
-                      className="w-full h-10 md:h-11 text-sm md:text-base"
-                      size="lg"
-                      onClick={handleBookTicket}
-                      disabled={bookingLoading || isSoldOut}
-                    >
-                      {bookingLoading ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Processing...
-                        </>
-                      ) : isSoldOut ? (
-                        <>
-                           <Ticket className="mr-2 h-4 w-4" />
-                           Sold Out
-                        </>
-                      ) : (
-                        <>
-                          <Ticket className="mr-2 h-4 w-4" />
-                          {event.pricing_type === 'free' ? 'Get Ticket' : 'Proceed to Payment'}
-                        </>
-                      )}
-                    </Button>
-                  </CardFooter>
-                </Card>
-
-                {/* Share Section */}
-                <Card className="overflow-hidden border-gray-700">
-                  <CardContent className="p-4 md:p-6">
-                    <div className="flex items-center gap-2 mb-4">
-                      <Share2 className="h-4 w-4 text-primary" />
-                      <h3 className="font-semibold text-sm md:text-base">Share this event</h3>
-                    </div>
-                    <div className="flex gap-2">
-                      <div className="flex-1 bg-muted px-3 py-2 rounded-md text-xs md:text-sm text-muted-foreground truncate border border-gray-700">
-                        {shareUrl || 'Loading...'}
-                      </div>
-                      <Button 
-                        size="sm" 
-                        variant="secondary" 
-                        onClick={handleCopyLink}
-                        className="shrink-0"
-                      >
-                        {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                  );
+                })}
               </div>
+            )}
+
+            {categories.length === 0 && event.pricing_type === 'paid' && (
+              <div className="p-6 rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 text-sm text-center">
+                <Info className="h-8 w-8 mx-auto mb-2 opacity-70" />
+                No ticket categories available yet. Please check back later.
+              </div>
+            )}
+          </div>
+
+          {/* Share Section - Desktop */}
+          <div className="hidden lg:block">
+            <Card className="border-border/50 bg-card/50">
+              <CardContent className="p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <Share2 className="h-4 w-4 text-rose-500" />
+                  <h3 className="font-semibold text-sm">Share this event</h3>
+                </div>
+                <div className="flex gap-2">
+                  <div className="flex-1 bg-muted/50 px-3 py-2 rounded-lg text-xs text-muted-foreground truncate border border-border/50">
+                    {shareUrl || 'Loading...'}
+                  </div>
+                  <Button 
+                    size="sm" 
+                    variant="outline"
+                    onClick={handleCopyLink}
+                    className="shrink-0 border-border/50 hover:bg-rose-500/10 hover:border-rose-500/50"
+                  >
+                    {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+
+        {/* Right Column - Sticky Order Summary */}
+        <div className="lg:col-span-1">
+          <div className="sticky top-24 space-y-4">
+            {/* Order Summary Card */}
+            <Card className={`border-2 transition-all duration-300 ${
+              orderSummary.totalQuantity > 0 
+                ? "border-rose-500/50 bg-gradient-to-b from-rose-500/10 to-card shadow-xl shadow-rose-500/10" 
+                : "border-border/50 bg-card/80"
+            }`}>
+              <CardHeader className="p-5 pb-4">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <ShoppingCart className={`h-5 w-5 ${orderSummary.totalQuantity > 0 ? "text-rose-500" : "text-muted-foreground"}`} />
+                  Order Summary
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-5 pt-0">
+                {orderSummary.totalQuantity > 0 ? (
+                  <div className="space-y-4">
+                    {/* Selected Items */}
+                    <div className="space-y-2">
+                      {orderSummary.selectedItems.map((item) => (
+                        <div key={item.category_id} className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">
+                            {item.name} × {item.quantity}
+                          </span>
+                          <span className="text-foreground font-medium">
+                            ₦{item.total.toLocaleString()}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="border-t border-border/50 pt-4 space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Subtotal</span>
+                        <span className="text-foreground">₦{orderSummary.subtotal.toLocaleString()}</span>
+                      </div>
+                      {orderSummary.platformFee > 0 && (
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Platform Fee</span>
+                          <span className="text-foreground">₦{Math.round(orderSummary.platformFee).toLocaleString()}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="border-t border-border/50 pt-4">
+                      <div className="flex flex-col items-end">
+                        <span className="text-2xl font-bold text-rose-500">
+                          ₦{Math.round(orderSummary.total).toLocaleString()}
+                        </span>
+                        {orderSummary.platformFee > 0 && (
+                          <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">
+                            incl. ₦{Math.round(orderSummary.platformFee).toLocaleString()} booking fee
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-6 text-muted-foreground">
+                    <ShoppingCart className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                    <p className="text-sm">No tickets selected</p>
+                    <p className="text-xs mt-1 opacity-70">
+                      <span className="hidden lg:inline">Select tickets from the left to continue</span>
+                      <span className="lg:hidden">Select tickets above to continue</span>
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+              <CardFooter className="p-5 pt-0">
+                <Button
+                  className={`w-full h-12 text-base font-semibold transition-all ${
+                    orderSummary.totalQuantity > 0
+                      ? "bg-rose-600 hover:bg-rose-700 shadow-lg shadow-rose-600/25"
+                      : "bg-muted text-muted-foreground cursor-not-allowed"
+                  }`}
+                  size="lg"
+                  onClick={handleBookTicket}
+                  disabled={bookingLoading || orderSummary.totalQuantity === 0}
+                >
+                  {bookingLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                      Processing...
+                    </>
+                  ) : orderSummary.totalQuantity > 0 ? (
+                    <>
+                      <Ticket className="mr-2 h-5 w-5" />
+                      {event.pricing_type === 'free' 
+                        ? `Get ${orderSummary.totalQuantity} Ticket${orderSummary.totalQuantity > 1 ? 's' : ''}`
+                        : `Pay ₦${Math.round(orderSummary.total).toLocaleString()}`
+                      }
+                    </>
+                  ) : (
+                    "Select Tickets"
+                  )}
+                </Button>
+              </CardFooter>
+            </Card>
+
+            {/* Share Section - Mobile */}
+            <div className="lg:hidden">
+              <Card className="border-border/50 bg-card/50">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Share2 className="h-4 w-4 text-rose-500" />
+                    <h3 className="font-semibold text-sm">Share this event</h3>
+                  </div>
+                  <div className="flex gap-2">
+                    <div className="flex-1 bg-muted/50 px-3 py-2 rounded-lg text-xs text-muted-foreground truncate border border-border/50">
+                      {shareUrl || 'Loading...'}
+                    </div>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={handleCopyLink}
+                      className="shrink-0 border-border/50 hover:bg-rose-500/10 hover:border-rose-500/50"
+                    >
+                      {copied ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
+          </div>
+        </div>
       </div>
+
+      {/* Mobile Sticky Checkout Bar */}
+      <AnimatePresence>
+        {orderSummary.totalQuantity > 0 && (
+          <motion.div
+            initial={{ y: 100 }}
+            animate={{ y: 0 }}
+            exit={{ y: 100 }}
+            className="fixed bottom-0 left-0 right-0 z-50 lg:hidden p-4 bg-background/80 backdrop-blur-xl border-t border-border shadow-[0_-10px_40px_rgba(0,0,0,0.2)]"
+          >
+            <div className="flex items-center justify-between gap-4 max-w-lg mx-auto">
+              <div className="flex flex-col">
+                <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
+                  {orderSummary.totalQuantity} Ticket{orderSummary.totalQuantity > 1 ? 's' : ''} Selected
+                </span>
+                <div className="flex flex-baseline gap-1">
+                  <span className="text-xl font-bold text-rose-500">
+                    ₦{Math.round(orderSummary.total).toLocaleString()}
+                  </span>
+                  {orderSummary.platformFee > 0 && (
+                    <span className="text-[10px] text-muted-foreground font-medium self-end mb-1">
+                      + ₦{Math.round(orderSummary.platformFee).toLocaleString()} booking fee
+                    </span>
+                  )}
+                </div>
+              </div>
+              <Button
+                className="bg-rose-600 hover:bg-rose-700 text-white font-bold px-8 h-12 rounded-xl shadow-lg shadow-rose-600/20 active:scale-95 transition-transform"
+                onClick={handleBookTicket}
+                disabled={bookingLoading}
+              >
+                {bookingLoading ? (
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                ) : (
+                  <>
+                    <span>Checkout</span>
+                    <ShoppingCart className="ml-2 h-4 w-4" />
+                  </>
+                )}
+              </Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Image Lightbox */}
       <AnimatePresence>

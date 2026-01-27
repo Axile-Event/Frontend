@@ -54,8 +54,21 @@ export const metadata = {
     images: ["/og-image.png"],
   },
   icons: {
-    icon: "/axile-logo.png",
-    apple: "/apple-touch-icon.png",
+    icon: [
+      { url: "/axile-logo-cropped.png?v=8", sizes: "32x32", type: "image/png" },
+      { url: "/axile-logo-cropped.png?v=8", sizes: "96x96", type: "image/png" },
+      { url: "/axile-logo-cropped.png?v=8", sizes: "180x180", type: "image/png" },
+      { url: "/axile-logo-cropped.png?v=8", sizes: "192x192", type: "image/png" },
+      { url: "/axile-logo-cropped.png?v=8", sizes: "512x512", type: "image/png" },
+    ],
+    shortcut: "/axile-logo-cropped.png?v=8",
+    apple: "/axile-logo-cropped.png?v=8",
+    other: [
+      {
+        rel: "apple-touch-icon-precomposed",
+        url: "/axile-logo-cropped.png?v=8",
+      },
+    ],
   },
   manifest: "/site.webmanifest",
 };
@@ -72,6 +85,10 @@ export default function RootLayout({ children }) {
     <html lang="en" suppressHydrationWarning>
       <head>
         <meta httpEquiv="Permissions-Policy" content="camera=(self), microphone=(self)" />
+        <link rel="icon" href="/axile-logo-cropped.png?v=8" sizes="any" />
+        <link rel="shortcut icon" href="/axile-logo-cropped.png?v=8" type="image/png" />
+        <link rel="apple-touch-icon" href="/axile-logo-cropped.png?v=8" />
+        <meta name="msapplication-TileImage" content="/axile-logo-cropped.png?v=8" />
       </head>
       <body
         suppressHydrationWarning

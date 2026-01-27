@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import useAuthStore from "../../store/authStore";
 import { adminService } from "@/lib/admin";
+import Logo from "../Logo";
 
 const sidebarItems = [
   {
@@ -125,17 +126,12 @@ export function AdminSidebar({ className }) {
       "flex flex-col w-60 border-r border-border/40 bg-card/50 backdrop-blur-sm h-full",
       className
     )}>
-      <div className="p-5 border-b border-border/40">
-        <Link href="/lighthouse/dashboard" className="flex items-center gap-2.5 hover:opacity-80 transition-opacity">
-          <img 
-            src="/Axile logo.png" 
-            alt="Axile" 
-            className="h-8 w-8 object-contain"
+      <div className="h-16 border-b border-border/40 flex items-center justify-center overflow-hidden">
+        <Link href="/lighthouse/dashboard" className="hover:opacity-80 transition-opacity">
+          <Logo 
+            iconSize="h-28 w-auto" 
+            style={{ marginTop: '-20px', marginBottom: '-20px' }}
           />
-          <div>
-            <h1 className="text-sm font-semibold text-foreground">Axile</h1>
-            <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Admin Console</p>
-          </div>
         </Link>
       </div>
 
