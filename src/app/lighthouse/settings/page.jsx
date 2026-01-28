@@ -40,7 +40,7 @@ export default function SettingsPage() {
     max_events_per_organizer: 50,
     min_withdrawal_amount: 1000.00,
     max_withdrawal_amount: 1000000.00,
-    support_email: "axile.nig@gmail.com",
+    support_email: "",
   });
 
   useEffect(() => {
@@ -92,16 +92,19 @@ export default function SettingsPage() {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="platform_fee" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-                  Platform Fee (%)
+                <Label htmlFor="platform_fee_percentage" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Platform Fee Percentage (%)
                 </Label>
                 <Input 
-                  id="platform_fee"
+                  id="platform_fee_percentage"
                   type="number" 
-                  step="0.01" 
+                  step="0.0001" 
+                  min="0"
+                  max="1"
                   value={settings.platform_fee_percentage}
-                  onChange={(e) => handleChange("platform_fee_percentage", parseFloat(e.target.value))}
+                  onChange={(e) => handleChange("platform_fee_percentage", parseFloat(e.target.value) || 0)}
                   className="bg-background/50 border-border/40"
+                  placeholder="0.06"
                 />
                 <p className="text-[10px] text-muted-foreground">Current: {((settings.platform_fee_percentage || 0) * 100).toFixed(1)}%</p>
               </div>
@@ -188,13 +191,107 @@ export default function SettingsPage() {
                   Support Email
                 </Label>
                 <Input 
-                  id="support_email"
-                  type="email" 
-                  value={settings.support_email}
-                  onChange={(e) => handleChange("support_email", e.target.value)}
+                  id="platform_fee_fixed"
+                  type="number" 
+                  step="0.01" 
+                  min="0"
+                  value={settings.platform_fee_fixed}
+                  onChange={(e) => handleChange("platform_fee_fixed", parseFloat(e.target.value) || 0)}
                   className="bg-background/50 border-border/40"
+                  placeholder="80.00"
                 />
+                <p className="text-[10px] text-muted-foreground">
+                  Fixed amount added per ticket
+                </p>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/40 bg-card/50 backdrop-blur-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium">Paystack Fees</CardTitle>
+            <CardDescription className="text-xs">Configure Paystack payment gateway fees</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="paystack_fee_percentage" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Paystack Fee Percentage (%)
+                </Label>
+                <Input 
+                  id="paystack_fee_percentage"
+                  type="number" 
+                  step="0.0001" 
+                  min="0"
+                  max="1"
+                  value={settings.paystack_fee_percentage}
+                  onChange={(e) => handleChange("paystack_fee_percentage", parseFloat(e.target.value) || 0)}
+                  className="bg-background/50 border-border/40"
+                  placeholder="0.015"
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  {(settings.paystack_fee_percentage * 100).toFixed(2)}% of transaction
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="paystack_fee_fixed" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Paystack Fixed Fee (₦)
+                </Label>
+                <Input 
+                  id="paystack_fee_fixed"
+                  type="number" 
+                  step="0.01" 
+                  min="0"
+                  value={settings.paystack_fee_fixed}
+                  onChange={(e) => handleChange("paystack_fee_fixed", parseFloat(e.target.value) || 0)}
+                  className="bg-background/50 border-border/40"
+                  placeholder="100.00"
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  Applied when amount &gt;= threshold
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="paystack_fee_threshold" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Fixed Fee Threshold (₦)
+                </Label>
+                <Input 
+                  id="paystack_fee_threshold"
+                  type="number" 
+                  step="0.01" 
+                  min="0"
+                  value={settings.paystack_fee_threshold}
+                  onChange={(e) => handleChange("paystack_fee_threshold", parseFloat(e.target.value) || 0)}
+                  className="bg-background/50 border-border/40"
+                  placeholder="2500.00"
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  Fixed fee applies when transaction &gt;= this amount
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/40 bg-card/50 backdrop-blur-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium">General</CardTitle>
+            <CardDescription className="text-xs">Support and general configuration</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="support_email" className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                Support Email
+              </Label>
+              <Input 
+                id="support_email"
+                type="email" 
+                value={settings.support_email}
+                onChange={(e) => handleChange("support_email", e.target.value)}
+                className="bg-background/50 border-border/40"
+                placeholder="support@example.com"
+              />
             </div>
           </CardContent>
         </Card>
