@@ -368,19 +368,18 @@ export default function PaymentFormsPage() {
 
       {/* Pagination Controls */}
       {pagination && pagination.total_pages > 1 && (
-        <div className="flex items-center justify-between p-4 bg-muted/20 border border-border/40 rounded-xl">
+        <div className="flex items-center justify-between p-4 bg-muted/20 border border-border/40 rounded-xl mt-4">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
-            Showing Page {pagination.current_page} of {pagination.total_pages}
+            Page {currentPage} of {pagination.total_pages}
           </p>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
               disabled={!pagination.has_previous}
-              className="h-9 px-4 font-bold text-xs uppercase tracking-tighter hover:bg-primary hover:text-white transition-all"
+              className="h-8 px-4 font-bold text-xs uppercase tracking-tighter"
             >
-              <ChevronLeft className="h-3.5 w-3.5 mr-1" />
               Prev
             </Button>
             <Button
@@ -388,10 +387,9 @@ export default function PaymentFormsPage() {
               size="sm"
               onClick={() => setCurrentPage(p => p + 1)}
               disabled={!pagination.has_next}
-              className="h-9 px-4 font-bold text-xs uppercase tracking-tighter hover:bg-primary hover:text-white transition-all"
+              className="h-8 px-4 font-bold text-xs uppercase tracking-tighter"
             >
               Next
-              <ChevronRight className="h-3.5 w-3.5 ml-1" />
             </Button>
           </div>
         </div>
