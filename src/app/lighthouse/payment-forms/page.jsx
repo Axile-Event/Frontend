@@ -257,6 +257,7 @@ export default function PaymentFormsPage() {
                 <th className="px-4 py-4 text-left">User Details</th>
                 <th className="px-4 py-4 text-left">Bank Verification</th>
                 <th className="px-4 py-4 text-left">Transfer Info</th>
+                <th className="px-4 py-4 text-left">Internal ID</th>
                 <th className="px-4 py-4 text-left">Status</th>
                 <th className="px-4 py-4 text-right">Actions</th>
               </tr>
@@ -281,7 +282,9 @@ export default function PaymentFormsPage() {
                           <p className="text-sm font-bold text-foreground">
                             {form.Firstname} {form.Lastname}
                           </p>
-                          <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">System User</p>
+                          <p className="text-[10px] text-muted-foreground font-mono tracking-tight">
+                            {form.account_number || form.bank_account_number || 'No Account #'}
+                          </p>
                         </div>
                       </div>
                     </td>
@@ -294,7 +297,7 @@ export default function PaymentFormsPage() {
                         <div className="flex items-center gap-2 text-muted-foreground">
                           <Landmark className="w-3.5 h-3.5" />
                           <p className="text-[11px] font-mono">
-                            {form.account_number || '0000000000'} 
+                            {form.account_number || form.bank_account_number || '0000000000'} 
                             <span className="ml-1.5 px-1.5 py-0.5 rounded bg-muted text-[9px] font-black uppercase text-muted-foreground/80 border border-border/50">
                               {form.bank_name || form.bank_code || 'BANK'}
                             </span>
