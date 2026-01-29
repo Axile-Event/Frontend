@@ -89,7 +89,7 @@ function PaymentCallbackContent() {
         if (response.data.message && response.data.message.includes("verified successfully")) {
           setStatus("success");
           setMessage(response.data.message);
-          
+          if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("tickets-updated"));
           // Extract ticket data
           const tickets = response.data.tickets || [];
           if (tickets.length > 0) {
@@ -116,6 +116,7 @@ function PaymentCallbackContent() {
         if (errorMessage.includes("no pending tickets") || errorMessage.includes("already confirmed")) {
           setStatus("success");
           setMessage("Payment successful! Your tickets have been confirmed. Check your email or dashboard for details.");
+          if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("tickets-updated"));
         } else {
           setStatus("failed");
           

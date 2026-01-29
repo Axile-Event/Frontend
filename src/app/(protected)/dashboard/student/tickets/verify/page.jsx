@@ -42,6 +42,7 @@ const VerifyPaymentContent = () => {
         setMessage("Payment verified successfully!");
         setTicketDetails(response.data.ticket);
         toast.success("Payment verified!");
+        if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("tickets-updated"));
 
         // Auto redirect after 5 seconds
         setTimeout(() => {

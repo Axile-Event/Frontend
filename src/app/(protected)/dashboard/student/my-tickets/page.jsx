@@ -17,19 +17,36 @@ const MyTicketsPage = () => {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState(""); // Add search state
 
-  useEffect(() => {
-    const fetchTickets = async () => {
-      try {
-        const response = await api.get("/tickets/my-tickets/");
-        setTickets(response.data.tickets || []);
-      } catch (error) {
-        console.error("Error fetching tickets:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchTickets = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get("/tickets/my-tickets/");
+      setTickets(response.data.tickets || []);
+    } catch (error) {
+      console.error("Error fetching tickets:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchTickets();
+  }, []);
+
+  // Invalidate and refetch when tickets are updated (e.g. after booking or payment verify)
+  useEffect(() => {
+    const onTicketsUpdated = () => fetchTickets();
+    window.addEventListener("tickets-updated", onTicketsUpdated);
+    return () => window.removeEventListener("tickets-updated", onTicketsUpdated);
+  }, []);
+
+  // Refetch when user returns to this tab (e.g. after Paystack redirect)
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") fetchTickets();
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", onVisibilityChange);
   }, []);
 
   const getStatusColor = (status) => {
