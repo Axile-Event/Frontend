@@ -162,14 +162,18 @@ const EventDetailsPage = () => {
 
     try {
       // Book tickets for the first selected category
-      // Backend currently supports single category booking
       const firstSelection = orderSummary.selectedItems[0];
+      const eventIdToUse = event?.event_id || event?.id || eventId;
       
       const payload = {
-        event_id: event.event_id || event.id || eventId,
-        quantity: firstSelection.quantity,
-        category_name: firstSelection.name,
+        items: [{
+          event_id: eventIdToUse,
+          category_name: firstSelection.name,
+          quantity: firstSelection.quantity,
+        }]
       };
+      
+      console.log("Booking payload:", JSON.stringify(payload, null, 2));
 
       const response = await api.post("/tickets/book/", payload);
       

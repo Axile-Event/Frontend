@@ -80,10 +80,10 @@ const StudentProfile = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <div className="max-w-4xl mx-auto space-y-5 md:space-y-8 pb-20 md:pb-0">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight mb-2">My Profile</h1>
-        <p className="text-muted-foreground">Manage your personal information and account details.</p>
+        <h1 className="text-xl md:text-3xl font-bold tracking-tight mb-1 md:mb-2">My Profile</h1>
+        <p className="text-sm md:text-base text-muted-foreground">Manage your personal information and account details.</p>
       </div>
 
       <Card className="border-gray-700/60">

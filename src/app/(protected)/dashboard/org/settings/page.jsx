@@ -6,9 +6,6 @@ import useAuthStore from '@/store/authStore';
 import { hasPinSet, storePinLocally, updateLocalPin } from '@/lib/pinPrompt';
 import PinPromptModal from '@/components/PinPromptModal';
 
-// Secure backend proxy endpoints
-const NUBADI_BANKS_URL = '/api/nubadi-banks';
-const NUBADI_VERIFY_URL = '/api/nubadi-verify';
 import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -100,14 +97,13 @@ export default function Settings() {
 
 
 
-  // Fetch banks from secure backend
+  // Fetch banks from backend API
   const fetchBanks = async () => {
     setLoadingBanks(true);
     try {
-      const res = await fetch(NUBADI_BANKS_URL);
-      const data = await res.json();
-      if (Array.isArray(data)) {
-        setBanks(data.map(b => ({ name: b.name, code: b.code })));
+      const res = await api.get('/bank/list/');
+      if (res.data?.data && Array.isArray(res.data.data)) {
+        setBanks(res.data.data.map(b => ({ name: b.name, code: b.code })));
       } else {
         setBanks([]);
       }
@@ -267,16 +263,16 @@ export default function Settings() {
     }
   };
    
-  // Secure verify API
+  // Verify bank account using backend API
   const verifyBankAccount = async (account_number, bank_code) => {
     setVerifyingAccount(true);
     try {
-      const url = `${NUBADI_VERIFY_URL}?account_number=${account_number}&bank_code=${bank_code}`;
-      const res = await fetch(url);
-      if (!res.ok) throw new Error('Verification failed');
-      const data = await res.json();
-      if (data.account_name) {
-        setBankParams(prev => ({ ...prev, account_name: data.account_name }));
+      const res = await api.post('/bank/verify/', {
+        account_number,
+        bank_code
+      });
+      if (res.data?.data?.account_name) {
+        setBankParams(prev => ({ ...prev, account_name: res.data.data.account_name }));
         toast.success('Account name detected');
       } else {
         setBankParams(prev => ({ ...prev, account_name: '' }));
@@ -284,7 +280,7 @@ export default function Settings() {
       }
     } catch (error) {
       setBankParams(prev => ({ ...prev, account_name: '' }));
-      toast.error('Bank verification failed');
+      toast.error(error.response?.data?.error || 'Bank verification failed');
     } finally {
       setVerifyingAccount(false);
     }

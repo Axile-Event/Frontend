@@ -51,7 +51,6 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
           // Only restore if it's recent (within 30 minutes)
           if (parsed.timestamp && (Date.now() - parsed.timestamp) < 30 * 60 * 1000) {
             setTicketSelections(parsed.selections || {});
-            toast.success("Your ticket selections have been restored!");
           }
           // Clear the saved selections after restoring
           localStorage.removeItem(`pending_ticket_selections_${eventId}`);
@@ -229,14 +228,16 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
     const toastId = toast.loading("Processing booking...");
 
     try {
-      // Book tickets for each selected category
-      // For now, we'll book the first selected category (backend may need update for multi-category)
+      // Book tickets for the first selected category
       const firstSelection = orderSummary.selectedItems[0];
+      const eventIdToUse = event?.event_id || event?.id || eventId;
       
       const payload = {
-        event_id: event?.event_id || event?.id || eventId,
-        quantity: firstSelection.quantity,
-        category_name: firstSelection.name,
+        items: [{
+          event_id: eventIdToUse,
+          category_name: firstSelection.name,
+          quantity: firstSelection.quantity,
+        }]
       };
 
       const response = await api.post("/tickets/book/", payload);
