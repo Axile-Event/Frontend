@@ -524,6 +524,7 @@ export default function RevenuePage() {
                             <div className="min-w-0">
                               <p className="text-sm font-medium text-foreground">{withdrawal.bank_name || '—'}</p>
                               <p className="text-xs text-muted-foreground">{withdrawal.account_name || '—'}</p>
+                              <p className="text-[10px] text-muted-foreground font-mono">{withdrawal.bank_account_number || withdrawal.account_number || '—'}</p>
                             </div>
                           </td>
                           <td className="py-3">
