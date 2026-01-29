@@ -49,6 +49,10 @@ const EventDetailsPage = () => {
   const [shareUrl, setShareUrl] = useState("");
   const [isImageExpanded, setIsImageExpanded] = useState(false);
 
+  // Temporary referral source state for event:TO-56363
+  const [referralSource, setReferralSource] = useState("");
+  const [otherReferral, setOtherReferral] = useState("");
+
   // Set share URL on client side only to avoid hydration mismatch
   useEffect(() => {
     if (event) {
@@ -179,6 +183,10 @@ const EventDetailsPage = () => {
       const payload = {
         event_id: eventIdToUse,
         items: items,
+        // Scoped referral source for event:TO-56363
+        ...(eventIdToUse === "event:TO-56363" && {
+          referral_source: referralSource === "Other" ? `Other: ${otherReferral}` : referralSource
+        })
       };
       
       console.log("Booking payload:", payload);
@@ -427,6 +435,44 @@ const EventDetailsPage = () => {
               <div className="p-6 rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 text-sm text-center">
                 <Info className="h-8 w-8 mx-auto mb-2 opacity-70" />
                 No ticket categories available yet. Please check back later.
+              </div>
+            )}
+
+            {/* TEMPORARY: Referral Source Field for event:TO-56363 */}
+            {event?.event_id === "event:TO-56363" && (
+              <div className="p-4 rounded-2xl border-2 border-border bg-card space-y-4 mt-6">
+                <div className="space-y-2">
+                  <Label htmlFor="referral-source" className="text-sm font-semibold">How did you hear about this event? (Optional)</Label>
+                  <select
+                    id="referral-source"
+                    className="w-full h-10 px-3 py-2 rounded-md border border-input bg-background text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                    value={referralSource}
+                    onChange={(e) => setReferralSource(e.target.value)}
+                  >
+                    <option value="">None</option>
+                    <option value="Faculty of Tech (Damzy)">Faculty of Tech (Damzy)</option>
+                    <option value="Faculty of Science (BTR)">Faculty of Science (BTR)</option>
+                    <option value="Faculty of Social Science (Korexx)">Faculty of Social Science (Korexx)</option>
+                    <option value="The OMR Team">The OMR Team</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+
+                {referralSource === "Other" && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="space-y-2"
+                  >
+                    <Label htmlFor="other-referral" className="text-sm font-semibold">Please specify</Label>
+                    <Input
+                      id="other-referral"
+                      placeholder="Tell us where you heard about us"
+                      value={otherReferral}
+                      onChange={(e) => setOtherReferral(e.target.value)}
+                    />
+                  </motion.div>
+                )}
               </div>
             )}
           </div>
