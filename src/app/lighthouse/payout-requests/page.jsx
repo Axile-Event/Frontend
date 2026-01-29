@@ -324,26 +324,30 @@ export default function PayoutRequestsPage() {
 
       {/* Pagination Controls */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-end gap-2 mt-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handlePageChange(currentPage - 1)}
-            disabled={currentPage === 1}
-          >
-            Prev
-          </Button>
-          <span className="text-sm text-gray-400">
+        <div className="flex items-center justify-between p-4 bg-muted/20 border border-border/40 rounded-xl mt-4">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
             Page {currentPage} of {totalPages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => handlePageChange(currentPage + 1)}
-            disabled={currentPage === totalPages}
-          >
-            Next
-          </Button>
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              className="h-8 px-4 font-bold text-xs uppercase tracking-tighter"
+            >
+              Prev
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              className="h-8 px-4 font-bold text-xs uppercase tracking-tighter"
+            >
+              Next
+            </Button>
+          </div>
         </div>
       )}
 
