@@ -13,7 +13,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Filter,
-  Search
+  Search,
+  Landmark
 } from "lucide-react";
 import { adminService } from "@/lib/admin";
 import { toast } from "react-hot-toast";
