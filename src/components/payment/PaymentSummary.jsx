@@ -7,9 +7,8 @@ const PaymentSummary = ({ summary }) => {
   const { 
     ticketNumber, 
     event_name,
-    category_name,
+    items = [], // Array of ticket categories
     quantity = 1,
-    price_per_ticket = 0,
     subtotal = 0,
     platformFee = 0, 
     total = 0 
@@ -24,13 +23,11 @@ const PaymentSummary = ({ summary }) => {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Event & Category Details */}
+        {/* Event Details */}
         {event_name && (
           <div className="space-y-1">
             <p className="font-semibold text-foreground">{event_name}</p>
-            {category_name && (
-              <p className="text-sm text-muted-foreground">{category_name}</p>
-            )}
+            <p className="text-sm text-muted-foreground">{quantity} ticket{quantity > 1 ? 's' : ''}</p>
           </div>
         )}
 
@@ -46,22 +43,28 @@ const PaymentSummary = ({ summary }) => {
         
         <Separator className="bg-border/50" />
         
-        {/* Price Breakdown */}
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">
-              Ticket Price {quantity > 1 ? `(×${quantity})` : ''}
-            </span>
-            <span className="text-foreground">
-              ₦{price_per_ticket?.toLocaleString()}{quantity > 1 ? ` × ${quantity}` : ''}
-            </span>
-          </div>
-          
-          {quantity > 1 && (
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Subtotal</span>
-              <span className="text-foreground">₦{subtotal?.toLocaleString()}</span>
+        {/* Ticket Categories Breakdown */}
+        <div className="space-y-3">
+          {items.map((item, index) => (
+            <div key={index} className="flex justify-between items-start text-sm">
+              <div>
+                <span className="text-foreground font-medium">{item.name}</span>
+                <span className="text-muted-foreground ml-2">×{item.quantity}</span>
+              </div>
+              <span className="text-foreground">
+                ₦{(item.price * item.quantity).toLocaleString()}
+              </span>
             </div>
+          ))}
+          
+          {items.length > 1 && (
+            <>
+              <Separator className="bg-border/30" />
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Subtotal</span>
+                <span className="text-foreground">₦{subtotal?.toLocaleString()}</span>
+              </div>
+            </>
           )}
           
           {platformFee > 0 && (
