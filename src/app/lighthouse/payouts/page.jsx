@@ -469,9 +469,9 @@ export default function PayoutsPage() {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between pt-4 border-t border-border/40 mt-4">
-              <p className="text-xs text-muted-foreground">
-                Showing {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, totalCount)} of {totalCount}
+            <div className="flex items-center justify-between p-4 bg-muted/20 border border-border/40 rounded-xl mt-4">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
+                Page {currentPage} of {totalPages}
               </p>
               <div className="flex items-center gap-2">
                 <Button
