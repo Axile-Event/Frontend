@@ -30,7 +30,7 @@ const StudentDashboardLayout = ({children}) => {
          <Sidebar mobile />
       </div>
       {/* main content */}
-      <main className='w-full md:ml-64 p-4 md:p-8 pt-20 pb-20 md:pt-8 md:pb-8'>
+      <main className='w-full md:ml-64 px-3 py-4 md:px-6 md:py-6 pt-20 pb-24 md:pt-6 md:pb-6'>
         {children}
       </main>
     </section>

@@ -12,12 +12,13 @@ Complete API documentation for frontend developers. This document covers all end
 6. [Admin Endpoints](#admin-endpoints) ✨ UPDATED
 7. [Ticket App Endpoints](#ticket-app-endpoints)
 8. [Wallet Endpoints](#wallet-endpoints) ✨ NEW
-9. [Analytics Endpoints](#analytics-endpoints) ✨ NEW
-10. [Frontend Implementation Guide](#frontend-implementation-guide)
-11. [Error Handling](#error-handling)
-12. [Code Examples](#code-examples)
-13. [Summary](#summary)
-14. [Architecture Notes](#architecture-notes) ✨ NEW
+9. [Bank Verification Endpoints](#bank-verification-endpoints) ✨ NEW
+10. [Analytics Endpoints](#analytics-endpoints) ✨ NEW
+11. [Frontend Implementation Guide](#frontend-implementation-guide)
+12. [Error Handling](#error-handling)
+13. [Code Examples](#code-examples)
+14. [Summary](#summary)
+15. [Architecture Notes](#architecture-notes) ✨ NEW
 
 ---
 
@@ -2277,10 +2278,13 @@ All ticket responses include the following fields:
 - The maximum number of tickets per booking is controlled by the event's `max_quantity_per_booking` field (defaults to 3 if not set by the organizer).
 
 **Platform Fee (Paid Events Only):**
-- Customer pays: `ticket_price + ₦80` (₦80 is an additional charge)
-- Platform fee: `(ticket_price × 6%) + ₦80` (default, can be customized per event)
-- Organizer receives: `ticket_price × 94%` (6% deducted from base price)
+- Platform fees are configured dynamically in admin settings and can be customized per event
+- Customer pays: `ticket_price + platform_fee_fixed + paystack_fee`
+- Platform fee: `(ticket_price × platform_fee_percentage) + platform_fee_fixed` (from system settings or event-specific)
+- Paystack fee: `(amount × paystack_fee_percentage) + paystack_fee_fixed` (if amount >= threshold)
+- Organizer receives: `ticket_price - platform_fee`
 - Free events have no platform fees
+- All fees are calculated dynamically from system settings, ensuring changes take effect immediately
 
 **Authentication:** Required (JWT token, Student only)
 
@@ -2538,6 +2542,101 @@ All ticket responses include the following fields:
   "message": "Event with ID 'event:TE-12345' does not exist. Please check the event ID and try again.",
   "event_id": "event:TE-12345"
 }
+```
+
+---
+
+### 3. Submit Payment Confirmation Form
+
+**Endpoint:** `POST /api/ticket/confirm-payment/`
+
+**Description:** Submit a payment confirmation form for manual bank transfer. When users choose manual bank transfer instead of Paystack, they must submit this form after making the transfer. The form will be reviewed by an admin who can confirm or reject it.
+
+**Authentication:** Not required (public endpoint)
+
+**Request Body:**
+```json
+{
+  "Firstname": "John",
+  "Lastname": "Doe",
+  "amount_sent": 5000.00,
+  "sent_at": "2024-12-15T10:30:00Z"
+}
+```
+
+**Field Requirements:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `Firstname` | string | Yes | Customer's first name (max 150 characters) |
+| `Lastname` | string | Yes | Customer's last name (max 200 characters) |
+| `amount_sent` | float | Yes | Amount sent via bank transfer (must be > 0) |
+| `sent_at` | datetime | Yes | Date and time when the transfer was made (ISO 8601 format) |
+
+**Success Response (201 Created):**
+```json
+{
+  "message": "Payment confirmation submitted successfully.",
+  "data": {
+    "Firstname": "John",
+    "Lastname": "Doe",
+    "amount_sent": 5000.00,
+    "sent_at": "2024-12-15T10:30:00Z"
+  }
+}
+```
+
+**Error Response (400 Bad Request):**
+```json
+{
+  "error": "Invalid data.",
+  "message": "Form not filled properly.",
+  "details": {
+    "amount_sent": ["This field is required."],
+    "sent_at": ["This field is required."]
+  }
+}
+```
+
+**Note:** 
+- After submission, the form status will be `pending` by default
+- An admin will review the form and update the status to `confirmed` or `rejected`
+- The admin can add notes when confirming or rejecting the form
+- Users should keep their transfer receipt/reference for verification
+
+**Frontend Implementation:**
+```javascript
+async function submitPaymentConfirmation(formData) {
+  const response = await fetch('http://localhost:8000/api/ticket/confirm-payment/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      Firstname: formData.firstName,
+      Lastname: formData.lastName,
+      amount_sent: parseFloat(formData.amount),
+      sent_at: new Date().toISOString() // Current date/time
+    }),
+  });
+  
+  const data = await response.json();
+  
+  if (response.ok) {
+    console.log('Payment confirmation submitted:', data.message);
+  } else {
+    console.error('Error:', data.error, data.details);
+  }
+  
+  return data;
+}
+
+// Example usage
+await submitPaymentConfirmation({
+  firstName: 'John',
+  lastName: 'Doe',
+  amount: 5000.00
+});
 ```
 
 **Error Response (403 Forbidden - Not Your Event):**
@@ -4193,6 +4292,312 @@ console.log('Latest withdrawal:', withdrawals.withdrawals[0]);
 const transactions = await getTransactionHistory();
 console.log('Total transactions:', transactions.count);
 ```
+
+---
+
+## Bank Verification Endpoints ✨ NEW
+
+Bank verification endpoints powered by Paystack API. These endpoints allow you to retrieve a list of Nigerian banks and verify bank account numbers.
+
+### Base URL
+
+```
+/bank/
+```
+
+### Authentication
+
+**No authentication required** - These endpoints are publicly accessible.
+
+### Overview
+
+The bank verification endpoints integrate with Paystack's bank verification API to:
+- Retrieve a list of supported banks (filtered to Nigeria by default)
+- Verify bank account numbers and retrieve account names
+
+**Note:** These endpoints require `PAYSTACK_SECRET_KEY` to be configured in the backend environment variables.
+
+---
+
+### 1. List Banks
+
+**Endpoint:** `GET /bank/list/`
+
+**Description:** Retrieve a list of all supported banks. By default, returns Nigerian banks. Uses Paystack's List Banks API.
+
+**Authentication:** Not required
+
+**Query Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `country` | string | No | Country name to filter banks (default: `nigeria`). Options: `nigeria`, `ghana`, etc. |
+
+**Example Request:**
+```bash
+GET /bank/list/
+GET /bank/list/?country=nigeria
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "message": "Banks retrieved successfully",
+  "data": [
+    {
+      "name": "Abbey Mortgage Bank",
+      "slug": "abbey-mortgage-bank",
+      "code": "801",
+      "longcode": "",
+      "gateway": null,
+      "pay_with_bank": false,
+      "active": true,
+      "is_deleted": false,
+      "country": "Nigeria",
+      "currency": "NGN",
+      "type": "nuban",
+      "id": 174,
+      "createdAt": "2020-12-07T16:19:09.000Z",
+      "updatedAt": "2020-12-07T16:19:19.000Z"
+    },
+    {
+      "name": "Access Bank",
+      "slug": "access-bank",
+      "code": "044",
+      "longcode": "",
+      "gateway": null,
+      "pay_with_bank": false,
+      "active": true,
+      "is_deleted": false,
+      "country": "Nigeria",
+      "currency": "NGN",
+      "type": "nuban",
+      "id": 1,
+      "createdAt": "2020-12-07T16:19:09.000Z",
+      "updatedAt": "2020-12-07T16:19:19.000Z"
+    }
+  ],
+  "meta": {
+    "next": "YmFuazoxNjk=",
+    "previous": null,
+    "perPage": 50
+  }
+}
+```
+
+**Response Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `message` | string | Success message |
+| `data` | array | Array of bank objects |
+| `data[].name` | string | Bank name |
+| `data[].code` | string | Bank code (use this for account verification) |
+| `data[].slug` | string | Bank slug identifier |
+| `data[].country` | string | Country name |
+| `data[].currency` | string | Currency code (e.g., "NGN") |
+| `data[].type` | string | Account type (e.g., "nuban" for Nigerian accounts) |
+| `data[].active` | boolean | Whether the bank is active |
+| `data[].pay_with_bank` | boolean | Whether bank supports direct payment |
+| `meta` | object | Pagination metadata |
+
+**Error Responses:**
+
+**400 Bad Request:**
+```json
+{
+  "error": "Failed to retrieve banks",
+  "data": null
+}
+```
+
+**500 Internal Server Error:**
+```json
+{
+  "error": "Paystack configuration error. Please contact administrator."
+}
+```
+
+**502 Bad Gateway:**
+```json
+{
+  "error": "Failed to retrieve banks from Paystack. Please try again later."
+}
+```
+
+**Frontend Implementation:**
+```javascript
+async function getBanks(country = 'nigeria') {
+  const response = await fetch(
+    `http://localhost:8000/bank/list/?country=${country}`,
+    {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to retrieve banks');
+  }
+  
+  return await response.json();
+}
+
+// Get Nigerian banks
+const banks = await getBanks('nigeria');
+console.log('Available banks:', banks.data);
+
+// Use bank code for account verification
+const accessBankCode = banks.data.find(bank => bank.name === 'Access Bank')?.code;
+```
+
+---
+
+### 2. Verify Account
+
+**Endpoint:** `POST /bank/verify/`
+
+**Description:** Verify a bank account number and retrieve the account name. Uses Paystack's Resolve Account API. This endpoint confirms that an account number belongs to the specified bank and returns the registered account name.
+
+**Authentication:** Not required
+
+**Request Body:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `account_number` | string | Yes | Customer's account number (minimum 10 digits, digits only) |
+| `bank_code` | string | Yes | Bank code from the list banks endpoint (e.g., "044" for Access Bank) |
+
+**Example Request:**
+```bash
+POST /bank/verify/
+Content-Type: application/json
+
+{
+  "account_number": "0022728151",
+  "bank_code": "063"
+}
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "message": "Account verified successfully",
+  "data": {
+    "account_number": "0022728151",
+    "account_name": "WES GIBBONS"
+  }
+}
+```
+
+**Response Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `message` | string | Success message |
+| `data.account_number` | string | Verified account number |
+| `data.account_name` | string | Account holder's name as registered with the bank |
+
+**Error Responses:**
+
+**400 Bad Request - Validation Error:**
+```json
+{
+  "account_number": ["Account number must contain only digits"],
+  "bank_code": ["Bank code cannot be empty"]
+}
+```
+
+**400 Bad Request - Account Not Found:**
+```json
+{
+  "error": "Account number could not be resolved",
+  "data": null
+}
+```
+
+**500 Internal Server Error:**
+```json
+{
+  "error": "Paystack configuration error. Please contact administrator."
+}
+```
+
+**Frontend Implementation:**
+```javascript
+async function verifyAccount(accountNumber, bankCode) {
+  const response = await fetch('http://localhost:8000/bank/verify/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      account_number: accountNumber,
+      bank_code: bankCode,
+    }),
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to verify account');
+  }
+  
+  return await response.json();
+}
+
+// Example usage
+try {
+  const result = await verifyAccount('0022728151', '063');
+  console.log('Account Name:', result.data.account_name);
+  console.log('Account Number:', result.data.account_number);
+} catch (error) {
+  console.error('Verification failed:', error.message);
+}
+```
+
+**Complete Example - Bank Selection and Verification Flow:**
+```javascript
+// Step 1: Get list of banks
+const banksResponse = await getBanks('nigeria');
+const banks = banksResponse.data;
+
+// Step 2: User selects a bank from dropdown
+const selectedBank = banks.find(bank => bank.name === 'Access Bank');
+const bankCode = selectedBank.code; // e.g., "044"
+
+// Step 3: User enters account number
+const accountNumber = '0022728151';
+
+// Step 4: Verify account
+try {
+  const verificationResult = await verifyAccount(accountNumber, bankCode);
+  
+  // Display account name to user for confirmation
+  console.log(`Account Name: ${verificationResult.data.account_name}`);
+  
+  // Proceed with form submission or payment
+} catch (error) {
+  // Handle error - account not found or invalid
+  alert(`Verification failed: ${error.message}`);
+}
+```
+
+**Use Cases:**
+
+1. **Bank Account Setup**: When users are setting up bank accounts for withdrawals, verify the account number before saving
+2. **Payment Forms**: Verify recipient account details before processing transfers
+3. **KYC Verification**: Confirm account ownership as part of identity verification
+4. **Form Validation**: Real-time validation of bank account numbers
+
+**Notes:**
+
+- Account verification is available for **Nigeria and Ghana** banks
+- The account number must be valid and active
+- The bank code must match the bank where the account is held
+- Account names are returned exactly as registered with the bank (may include special characters or formatting)
 
 ---
 
@@ -5901,6 +6306,9 @@ await processWithdrawal('WDR-ABC123', 'failed', 'Invalid bank details');
   "settings": {
     "platform_fee_percentage": "0.0600",
     "platform_fee_fixed": "80.00",
+    "paystack_fee_percentage": "0.0150",
+    "paystack_fee_fixed": "100.00",
+    "paystack_fee_threshold": "2500.00",
     "maintenance_mode": false,
     "maintenance_message": "We're currently performing maintenance. Please check back soon.",
     "allow_student_registration": true,
@@ -5923,6 +6331,9 @@ await processWithdrawal('WDR-ABC123', 'failed', 'Invalid bank details');
 |-------|------|-------------|
 | `platform_fee_percentage` | decimal | Default platform fee percentage as decimal (0.06 = 6%) |
 | `platform_fee_fixed` | decimal | Default fixed platform fee in Naira (added per ticket, e.g., 80.00) |
+| `paystack_fee_percentage` | decimal | Paystack fee percentage as decimal (0.015 = 1.5%) |
+| `paystack_fee_fixed` | decimal | Paystack fixed fee in Naira (applied when transaction >= threshold, e.g., 100.00) |
+| `paystack_fee_threshold` | decimal | Transaction amount threshold for Paystack fixed fee (₦100 applies when amount >= this, e.g., 2500.00) |
 | `maintenance_mode` | boolean | When true, only admins can access the platform |
 | `maintenance_message` | string | Message shown during maintenance |
 | `allow_student_registration` | boolean | Allow new student sign-ups |
@@ -5968,6 +6379,9 @@ async function getSystemSettings() {
 {
   "platform_fee_percentage": 0.06,
   "platform_fee_fixed": 80.00,
+  "paystack_fee_percentage": 0.015,
+  "paystack_fee_fixed": 100.00,
+  "paystack_fee_threshold": 2500.00,
   "maintenance_mode": false,
   "maintenance_message": "We'll be back soon!",
   "allow_student_registration": true,
@@ -5986,6 +6400,9 @@ async function getSystemSettings() {
   "settings": {
     "platform_fee_percentage": "0.0600",
     "platform_fee_fixed": "80.00",
+    "paystack_fee_percentage": "0.0150",
+    "paystack_fee_fixed": "100.00",
+    "paystack_fee_threshold": "2500.00",
     "maintenance_mode": false,
     "maintenance_message": "We'll be back soon!",
     "allow_student_registration": true,
@@ -5998,9 +6415,12 @@ async function getSystemSettings() {
     "updated_at": "2024-12-15T11:00:00Z",
     "updated_by": "admin@example.com"
   },
-  "message": "System settings updated successfully"
+  "message": "System settings updated successfully",
+  "caches_invalidated": true
 }
 ```
+
+**Note:** When platform fees or Paystack fees are updated, the `caches_invalidated` field will be `true`, indicating that all event-related caches have been cleared to ensure calculations use the new fee values immediately.
 
 **Error Response (400 Bad Request):**
 ```json
@@ -6030,6 +6450,13 @@ async function updateSystemSettings(settingsData) {
 await updateSystemSettings({ 
   platform_fee_percentage: 0.07,
   platform_fee_fixed: 100.00
+});
+
+// Example: Update Paystack fees
+await updateSystemSettings({
+  paystack_fee_percentage: 0.015,
+  paystack_fee_fixed: 100.00,
+  paystack_fee_threshold: 2500.00
 });
 
 // Example: Enable maintenance mode
@@ -6177,6 +6604,235 @@ const adminLogs = await getAuditLogs({ adminEmail: 'admin@example.com' });
 
 ---
 
+### 20. Get Payment Forms
+
+**Endpoint:** `GET /api/admin/payment-forms/`
+
+**Description:** Get paginated list of payment confirmation forms submitted by users for manual bank transfers. Admins can filter by status, date range, and amount range.
+
+**Authentication:** Required (JWT token, Admin only)
+
+**Query Parameters:**
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `page` | integer | 1 | Page number (1-indexed) |
+| `page_size` | integer | 20 | Items per page (max: 100) |
+| `status` | string | null | Filter by status: `pending`, `confirmed`, or `rejected` |
+| `date_from` | string | null | Filter forms from this date (ISO 8601 format, e.g., "2024-12-01") |
+| `date_to` | string | null | Filter forms until this date (ISO 8601 format, e.g., "2024-12-31") |
+| `min_amount` | float | null | Filter forms with amount >= this value |
+| `max_amount` | float | null | Filter forms with amount <= this value |
+
+**Example Requests:**
+```
+GET /api/admin/payment-forms/                                    # All forms
+GET /api/admin/payment-forms/?status=pending                    # Pending forms only
+GET /api/admin/payment-forms/?date_from=2024-12-01&date_to=2024-12-31  # Date range
+GET /api/admin/payment-forms/?min_amount=1000&max_amount=5000   # Amount range
+GET /api/admin/payment-forms/?page=2&page_size=50               # Paginated
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "payment_forms": [
+    {
+      "id": 1,
+      "Firstname": "John",
+      "Lastname": "Doe",
+      "amount_sent": 5000.00,
+      "sent_at": "2024-12-15T10:30:00Z",
+      "status": "pending",
+      "admin_notes": null,
+      "confirmed_at": null,
+      "confirmed_by": null
+    },
+    {
+      "id": 2,
+      "Firstname": "Jane",
+      "Lastname": "Smith",
+      "amount_sent": 3000.00,
+      "sent_at": "2024-12-14T15:20:00Z",
+      "status": "confirmed",
+      "admin_notes": "Payment verified",
+      "confirmed_at": "2024-12-14T16:00:00Z",
+      "confirmed_by": "admin@example.com"
+    }
+  ],
+  "pagination": {
+    "current_page": 1,
+    "total_pages": 3,
+    "total_count": 45,
+    "page_size": 20,
+    "has_next": true,
+    "has_previous": false
+  },
+  "filters": {
+    "status": null,
+    "date_from": null,
+    "date_to": null,
+    "min_amount": null,
+    "max_amount": null
+  },
+  "message": "Payment forms retrieved successfully"
+}
+```
+
+**Error Response (400 Bad Request):**
+```json
+{
+  "error": "Invalid status. Must be 'pending', 'confirmed', or 'rejected'."
+}
+```
+
+**Frontend Implementation:**
+```javascript
+async function getPaymentForms({ 
+  page = 1, 
+  pageSize = 20, 
+  status = null, 
+  dateFrom = null, 
+  dateTo = null,
+  minAmount = null,
+  maxAmount = null 
+} = {}) {
+  const token = localStorage.getItem('admin_access_token');
+  
+  const params = new URLSearchParams();
+  params.append('page', page);
+  params.append('page_size', pageSize);
+  if (status) params.append('status', status);
+  if (dateFrom) params.append('date_from', dateFrom);
+  if (dateTo) params.append('date_to', dateTo);
+  if (minAmount !== null) params.append('min_amount', minAmount);
+  if (maxAmount !== null) params.append('max_amount', maxAmount);
+  
+  const response = await fetch(
+    `http://localhost:8000/api/admin/payment-forms/?${params.toString()}`,
+    {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+  
+  return await response.json();
+}
+
+// Get all pending forms
+const pendingForms = await getPaymentForms({ status: 'pending' });
+
+// Get forms in date range
+const formsInRange = await getPaymentForms({ 
+  dateFrom: '2024-12-01', 
+  dateTo: '2024-12-31' 
+});
+
+// Get forms with amount filter
+const formsByAmount = await getPaymentForms({ 
+  minAmount: 1000, 
+  maxAmount: 5000 
+});
+```
+
+---
+
+### 21. Update Payment Form Status
+
+**Endpoint:** `PATCH /api/admin/payment-forms/<form_id>/status/`
+
+**Description:** Update the status of a payment confirmation form. Admins can confirm or reject payment forms submitted for manual bank transfers.
+
+**Authentication:** Required (JWT token, Admin only)
+
+**URL Parameters:**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `form_id` | integer | ID of the payment form to update |
+
+**Request Body:**
+```json
+{
+  "status": "confirmed",
+  "admin_notes": "Payment verified successfully"
+}
+```
+
+**Request Fields:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `status` | string | Yes | New status: `confirmed` or `rejected` |
+| `admin_notes` | string | No | Optional notes from admin regarding the confirmation/rejection |
+
+**Success Response (200 OK):**
+```json
+{
+  "message": "Payment form confirmed successfully",
+  "payment_form": {
+    "id": 1,
+    "Firstname": "John",
+    "Lastname": "Doe",
+    "amount_sent": 5000.00,
+    "sent_at": "2024-12-15T10:30:00Z",
+    "status": "confirmed",
+    "admin_notes": "Payment verified successfully",
+    "confirmed_at": "2024-12-15T11:00:00Z",
+    "confirmed_by": "admin@example.com"
+  }
+}
+```
+
+**Error Response (400 Bad Request):**
+```json
+{
+  "error": "Payment form with ID 999 not found"
+}
+```
+
+**Error Response (400 Bad Request - Invalid Status):**
+```json
+{
+  "status": ["Invalid status. Must be 'confirmed' or 'rejected'"]
+}
+```
+
+**Frontend Implementation:**
+```javascript
+async function updatePaymentFormStatus(formId, status, adminNotes = null) {
+  const token = localStorage.getItem('admin_access_token');
+  
+  const response = await fetch(
+    `http://localhost:8000/api/admin/payment-forms/${formId}/status/`,
+    {
+      method: 'PATCH',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        status: status,
+        admin_notes: adminNotes
+      }),
+    }
+  );
+  
+  return await response.json();
+}
+
+// Confirm a payment form
+await updatePaymentFormStatus(1, 'confirmed', 'Payment verified');
+
+// Reject a payment form
+await updatePaymentFormStatus(2, 'rejected', 'Amount mismatch');
+```
+
+---
+
 ### Admin Dashboard Flow Example
 
 ```javascript
@@ -6275,9 +6931,12 @@ const organizers = await getUsers({ role: 'organizer' });
 | **Admin - System Settings** |
 | GET | `/api/admin/settings/` | Yes (Admin) | Get system settings |
 | PATCH | `/api/admin/settings/` | Yes (Admin) | Update system settings |
+| GET | `/api/admin/payment-forms/` | Yes (Admin) | Get payment confirmation forms |
+| PATCH | `/api/admin/payment-forms/<form_id>/status/` | Yes (Admin) | Update payment form status |
 | GET | `/api/admin/audit-logs/` | Yes (Admin) | Get audit logs |
 | **Tickets** |
 | POST | `/tickets/book/` | Yes (Student) | Book ticket |
+| POST | `/api/ticket/confirm-payment/` | No | Submit payment confirmation form (manual transfer) |
 | POST | `/tickets/verify-payment/` | No | Verify payment |
 | POST | `/tickets/paystack-webhook/` | No | Paystack webhook (automatic) |
 | GET | `/tickets/my-tickets/` | Yes (Student) | Get my tickets |
@@ -6294,6 +6953,9 @@ const organizers = await getUsers({ role: 'organizer' });
 | POST | `/wallet/bank-account/` | Yes (Org) | Add/update bank account |
 | POST | `/wallet/withdraw/` | Yes (Org) | Request withdrawal |
 | GET | `/wallet/withdrawals/` | Yes (Org) | Get withdrawal history |
+| **Bank Verification** |
+| GET | `/bank/list/` | No | List banks (Nigeria by default) |
+| POST | `/bank/verify/` | No | Verify bank account number |
 | **PIN Management** |
 | POST | `/pin/` | No | Set/create PIN (organizer) |
 | POST | `/forgot-pin/` | No | Request PIN change link |
@@ -6539,507 +7201,3 @@ The API follows professional Django/DRF best practices:
 ---
 
 This documentation covers all endpoints with request/response examples and frontend implementation guides. Use this as your reference for frontend development! 🚀
-  
-
-  #it works on my machine😹
-
-
-# Payment Form Management Documentation
-
-## Overview
-
-The Payment Form system handles manual bank transfer payment confirmations for ticket purchases. When users choose manual bank transfer instead of Paystack, they submit a payment confirmation form. Admins can then review and confirm or reject these payment confirmations.
-
-## Architecture
-
-The payment form functionality is integrated into the `ticket` app, as it's directly related to ticket payment processing. The system supports two payment methods:
-
-1. **Paystack** - Automated payment processing via Paystack gateway
-2. **Manual Bank Transfer** - Users transfer money manually and submit a confirmation form
-
-## Model Structure
-
-### PaymentForm Model
-
-Located in `radar.ticket.models.PaymentForm`
-
-```python
-class PaymentForm(models.Model):
-    STATUS_CHOICES = [
-        ('pending', 'Pending'),
-        ('confirmed', 'Confirmed'),
-        ('rejected', 'Rejected'),
-    ]
-    
-    Firstname = models.CharField(max_length=150)
-    Lastname = models.CharField(max_length=200)
-    amount_sent = models.FloatField(blank=False)
-    sent_at = models.DateTimeField(null=False, blank=False)
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
-    admin_notes = models.TextField(blank=True, null=True)
-    confirmed_at = models.DateTimeField(blank=True, null=True)
-    confirmed_by = models.CharField(max_length=255, blank=True, null=True)
-```
-
-### Fields
-
-- **Firstname** (required): Customer's first name
-- **Lastname** (required): Customer's last name
-- **amount_sent** (required): Amount transferred by customer
-- **sent_at** (required): Date and time when payment was sent
-- **status** (default: 'pending'): Payment confirmation status
-  - `pending`: Awaiting admin review
-  - `confirmed`: Admin has confirmed the payment
-  - `rejected`: Admin has rejected the payment
-- **admin_notes** (optional): Notes added by admin during confirmation/rejection
-- **confirmed_at** (auto-set): Timestamp when admin confirmed/rejected
-- **confirmed_by** (auto-set): Email of admin who confirmed/rejected
-
-## API Endpoints
-
-### User Endpoints
-
-#### Submit Payment Confirmation Form
-
-**Endpoint:** `POST /tickets/confirm-payment/`
-
-**Authentication:** Not required (public endpoint)
-
-**Request Body:**
-```json
-  "Firstname": "John",
-  "Lastname": "Doe",
-  "amount_sent": 5000.00,
-  "sent_at": "2024-01-15T10:30:00Z"
-}
-```
-
-**Response (201 Created):**
-```json
-{
-  "message": "Payment confirmation submitted successfully.",
-  "data": {
-    "Firstname": "John",
-    "Lastname": "Doe",
-    "amount_sent": 5000.00,
-    "sent_at": "2024-01-15T10:30:00Z"
-  }
-}
-```
-
-**Error Response (400 Bad Request):**
-```json
-{
-  "error": "Invalid data.",
-  "message": "Form not filled properly.",
-  "details": {
-    "amount_sent": ["This field is required."]
-  }
-}
-```
-
-**Notes:**
-- Users cannot set the `status` field - it defaults to `'pending'`
-- The form is automatically created with `status='pending'` for admin review
-
----
-
-### Admin Endpoints
-
-#### List Payment Forms
-
-**Endpoint:** `GET /api/admin/payment-forms/`
-
-**Authentication:** Required (Admin only)
-
-**Query Parameters:**
-- `page` (optional, default: 1): Page number
-- `page_size` (optional, default: 20, max: 100): Items per page
-- `status` (optional): Filter by status (`pending`, `confirmed`, `rejected`)
-- `date_from` (optional): Filter from date (YYYY-MM-DD)
-- `date_to` (optional): Filter to date (YYYY-MM-DD)
-- `min_amount` (optional): Minimum amount filter
-- `max_amount` (optional): Maximum amount filter
-
-**Example Request:**
-```
-GET /api/admin/payment-forms/?page=1&page_size=20&status=pending&date_from=2024-01-01
-```
-
-**Response (200 OK):**
-```json
-{
-  "payment_forms": [
-    {
-      "id": 1,
-      "Firstname": "John",
-      "Lastname": "Doe",
-      "amount_sent": 5000.00,
-      "sent_at": "2024-01-15T10:30:00Z",
-      "status": "pending",
-      "admin_notes": null,
-      "confirmed_at": null,
-      "confirmed_by": null
-    }
-  ],
-  "pagination": {
-    "current_page": 1,
-    "total_pages": 5,
-    "total_count": 100,
-    "page_size": 20,
-    "has_next": true,
-    "has_previous": false
-  },
-  "filters": {
-    "status": "pending",
-    "date_from": "2024-01-01",
-    "date_to": null,
-    "min_amount": null,
-    "max_amount": null
-  },
-  "message": "Payment forms retrieved successfully"
-}
-```
-
----
-
-#### Update Payment Form Status
-
-**Endpoint:** `PATCH /api/admin/payment-forms/<form_id>/status/`
-
-**Authentication:** Required (Admin only)
-
-**Request Body:**
-```json
-{
-  "status": "confirmed",
-  "admin_notes": "Payment verified. Bank transfer confirmed."
-}
-```
-
-**Status Options:**
-- `confirmed`: Admin confirms the payment
-- `rejected`: Admin rejects the payment
-
-**Response (200 OK):**
-```json
-{
-  "message": "Payment form confirmed successfully",
-  "payment_form": {
-    "id": 1,
-    "Firstname": "John",
-    "Lastname": "Doe",
-    "amount_sent": 5000.00,
-    "sent_at": "2024-01-15T10:30:00Z",
-    "status": "confirmed",
-    "admin_notes": "Payment verified. Bank transfer confirmed.",
-    "confirmed_at": "2024-01-16T14:20:00Z",
-    "confirmed_by": "admin@example.com"
-  }
-}
-```
-
-**Error Responses:**
-
-**400 Bad Request - Invalid Status:**
-```json
-{
-  "error": "Invalid status. Must be 'confirmed' or 'rejected'"
-}
-```
-
-**400 Bad Request - Form Not Found:**
-```json
-{
-  "error": "Payment form with ID 999 not found"
-}
-```
-
-**Notes:**
-- When status is updated, `confirmed_at` is automatically set to current timestamp
-- `confirmed_by` is automatically set to the admin's email
-- An audit log entry is created for the status change
-
----
-
-## Status Workflow
-
-```
-┌─────────────┐
-│   User      │
-│  Submits    │
-│   Form      │
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐
-│  PENDING    │ ← Default status
-│  (Awaiting  │
-│   Review)   │
-└──────┬──────┘
-       │
-       ├─────────────────┐
-       │                 │
-       ▼                 ▼
-┌─────────────┐   ┌─────────────┐
-│ CONFIRMED   │   │  REJECTED   │
-│ (Admin      │   │  (Admin     │
-│  Approved)  │   │  Rejected)  │
-└─────────────┘   └─────────────┘
-```
-
-### Status Transitions
-
-1. **Pending → Confirmed**
-   - Admin verifies payment and confirms
-   - `confirmed_at` and `confirmed_by` are set
-   - Admin can add notes
-
-2. **Pending → Rejected**
-   - Admin rejects the payment (e.g., amount mismatch, no payment found)
-   - `confirmed_at` and `confirmed_by` are set
-   - Admin should add notes explaining rejection
-
-3. **Confirmed/Rejected → (No further changes)**
-   - Once confirmed or rejected, status cannot be changed
-   - This ensures audit trail integrity
-
----
-
-## Integration with Ticket System
-
-### Payment Methods
-
-The ticket booking system supports two payment methods:
-
-1. **Paystack Payment** (`/tickets/book/`)
-   - Automatic payment processing
-   - Tickets are confirmed immediately upon successful payment
-   - No manual intervention required
-
-2. **Manual Bank Transfer** (`/tickets/confirm-payment/`)
-   - User books ticket (status: `pending`)
-   - User transfers money to bank account
-   - User submits payment confirmation form
-   - Admin reviews and confirms payment
-   - Tickets are then confirmed (status: `confirmed`)
-
-### Workflow Example
-
-```
-1. User books ticket → Ticket created with status='pending'
-2. User receives payment instructions (bank account details)
-3. User transfers money
-4. User submits payment form → PaymentForm created with status='pending'
-5. Admin reviews payment form
-6. Admin confirms payment → PaymentForm status='confirmed'
-7. Admin manually confirms ticket → Ticket status='confirmed'
-   (or implement automatic ticket confirmation on payment form confirmation)
-```
-
----
-
-## Database Indexes
-
-The `PaymentForm` model includes an index for efficient querying:
-
-```python
-indexes = [
-    models.Index(fields=['status', '-sent_at'], name='paymentform_status_sent_idx'),
-]
-```
-
-This index optimizes queries that filter by status and order by sent_at (most recent first).
-
----
-
-## Admin Features
-
-### Filtering Options
-
-Admins can filter payment forms by:
-
-- **Status**: `pending`, `confirmed`, `rejected`
-- **Date Range**: `date_from` and `date_to`
-- **Amount Range**: `min_amount` and `max_amount`
-
-### Pagination
-
-All list endpoints support pagination:
-- Default: 20 items per page
-- Maximum: 100 items per page
-- Page numbers start at 1
-
-### Audit Trail
-
-Every status change is logged:
-- Admin email who made the change
-- Timestamp of the change
-- Status before and after
-- Optional admin notes
-
----
-
-## Error Handling
-
-### Common Errors
-
-1. **Invalid Status**
-   - Only `confirmed` or `rejected` are allowed for updates
-   - `pending` cannot be set manually
-
-2. **Form Not Found**
-   - Returns 400 Bad Request with error message
-
-3. **Invalid Parameters**
-   - Date format must be YYYY-MM-DD
-   - Amounts must be valid numbers
-   - Status must be one of the valid choices
-
----
-
-## Best Practices
-
-### For Users
-
-1. **Submit Accurate Information**
-   - Ensure amount matches the ticket price
-   - Use correct date/time when payment was sent
-   - Double-check name spelling
-
-2. **Submit Promptly**
-   - Submit the form as soon as payment is made
-   - This helps admins process confirmations faster
-
-### For Admins
-
-1. **Review Thoroughly**
-   - Verify payment amount matches ticket price
-   - Check bank records for payment confirmation
-   - Add notes for any discrepancies
-
-2. **Use Notes Effectively**
-   - Add notes when confirming (e.g., "Payment verified in bank statement")
-   - Add notes when rejecting (e.g., "Amount mismatch: expected 5000, received 4500")
-
-3. **Filter Efficiently**
-   - Use status filter to focus on pending forms
-   - Use date filters to review forms from specific periods
-
----
-
-## Future Enhancements
-
-Potential improvements to consider:
-
-1. **Automatic Ticket Confirmation**
-   - When payment form is confirmed, automatically confirm related tickets
-   - Link payment forms to specific tickets/booking IDs
-
-2. **Email Notifications**
-   - Notify users when payment is confirmed
-   - Notify users when payment is rejected (with reason)
-
-3. **Payment Matching**
-   - Automatically match payment forms to tickets based on amount and date
-   - Suggest matches for admin review
-
-4. **Bulk Operations**
-   - Allow admins to confirm/reject multiple forms at once
-
-5. **Payment Receipt Upload**
-   - Allow users to upload bank transfer receipt/screenshot
-   - Store receipt images for verification
-
----
-
-## Migration Guide
-
-### Creating Migrations
-
-After model changes, create and apply migrations:
-
-```bash
-python manage.py makemigrations ticket
-python manage.py migrate
-```
-
-### Data Migration (if needed)
-
-If you have existing `PaymentForm` records without status:
-
-```python
-# In a data migration
-from django.db import migrations
-
-def set_default_status(apps, schema_editor):
-    PaymentForm = apps.get_model('ticket', 'PaymentForm')
-    PaymentForm.objects.filter(status__isnull=True).update(status='pending')
-
-class Migration(migrations.Migration):
-    dependencies = [
-        ('ticket', 'XXXX_add_status_to_paymentform'),
-    ]
-
-    operations = [
-        migrations.RunPython(set_default_status),
-    ]
-```
-
----
-
-## API Testing Examples
-
-### cURL Examples
-
-**Submit Payment Form:**
-```bash
-curl -X POST http://localhost:8000/tickets/confirm-payment/ \
-  -H "Content-Type: application/json" \
-  -d '{
-    "Firstname": "John",
-    "Lastname": "Doe",
-    "amount_sent": 5000.00,
-    "sent_at": "2024-01-15T10:30:00Z"
-  }'
-```
-
-**List Pending Payment Forms (Admin):**
-```bash
-curl -X GET "http://localhost:8000/api/admin/payment-forms/?status=pending&page=1" \
-  -H "Authorization: Bearer <admin_token>"
-```
-
-**Confirm Payment Form (Admin):**
-```bash
-curl -X PATCH http://localhost:8000/api/admin/payment-forms/1/status/ \
-  -H "Authorization: Bearer <admin_token>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "status": "confirmed",
-    "admin_notes": "Payment verified in bank statement"
-  }'
-```
-
----
-
-## Related Documentation
-
-- [Ticket Booking API](./TICKET_BOOKING.md)
-- [Admin API Documentation](./ADMIN_API.md)
-- [Payment Service Documentation](./PAYMENT_SERVICE.md)
-
----
-
-## Support
-
-For issues or questions:
-- Check the API error responses for specific error messages
-- Review the audit logs for status change history
-- Contact the development team for assistance
-
----
-
-**Last Updated:** 2024-01-16  
-**Version:** 1.0.0
-

@@ -75,9 +75,9 @@ const StudentSettings = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <div className="max-w-4xl mx-auto space-y-5 md:space-y-8 pb-20 md:pb-0">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight mb-2">Settings</h1>
+        <h1 className="text-xl md:text-3xl font-bold tracking-tight mb-1 md:mb-2">Settings</h1>
         <p className="text-muted-foreground">Customize your experience and preferences.</p>
       </div>
 

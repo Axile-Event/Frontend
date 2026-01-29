@@ -31,7 +31,7 @@ const Footer = () => {
   const socialLinks = [
     { icon: Twitter, href: 'https://twitter.com', label: 'Twitter' },
     { icon: Instagram, href: 'https://www.instagram.com/axile.ng', label: 'Instagram' },
-    { icon: Linkedin, href: 'https://linkedin.com', label: 'LinkedIn' },
+    { icon: Linkedin, href: 'https://www.linkedin.com/company/axile-ng/', label: 'LinkedIn' },
     { icon: Music2, href: 'https://www.tiktok.com/@axile.ng', label: 'TikTok' },
   ];
 

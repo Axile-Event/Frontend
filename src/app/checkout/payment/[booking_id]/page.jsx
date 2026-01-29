@@ -58,9 +58,31 @@ export default function CheckoutPaymentPage() {
         
         if (storedBooking) {
           const parsed = JSON.parse(storedBooking);
-          const quantity = parsed.quantity || 1;
-          const pricePerTicket = parseFloat(parsed.price_per_ticket || 0);
-          const subtotal = pricePerTicket * quantity;
+          
+          // Handle multi-category bookings (new format with items array)
+          let subtotal = 0;
+          let totalQuantity = 0;
+          let items = [];
+          
+          if (parsed.items && Array.isArray(parsed.items)) {
+            // New format: multiple categories
+            items = parsed.items;
+            subtotal = parsed.subtotal || items.reduce((sum, item) => sum + (item.total || item.price * item.quantity), 0);
+            totalQuantity = parsed.total_quantity || items.reduce((sum, item) => sum + item.quantity, 0);
+          } else {
+            // Legacy format: single category
+            const quantity = parsed.quantity || 1;
+            const pricePerTicket = parseFloat(parsed.price_per_ticket || 0);
+            subtotal = pricePerTicket * quantity;
+            totalQuantity = quantity;
+            items = [{
+              name: parsed.category_name,
+              price: pricePerTicket,
+              quantity: quantity,
+              total: subtotal
+            }];
+          }
+          
           const serviceFee = subtotal > 0 ? PLATFORM_FEE : 0; // ₦80 service fee for paid tickets
           // Paystack calculates fee on the total amount INCLUDING platform service fee
           const paystackFee = calculatePaystackFee(subtotal + serviceFee);
@@ -71,9 +93,8 @@ export default function CheckoutPaymentPage() {
             booking_id: parsed.booking_id,
             ticketNumber: parsed.booking_id?.replace('booking:', '') || decodedBookingId.replace('booking:', ''),
             event_name: parsed.event_name,
-            category_name: parsed.category_name,
-            quantity: quantity,
-            price_per_ticket: pricePerTicket,
+            items: items, // Array of categories
+            quantity: totalQuantity,
             subtotal: subtotal,
             platformFee: platformFee,
             total: total,
