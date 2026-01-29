@@ -70,9 +70,9 @@ const StudentDashboardOverview = () => {
                       "Student";
 
   return (
-    <div className="min-h-screen p-4 md:p-4 space-y-6 md:space-y-8 pt-6 md:pt-10">
+    <div className="min-h-screen space-y-5 md:space-y-8 pt-2 md:pt-6">
       {/* Welcome Section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4 md:mb-6">
         <div>
           <h1 className="text-xl md:text-3xl font-bold text-white mb-2">
             Welcome back, {displayName}! 👋

@@ -161,15 +161,27 @@ const EventDetailsPage = () => {
     const toastId = toast.loading("Processing booking...");
 
     try {
-      // Book tickets for the first selected category
-      // Backend currently supports single category booking
-      const firstSelection = orderSummary.selectedItems[0];
+      // Use event.event_id which is the full ID from the backend (e.g., "event:TE-12345")
+      const eventIdToUse = event?.event_id;
+      
+      if (!eventIdToUse) {
+        toast.error("Event ID not found", { id: toastId });
+        setBookingLoading(false);
+        return;
+      }
+      
+      // Build items array for multi-category booking
+      const items = orderSummary.selectedItems.map(item => ({
+        category_name: item.name,
+        quantity: item.quantity,
+      }));
       
       const payload = {
-        event_id: event.event_id || event.id || eventId,
-        quantity: firstSelection.quantity,
-        category_name: firstSelection.name,
+        event_id: eventIdToUse,
+        items: items,
       };
+      
+      console.log("Booking payload:", payload);
 
       const response = await api.post("/tickets/book/", payload);
       
@@ -184,9 +196,9 @@ const EventDetailsPage = () => {
           event_name: event.name,
           event_id: event.event_id || event.id || eventId,
           event_image: event.image,
-          category_name: firstSelection.name,
-          quantity: firstSelection.quantity,
-          price_per_ticket: firstSelection.price,
+          items: orderSummary.selectedItems, // Store all selected categories
+          total_quantity: orderSummary.totalQuantity,
+          subtotal: orderSummary.subtotal,
           payment_url: response.data.payment_url,
           payment_reference: response.data.payment_reference,
           tickets: tickets,

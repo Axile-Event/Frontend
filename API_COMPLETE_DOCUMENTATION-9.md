@@ -12,12 +12,13 @@ Complete API documentation for frontend developers. This document covers all end
 6. [Admin Endpoints](#admin-endpoints) ✨ UPDATED
 7. [Ticket App Endpoints](#ticket-app-endpoints)
 8. [Wallet Endpoints](#wallet-endpoints) ✨ NEW
-9. [Analytics Endpoints](#analytics-endpoints) ✨ NEW
-10. [Frontend Implementation Guide](#frontend-implementation-guide)
-11. [Error Handling](#error-handling)
-12. [Code Examples](#code-examples)
-13. [Summary](#summary)
-14. [Architecture Notes](#architecture-notes) ✨ NEW
+9. [Bank Verification Endpoints](#bank-verification-endpoints) ✨ NEW
+10. [Analytics Endpoints](#analytics-endpoints) ✨ NEW
+11. [Frontend Implementation Guide](#frontend-implementation-guide)
+12. [Error Handling](#error-handling)
+13. [Code Examples](#code-examples)
+14. [Summary](#summary)
+15. [Architecture Notes](#architecture-notes) ✨ NEW
 
 ---
 
@@ -2270,11 +2271,13 @@ All ticket responses include the following fields:
 
 **Endpoint:** `POST /tickets/book/`
 
-**Description:** Book tickets for an event. For paid events, initiates Paystack payment. Can optionally select a ticket category (e.g., "Early Bird", "VIP") for custom pricing.
+**Description:** Book tickets for an event. Supports booking multiple ticket categories in a single transaction. For paid events, initiates Paystack payment. All tickets from the same booking session are grouped together with a `booking_id`.
 
 **Important:** 
-- When booking multiple tickets (quantity > 1), the system creates **individual ticket records** - one for each person. Each ticket has its own `ticket_id` and `qr_code` for individual check-in. All tickets from the same purchase are grouped by a `booking_id`.
-- The maximum number of tickets per booking is controlled by the event's `max_quantity_per_booking` field (defaults to 3 if not set by the organizer).
+- **Multi-Category Support:** You can book tickets from multiple categories in a single request (e.g., 2 "Early Bird" tickets + 1 "VIP" ticket)
+- When booking multiple tickets, the system creates **individual ticket records** - one for each person. Each ticket has its own `ticket_id` and `qr_code` for individual check-in. All tickets from the same purchase are grouped by a `booking_id`.
+- The maximum number of tickets per booking (across all categories) is controlled by the event's `max_quantity_per_booking` field (defaults to 3 if not set by the organizer).
+- All tickets in a booking share the same `booking_id` for payment processing and tracking
 
 **Platform Fee (Paid Events Only):**
 - Platform fees are configured dynamically in admin settings and can be customized per event
@@ -2291,22 +2294,34 @@ All ticket responses include the following fields:
 ```json
 {
   "event_id": "event:TE-12345",
-  "category_name": "Early Bird",
-  "quantity": 2
+  "items": [
+    {
+      "category_name": "Early Bird",
+      "quantity": 2
+    },
+    {
+      "category_name": "VIP",
+      "quantity": 1
+    }
+  ]
 }
 ```
 
 **Field Requirements:**
 - `event_id`: Required, valid event ID
-- `category_name`: **Required**, ticket category name (e.g., "Early Bird", "VIP", "Group of 4"). Events must have ticket categories - there is no default price.
-- `quantity`: Required, integer, min 1. Number of individual tickets to create (each person gets their own ticket).
+- `items`: Required, array of booking items. Must contain at least one item.
+  - `category_name`: **Required**, ticket category name (e.g., "Early Bird", "VIP", "Group of 4"). Events must have ticket categories - there is no default price.
+  - `quantity`: Required, integer, min 1. Number of individual tickets to create for this category (each person gets their own ticket).
 
-**Note:** To see available ticket categories for an event, use `GET /tickets/categories/?event_id=<event_id>` or check the `ticket_categories` field in event details.
+**Note:** 
+- To see available ticket categories for an event, use `GET /tickets/categories/?event_id=<event_id>` or check the `ticket_categories` field in event details.
+- The total quantity across all items must not exceed the event's `max_quantity_per_booking` limit (defaults to 3).
+- Example: If `max_quantity_per_booking` is 3, you can book 2 "Early Bird" + 1 "VIP" = 3 total tickets, but not 2 + 2 = 4 tickets.
 
 **Success Response - Free Event (201 Created):**
 ```json
 {
-  "message": "2 ticket(s) booked successfully",
+  "message": "3 ticket(s) booked successfully",
   "tickets": [
     {
       "ticket_id": "ticket:TC-12345",
@@ -2343,10 +2358,28 @@ All ticket responses include the following fields:
       "checked_in_at": null,
       "created_at": "2024-12-10T10:00:00Z",
       "updated_at": "2024-12-10T10:00:00Z"
+    },
+    {
+      "ticket_id": "ticket:TC-12347",
+      "event_id": "event:TE-12345",
+      "event_name": "Tech Conference 2024",
+      "event_date": "2024-12-15T10:00:00Z",
+      "event_location": "OAU Campus",
+      "student_email": "john.doe@student.oauife.edu.ng",
+      "student_full_name": "John Doe",
+      "status": "confirmed",
+      "quantity": 1,
+      "total_price": "0.00",
+      "category_name": "VIP",
+      "category_price": "10000.00",
+      "qr_code": "QR-ticket:TC-12347",
+      "checked_in_at": null,
+      "created_at": "2024-12-10T10:00:00Z",
+      "updated_at": "2024-12-10T10:00:00Z"
     }
   ],
   "booking_id": "booking:ABC-12345",
-  "ticket_count": 2
+  "ticket_count": 3
 }
 ```
 
@@ -2390,10 +2423,28 @@ All ticket responses include the following fields:
       "checked_in_at": null,
       "created_at": "2024-12-10T10:00:00Z",
       "updated_at": "2024-12-10T10:00:00Z"
+    },
+    {
+      "ticket_id": "ticket:TC-12347",
+      "event_id": "event:TE-12345",
+      "event_name": "Tech Conference 2024",
+      "event_date": "2024-12-15T10:00:00Z",
+      "event_location": "OAU Campus",
+      "student_email": "john.doe@student.oauife.edu.ng",
+      "student_full_name": "John Doe",
+      "status": "pending",
+      "quantity": 1,
+      "total_price": "10000.00",
+      "category_name": "VIP",
+      "category_price": "10000.00",
+      "qr_code": "QR-ticket:TC-12347",
+      "checked_in_at": null,
+      "created_at": "2024-12-10T10:00:00Z",
+      "updated_at": "2024-12-10T10:00:00Z"
     }
   ],
   "booking_id": "booking:ABC-12345",
-  "ticket_count": 2,
+  "ticket_count": 3,
   "payment_url": "https://paystack.com/pay/xxxxx",
   "payment_reference": "bookingABC-12345"
 }
@@ -2411,8 +2462,10 @@ All ticket responses include the following fields:
 **Note:** 
 - Each ticket in the `tickets` array has `quantity: 1` (each ticket is for one person)
 - Each ticket has its own unique `ticket_id` and `qr_code` for individual check-in
-- All tickets share the same `booking_id` to group them together
-- For paid events, the `total_price` shown is per ticket. The customer will be charged `(total_price × quantity) + ₦80` (platform fee) when redirected to Paystack
+- All tickets share the same `booking_id` to group them together for payment processing
+- Tickets from different categories are included in the same booking
+- For paid events, the `total_price` shown is per ticket. The customer will be charged the sum of all ticket prices plus platform fee and Paystack fee when redirected to Paystack
+- Payment is processed for the entire booking - all tickets are confirmed together when payment succeeds
 - The `payment_reference` uses the sanitized `booking_id` (special characters removed) for Paystack compatibility
 
 **Error Response (400 Bad Request - Invalid Category):**
@@ -2439,11 +2492,21 @@ All ticket responses include the following fields:
 **Error Response (400 Bad Request - Max Quantity Exceeded):**
 ```json
 {
-  "error": "Maximum 3 tickets allowed per booking for this event"
+  "error": "Maximum 3 tickets allowed per booking session for this event"
 }
 ```
 
-**Note:** The maximum tickets per booking is set at the event level (via `max_quantity_per_booking` field). If not set when creating the event, it defaults to 3 tickets per booking.
+**Error Response (400 Bad Request - Invalid Items):**
+```json
+{
+  "items": ["At least one ticket category must be selected"]
+}
+```
+
+**Note:** 
+- The maximum tickets per booking is set at the event level (via `max_quantity_per_booking` field). If not set when creating the event, it defaults to 3 tickets per booking.
+- This limit applies to the **total quantity across all categories** in a single booking session.
+- Example: If max is 3, you can book 2 "Early Bird" + 1 "VIP" = 3 total, but not 2 + 2 = 4 total.
 
 ---
 
@@ -2469,8 +2532,16 @@ All ticket responses include the following fields:
   "lastname": "Doe",
   "email": "john.doe@gmail.com",
   "event_id": "event:TE-12345",
-  "category_name": "Early Bird",
-  "quantity": 2
+  "items": [
+    {
+      "category_name": "Early Bird",
+      "quantity": 2
+    },
+    {
+      "category_name": "VIP",
+      "quantity": 1
+    }
+  ]
 }
 ```
 
@@ -2479,13 +2550,16 @@ All ticket responses include the following fields:
 - `lastname`: Required, attendee's last name
 - `email`: Required, attendee's email address (ticket will be sent here)
 - `event_id`: Required, event ID (must belong to authenticated organizer)
-- `category_name`: Required, ticket category name (e.g., "Early Bird", "VIP")
-- `quantity`: Required, integer, min 1. Number of tickets to book
+- `items`: Required, array of booking items. Must contain at least one item.
+  - `category_name`: Required, ticket category name (e.g., "Early Bird", "VIP")
+  - `quantity`: Required, integer, min 1. Number of tickets to book for this category
+
+**Note:** Supports multi-category booking - you can book tickets from multiple categories in a single request. The total quantity across all items must not exceed the event's `max_quantity_per_booking` limit.
 
 **Success Response - Free Event (201 Created):**
 ```json
 {
-  "message": "2 ticket(s) purchased successfully for John Doe",
+  "message": "3 ticket(s) purchased successfully for John Doe",
   "attendee_email": "john.doe@gmail.com",
   "attendee_name": "John Doe",
   "tickets": [
@@ -2499,11 +2573,42 @@ All ticket responses include the following fields:
       "quantity": 1,
       "total_price": "0.00",
       "category_name": "Early Bird",
-      "qr_code": "QR-ticket:TC-12345"
+      "category_price": "5000.00",
+      "qr_code": "QR-ticket:TC-12345",
+      "created_at": "2024-12-10T10:00:00Z"
+    },
+    {
+      "ticket_id": "ticket:TC-12346",
+      "event_id": "event:TE-12345",
+      "event_name": "Tech Conference 2024",
+      "student_email": "john.doe@gmail.com",
+      "student_full_name": "John Doe",
+      "status": "confirmed",
+      "quantity": 1,
+      "total_price": "0.00",
+      "category_name": "Early Bird",
+      "category_price": "5000.00",
+      "qr_code": "QR-ticket:TC-12346",
+      "created_at": "2024-12-10T10:00:00Z"
+    },
+    {
+      "ticket_id": "ticket:TC-12347",
+      "event_id": "event:TE-12345",
+      "event_name": "Tech Conference 2024",
+      "student_email": "john.doe@gmail.com",
+      "student_full_name": "John Doe",
+      "status": "confirmed",
+      "quantity": 1,
+      "total_price": "0.00",
+      "category_name": "VIP",
+      "category_price": "10000.00",
+      "qr_code": "QR-ticket:TC-12347",
+      "created_at": "2024-12-10T10:00:00Z"
     }
   ],
   "booking_id": "booking:ABC-12345",
-  "ticket_count": 2
+  "ticket_count": 3,
+  "email_sent": true
 }
 ```
 
@@ -2524,11 +2629,41 @@ All ticket responses include the following fields:
       "quantity": 1,
       "total_price": "5000.00",
       "category_name": "Early Bird",
-      "qr_code": "QR-ticket:TC-12345"
+      "category_price": "5000.00",
+      "qr_code": "QR-ticket:TC-12345",
+      "created_at": "2024-12-10T10:00:00Z"
+    },
+    {
+      "ticket_id": "ticket:TC-12346",
+      "event_id": "event:TE-12345",
+      "event_name": "Tech Conference 2024",
+      "student_email": "john.doe@gmail.com",
+      "student_full_name": "John Doe",
+      "status": "pending",
+      "quantity": 1,
+      "total_price": "5000.00",
+      "category_name": "Early Bird",
+      "category_price": "5000.00",
+      "qr_code": "QR-ticket:TC-12346",
+      "created_at": "2024-12-10T10:00:00Z"
+    },
+    {
+      "ticket_id": "ticket:TC-12347",
+      "event_id": "event:TE-12345",
+      "event_name": "Tech Conference 2024",
+      "student_email": "john.doe@gmail.com",
+      "student_full_name": "John Doe",
+      "status": "pending",
+      "quantity": 1,
+      "total_price": "10000.00",
+      "category_name": "VIP",
+      "category_price": "10000.00",
+      "qr_code": "QR-ticket:TC-12347",
+      "created_at": "2024-12-10T10:00:00Z"
     }
   ],
   "booking_id": "booking:ABC-12345",
-  "ticket_count": 2,
+  "ticket_count": 3,
   "payment_url": "https://paystack.com/pay/xxxxx",
   "payment_reference": "bookingABC-12345"
 }
@@ -2647,16 +2782,23 @@ await submitPaymentConfirmation({
 }
 ```
 
-**Error Response (400 Bad Request - Missing Category):**
+**Error Response (400 Bad Request - Invalid Items):**
 ```json
 {
-  "error": "category_name is required. Events must have ticket categories."
+  "items": ["At least one ticket category must be selected"]
+}
+```
+
+**Error Response (400 Bad Request - Max Quantity Exceeded):**
+```json
+{
+  "error": "Maximum 3 tickets allowed per booking session for this event"
 }
 ```
 
 **Frontend Implementation:**
 ```javascript
-async function organizerBookForAttendee(attendeeData, eventId, categoryName, quantity) {
+async function organizerBookForAttendee(attendeeData, eventId, bookingItems) {
   const token = localStorage.getItem('access_token');
   
   const response = await fetch('http://localhost:8000/tickets/organizer/book-for-attendee/', {
@@ -2670,8 +2812,7 @@ async function organizerBookForAttendee(attendeeData, eventId, categoryName, qua
       lastname: attendeeData.lastname,
       email: attendeeData.email,
       event_id: eventId,
-      category_name: categoryName,
-      quantity: quantity
+      items: bookingItems  // Array of {category_name, quantity}
     }),
   });
   
@@ -2683,10 +2824,30 @@ async function organizerBookForAttendee(attendeeData, eventId, categoryName, qua
   } else {
     // Free event - tickets created successfully
     console.log(`Tickets sent to ${result.attendee_email}`);
+    if (result.warning) {
+      console.warn(result.warning);
+    }
   }
   
   return result;
 }
+
+// Example usage - Single category
+await organizerBookForAttendee(
+  { firstname: 'John', lastname: 'Doe', email: 'john@example.com' },
+  'event:TE-12345',
+  [{ category_name: 'Early Bird', quantity: 2 }]
+);
+
+// Example usage - Multiple categories
+await organizerBookForAttendee(
+  { firstname: 'John', lastname: 'Doe', email: 'john@example.com' },
+  'event:TE-12345',
+  [
+    { category_name: 'Early Bird', quantity: 2 },
+    { category_name: 'VIP', quantity: 1 }
+  ]
+);
 ```
 
 **Note:**
@@ -2700,7 +2861,7 @@ async function organizerBookForAttendee(attendeeData, eventId, categoryName, qua
 
 **Frontend Implementation:**
 ```javascript
-async function bookTicket(eventId, quantity, categoryName = null) {
+async function bookTicket(eventId, bookingItems) {
   const token = localStorage.getItem('access_token');
   
   const response = await fetch('http://localhost:8000/tickets/book/', {
@@ -2711,8 +2872,7 @@ async function bookTicket(eventId, quantity, categoryName = null) {
     },
     body: JSON.stringify({
       event_id: eventId,
-      category_name: categoryName,  // Required: e.g., "Early Bird", "VIP" - events must have ticket categories
-      quantity,
+      items: bookingItems  // Array of {category_name, quantity}
     }),
   });
   
@@ -2739,6 +2899,17 @@ async function bookTicket(eventId, quantity, categoryName = null) {
   
   return result;
 }
+
+// Example usage - Single category
+await bookTicket('event:TE-12345', [
+  { category_name: 'Early Bird', quantity: 2 }
+]);
+
+// Example usage - Multiple categories
+await bookTicket('event:TE-12345', [
+  { category_name: 'Early Bird', quantity: 2 },
+  { category_name: 'VIP', quantity: 1 }
+]);
 ```
 
 ---
@@ -2774,9 +2945,16 @@ async function bookTicket(eventId, quantity, categoryName = null) {
 
 **Endpoint:** `POST /tickets/verify-payment/`
 
-**Description:** Manually verify Paystack payment. Usually handled automatically by webhook, but can be used as a fallback. When multiple tickets were booked together, this endpoint verifies and confirms all tickets in the booking.
+**Description:** Manually verify Paystack payment. Usually handled automatically by webhook, but can be used as a fallback. When multiple tickets were booked together (including from multiple categories), this endpoint verifies and confirms **all tickets in the booking** together.
 
-**Authentication:** Not required
+**Important:**
+- Finds all tickets by `booking_id` from payment metadata
+- Updates all tickets in the booking to `confirmed` status
+- Credits organizer wallet for each confirmed ticket
+- Sends confirmation email for the entire booking
+- Handles already-confirmed tickets gracefully (idempotent)
+
+**Authentication:** Required (JWT token)
 
 **Request Body:**
 ```json
@@ -2785,12 +2963,12 @@ async function bookTicket(eventId, quantity, categoryName = null) {
 }
 ```
 
-**Note:** The `reference` should be the payment reference returned from Paystack (sanitized booking_id). For backward compatibility, you can also use a ticket_id.
+**Note:** The `reference` should be the payment reference returned from Paystack (sanitized booking_id). The endpoint will find all tickets with the same `booking_id` and verify them together. For backward compatibility, you can also use a ticket_id.
 
 **Success Response (200 OK):**
 ```json
 {
-  "message": "Payment verified successfully. 2 ticket(s) confirmed.",
+  "message": "Payment verified successfully. 3 ticket(s) confirmed.",
   "tickets": [
     {
       "ticket_id": "ticket:TC-12345",
@@ -2827,10 +3005,40 @@ async function bookTicket(eventId, quantity, categoryName = null) {
       "checked_in_at": null,
       "created_at": "2024-12-10T10:00:00Z",
       "updated_at": "2024-12-10T10:00:00Z"
+    },
+    {
+      "ticket_id": "ticket:TC-12347",
+      "event_id": "event:TE-12345",
+      "event_name": "Tech Conference 2024",
+      "event_date": "2024-12-15T10:00:00Z",
+      "event_location": "OAU Campus",
+      "student_email": "john.doe@student.oauife.edu.ng",
+      "student_full_name": "John Doe",
+      "status": "confirmed",
+      "quantity": 1,
+      "total_price": "10000.00",
+      "category_name": "VIP",
+      "category_price": "10000.00",
+      "qr_code": "QR-ticket:TC-12347",
+      "checked_in_at": null,
+      "created_at": "2024-12-10T10:00:00Z",
+      "updated_at": "2024-12-10T10:00:00Z"
     }
   ],
   "booking_id": "booking:ABC-12345",
-  "ticket_count": 2
+  "ticket_count": 3
+}
+```
+
+**Success Response - Already Confirmed (200 OK):**
+```json
+{
+  "message": "Payment verified successfully. Tickets were already confirmed.",
+  "status": "success",
+  "tickets": [...],
+  "booking_id": "booking:ABC-12345",
+  "ticket_count": 3,
+  "already_confirmed": true
 }
 ```
 
@@ -3551,9 +3759,14 @@ export interface Ticket {
   updated_at: string;
 }
 
+export interface BookingItem {
+  category_name: string;
+  quantity: number;
+}
+
 export interface BookingRequest {
   event_id: string;
-  quantity: number;
+  items: BookingItem[];  // Array of booking items (supports multiple categories)
 }
 
 export interface BookingResponse {
@@ -3624,13 +3837,13 @@ async function handleApiCall(apiFunction) {
 ### Complete Booking Flow
 
 ```javascript
-async function completeBookingFlow(eventId, quantity, categoryName = null) {
+async function completeBookingFlow(eventId, bookingItems) {
   try {
-    // 1. Book ticket
+    // 1. Book tickets (supports multiple categories)
+    // bookingItems: [{category_name: 'Early Bird', quantity: 2}, {category_name: 'VIP', quantity: 1}]
     const bookingResult = await apiClient.bookTicket({
       event_id: eventId,
-      quantity,
-      category_name: categoryName,
+      items: bookingItems
     });
 
     // 2. If paid event, redirect to payment
@@ -3653,6 +3866,17 @@ async function completeBookingFlow(eventId, quantity, categoryName = null) {
     alert(error.message || 'Booking failed');
   }
 }
+
+// Example usage - Single category
+await completeBookingFlow('event:TE-12345', [
+  { category_name: 'Early Bird', quantity: 2 }
+]);
+
+// Example usage - Multiple categories
+await completeBookingFlow('event:TE-12345', [
+  { category_name: 'Early Bird', quantity: 2 },
+  { category_name: 'VIP', quantity: 1 }
+]);
 ```
 
 ### Payment Verification After Redirect
@@ -3725,21 +3949,28 @@ https://res.cloudinary.com/{cloud_name}/image/upload/v{version}/radar/events/{fi
 ### Paystack Payment Flow
 
 1. **Book Ticket** (`POST /tickets/book/`)
+   - Supports booking multiple ticket categories in a single request
    - For paid events, returns `payment_url` and `payment_reference`
-   - Ticket status is set to `pending`
+   - All tickets are created with status `pending` and share the same `booking_id`
+   - Payment reference uses sanitized `booking_id` for Paystack compatibility
 
 2. **Redirect to Paystack**
    - User is redirected to `payment_url`
    - User completes payment on Paystack
+   - Payment amount includes all tickets plus platform fee and Paystack fee
 
 3. **Automatic Verification (Webhook)**
    - Paystack calls `/tickets/paystack-webhook/` automatically
-   - Ticket status updated to `confirmed` on successful payment
-   - **Organizer wallet automatically credited** with earnings (after platform fee)
+   - Webhook finds all tickets by `booking_id` from payment metadata
+   - **All tickets in the booking** are updated to `confirmed` status together
+   - **Organizer wallet automatically credited** for each confirmed ticket (after platform fee)
+   - Single confirmation email sent for the entire booking
 
 4. **Manual Verification (Fallback)**
    - If webhook fails, use `POST /tickets/verify-payment/`
-   - Pass `reference` (ticket_id) to verify payment
+   - Pass `reference` (sanitized booking_id) to verify payment
+   - Endpoint finds all tickets by `booking_id` and verifies them together
+   - All tickets in the booking are confirmed together
 
 ### Webhook Configuration
 
@@ -3748,8 +3979,14 @@ Configure webhook URL in Paystack Dashboard:
 - **Production:** `https://your-domain.com/tickets/paystack-webhook/`
 
 **Webhook Events:**
-- `charge.success` → Ticket status → `confirmed` + **Wallet credited automatically**
-- `charge.failed` → Ticket remains `pending`
+- `charge.success` → All tickets in booking → `confirmed` + **Wallet credited automatically for each ticket**
+- `charge.failed` → Tickets remain `pending`
+
+**Multi-Category Booking:**
+- When booking multiple categories (e.g., 2 "Early Bird" + 1 "VIP"), all tickets share the same `booking_id`
+- Payment is processed for the entire booking amount (sum of all ticket prices + fees)
+- When payment succeeds, **all tickets** in the booking are confirmed together
+- Each ticket gets its own wallet credit transaction
 
 **Wallet Integration:**
 - When payment succeeds, organizer wallet is automatically credited
@@ -4291,6 +4528,312 @@ console.log('Latest withdrawal:', withdrawals.withdrawals[0]);
 const transactions = await getTransactionHistory();
 console.log('Total transactions:', transactions.count);
 ```
+
+---
+
+## Bank Verification Endpoints ✨ NEW
+
+Bank verification endpoints powered by Paystack API. These endpoints allow you to retrieve a list of Nigerian banks and verify bank account numbers.
+
+### Base URL
+
+```
+/bank/
+```
+
+### Authentication
+
+**No authentication required** - These endpoints are publicly accessible.
+
+### Overview
+
+The bank verification endpoints integrate with Paystack's bank verification API to:
+- Retrieve a list of supported banks (filtered to Nigeria by default)
+- Verify bank account numbers and retrieve account names
+
+**Note:** These endpoints require `PAYSTACK_SECRET_KEY` to be configured in the backend environment variables.
+
+---
+
+### 1. List Banks
+
+**Endpoint:** `GET /bank/list/`
+
+**Description:** Retrieve a list of all supported banks. By default, returns Nigerian banks. Uses Paystack's List Banks API.
+
+**Authentication:** Not required
+
+**Query Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `country` | string | No | Country name to filter banks (default: `nigeria`). Options: `nigeria`, `ghana`, etc. |
+
+**Example Request:**
+```bash
+GET /bank/list/
+GET /bank/list/?country=nigeria
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "message": "Banks retrieved successfully",
+  "data": [
+    {
+      "name": "Abbey Mortgage Bank",
+      "slug": "abbey-mortgage-bank",
+      "code": "801",
+      "longcode": "",
+      "gateway": null,
+      "pay_with_bank": false,
+      "active": true,
+      "is_deleted": false,
+      "country": "Nigeria",
+      "currency": "NGN",
+      "type": "nuban",
+      "id": 174,
+      "createdAt": "2020-12-07T16:19:09.000Z",
+      "updatedAt": "2020-12-07T16:19:19.000Z"
+    },
+    {
+      "name": "Access Bank",
+      "slug": "access-bank",
+      "code": "044",
+      "longcode": "",
+      "gateway": null,
+      "pay_with_bank": false,
+      "active": true,
+      "is_deleted": false,
+      "country": "Nigeria",
+      "currency": "NGN",
+      "type": "nuban",
+      "id": 1,
+      "createdAt": "2020-12-07T16:19:09.000Z",
+      "updatedAt": "2020-12-07T16:19:19.000Z"
+    }
+  ],
+  "meta": {
+    "next": "YmFuazoxNjk=",
+    "previous": null,
+    "perPage": 50
+  }
+}
+```
+
+**Response Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `message` | string | Success message |
+| `data` | array | Array of bank objects |
+| `data[].name` | string | Bank name |
+| `data[].code` | string | Bank code (use this for account verification) |
+| `data[].slug` | string | Bank slug identifier |
+| `data[].country` | string | Country name |
+| `data[].currency` | string | Currency code (e.g., "NGN") |
+| `data[].type` | string | Account type (e.g., "nuban" for Nigerian accounts) |
+| `data[].active` | boolean | Whether the bank is active |
+| `data[].pay_with_bank` | boolean | Whether bank supports direct payment |
+| `meta` | object | Pagination metadata |
+
+**Error Responses:**
+
+**400 Bad Request:**
+```json
+{
+  "error": "Failed to retrieve banks",
+  "data": null
+}
+```
+
+**500 Internal Server Error:**
+```json
+{
+  "error": "Paystack configuration error. Please contact administrator."
+}
+```
+
+**502 Bad Gateway:**
+```json
+{
+  "error": "Failed to retrieve banks from Paystack. Please try again later."
+}
+```
+
+**Frontend Implementation:**
+```javascript
+async function getBanks(country = 'nigeria') {
+  const response = await fetch(
+    `http://localhost:8000/bank/list/?country=${country}`,
+    {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    }
+  );
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to retrieve banks');
+  }
+  
+  return await response.json();
+}
+
+// Get Nigerian banks
+const banks = await getBanks('nigeria');
+console.log('Available banks:', banks.data);
+
+// Use bank code for account verification
+const accessBankCode = banks.data.find(bank => bank.name === 'Access Bank')?.code;
+```
+
+---
+
+### 2. Verify Account
+
+**Endpoint:** `POST /bank/verify/`
+
+**Description:** Verify a bank account number and retrieve the account name. Uses Paystack's Resolve Account API. This endpoint confirms that an account number belongs to the specified bank and returns the registered account name.
+
+**Authentication:** Not required
+
+**Request Body:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `account_number` | string | Yes | Customer's account number (minimum 10 digits, digits only) |
+| `bank_code` | string | Yes | Bank code from the list banks endpoint (e.g., "044" for Access Bank) |
+
+**Example Request:**
+```bash
+POST /bank/verify/
+Content-Type: application/json
+
+{
+  "account_number": "0022728151",
+  "bank_code": "063"
+}
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "message": "Account verified successfully",
+  "data": {
+    "account_number": "0022728151",
+    "account_name": "WES GIBBONS"
+  }
+}
+```
+
+**Response Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `message` | string | Success message |
+| `data.account_number` | string | Verified account number |
+| `data.account_name` | string | Account holder's name as registered with the bank |
+
+**Error Responses:**
+
+**400 Bad Request - Validation Error:**
+```json
+{
+  "account_number": ["Account number must contain only digits"],
+  "bank_code": ["Bank code cannot be empty"]
+}
+```
+
+**400 Bad Request - Account Not Found:**
+```json
+{
+  "error": "Account number could not be resolved",
+  "data": null
+}
+```
+
+**500 Internal Server Error:**
+```json
+{
+  "error": "Paystack configuration error. Please contact administrator."
+}
+```
+
+**Frontend Implementation:**
+```javascript
+async function verifyAccount(accountNumber, bankCode) {
+  const response = await fetch('http://localhost:8000/bank/verify/', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      account_number: accountNumber,
+      bank_code: bankCode,
+    }),
+  });
+  
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to verify account');
+  }
+  
+  return await response.json();
+}
+
+// Example usage
+try {
+  const result = await verifyAccount('0022728151', '063');
+  console.log('Account Name:', result.data.account_name);
+  console.log('Account Number:', result.data.account_number);
+} catch (error) {
+  console.error('Verification failed:', error.message);
+}
+```
+
+**Complete Example - Bank Selection and Verification Flow:**
+```javascript
+// Step 1: Get list of banks
+const banksResponse = await getBanks('nigeria');
+const banks = banksResponse.data;
+
+// Step 2: User selects a bank from dropdown
+const selectedBank = banks.find(bank => bank.name === 'Access Bank');
+const bankCode = selectedBank.code; // e.g., "044"
+
+// Step 3: User enters account number
+const accountNumber = '0022728151';
+
+// Step 4: Verify account
+try {
+  const verificationResult = await verifyAccount(accountNumber, bankCode);
+  
+  // Display account name to user for confirmation
+  console.log(`Account Name: ${verificationResult.data.account_name}`);
+  
+  // Proceed with form submission or payment
+} catch (error) {
+  // Handle error - account not found or invalid
+  alert(`Verification failed: ${error.message}`);
+}
+```
+
+**Use Cases:**
+
+1. **Bank Account Setup**: When users are setting up bank accounts for withdrawals, verify the account number before saving
+2. **Payment Forms**: Verify recipient account details before processing transfers
+3. **KYC Verification**: Confirm account ownership as part of identity verification
+4. **Form Validation**: Real-time validation of bank account numbers
+
+**Notes:**
+
+- Account verification is available for **Nigeria and Ghana** banks
+- The account number must be valid and active
+- The bank code must match the bank where the account is held
+- Account names are returned exactly as registered with the bank (may include special characters or formatting)
 
 ---
 
@@ -6646,6 +7189,9 @@ const organizers = await getUsers({ role: 'organizer' });
 | POST | `/wallet/bank-account/` | Yes (Org) | Add/update bank account |
 | POST | `/wallet/withdraw/` | Yes (Org) | Request withdrawal |
 | GET | `/wallet/withdrawals/` | Yes (Org) | Get withdrawal history |
+| **Bank Verification** |
+| GET | `/bank/list/` | No | List banks (Nigeria by default) |
+| POST | `/bank/verify/` | No | Verify bank account number |
 | **PIN Management** |
 | POST | `/pin/` | No | Set/create PIN (organizer) |
 | POST | `/forgot-pin/` | No | Request PIN change link |
