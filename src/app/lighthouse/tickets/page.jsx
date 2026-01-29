@@ -113,6 +113,7 @@ export default function TicketsPage() {
                 <th className="text-left p-4 text-xs font-medium text-muted-foreground uppercase tracking-wide">Ticket ID</th>
                 <th className="text-left p-4 text-xs font-medium text-muted-foreground uppercase tracking-wide">Event</th>
                 <th className="text-left p-4 text-xs font-medium text-muted-foreground uppercase tracking-wide">Attendee</th>
+                <th className="text-left p-4 text-xs font-medium text-muted-foreground uppercase tracking-wide">Referral</th>
                 <th className="text-left p-4 text-xs font-medium text-muted-foreground uppercase tracking-wide">Status</th>
                 <th className="text-left p-4 text-xs font-medium text-muted-foreground uppercase tracking-wide">Price</th>
                 <th className="text-right p-4 text-xs font-medium text-muted-foreground uppercase tracking-wide">Date</th>
@@ -121,7 +122,7 @@ export default function TicketsPage() {
             <tbody className="divide-y divide-border/40">
               {currentItems.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="p-12 text-center">
+                  <td colSpan={7} className="p-12 text-center">
                     <Ticket className="w-8 h-8 mx-auto text-muted-foreground/40 mb-2" />
                     <p className="text-sm text-muted-foreground">No tickets found</p>
                   </td>
@@ -146,6 +147,15 @@ export default function TicketsPage() {
                         <p className="text-sm font-medium text-foreground">{t.student_name}</p>
                         <p className="text-xs text-muted-foreground truncate max-w-[150px]">{t.student_email}</p>
                       </div>
+                    </td>
+                    <td className="p-4">
+                      {t.referral_source ? (
+                        <div className="min-w-0">
+                          <p className="text-sm text-foreground">{t.referral_source}</p>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground italic">None</p>
+                      )}
                     </td>
                     <td className="p-4">
                       <StatusBadge status={t.status} />
