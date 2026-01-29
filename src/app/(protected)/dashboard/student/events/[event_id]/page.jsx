@@ -229,6 +229,7 @@ const EventDetailsPage = () => {
 
       // Handle Free Event (Success)
       toast.success("Ticket booked successfully!", { id: toastId });
+      if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("tickets-updated"));
       router.push("/dashboard/student/my-tickets");
       
     } catch (error) {

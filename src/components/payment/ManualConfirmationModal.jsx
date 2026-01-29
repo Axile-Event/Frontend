@@ -17,7 +17,7 @@ const ManualConfirmationModal = ({ isOpen, onClose, totalAmount }) => {
     bankCode: '',
     accountNumber: '',
     amount: totalAmount || '',
-    receipt: null
+    receipt: null, // File for payment_receipt
   });
   const [banks, setBanks] = useState([]);
   const [verifying, setVerifying] = useState(false);
@@ -64,40 +64,30 @@ const ManualConfirmationModal = ({ isOpen, onClose, totalAmount }) => {
     setLoading(true);
 
     try {
-      // Split account_name for Firstname/Lastname to maintain compatibility with backend models
-      const names = formData.accountName.trim().split(' ');
-      const firstName = names[0] || 'Unknown';
-      const lastName = names.slice(1).join(' ') || 'User';
-
-      const selectedBank = banks.find(b => b.code === formData.bankCode);
-      const bankName = selectedBank ? selectedBank.name : 'Unknown Bank';
-
-      const payload = {
-        Firstname: firstName,
-        Lastname: lastName,
-        account_name: formData.accountName,
-        bank_code: formData.bankCode,
-        bank_name: bankName,
-        account_number: formData.accountNumber,
-        amount_sent: parseFloat(formData.amount),
-        sent_at: new Date().toISOString()
-      };
-
-      // Reverted to correct documented endpoint (plural /tickets/)
-      await api.post('/tickets/confirm-payment/', payload);
+      // Use FormData for multipart/form-data (account_name, bank_name, amount_sent, sent_at, payment_receipt)
+      const formDataToSend = new FormData();
+      formDataToSend.append('account_name', formData.accountName.trim() || 'Unknown');
+      const selectedBank = banks.find((b) => b.code === formData.bankCode);
+      const bankName = selectedBank ? selectedBank.name : '';
+      if (bankName) formDataToSend.append('bank_name', bankName);
+      formDataToSend.append('amount_sent', String(parseFloat(formData.amount)));
+      formDataToSend.append('sent_at', new Date().toISOString());
+      if (formData.receipt && formData.receipt instanceof File) {
+        formDataToSend.append('payment_receipt', formData.receipt);
+      }
+      await api.post('/tickets/confirm-payment/', formDataToSend);
       
       setSuccess(true);
       toast.success("Payment confirmation submitted!");
       
-      // Auto close after success
       setTimeout(() => {
         setSuccess(false);
         onClose();
       }, 3000);
-
     } catch (error) {
       console.error("Submission error:", error);
-      toast.error(error.response?.data?.message || "Failed to submit confirmation. Please try again.");
+      const msg = error.response?.data?.message || error.response?.data?.error || "Failed to submit confirmation. Please try again.";
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -208,11 +198,19 @@ const ManualConfirmationModal = ({ isOpen, onClose, totalAmount }) => {
 
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest ml-1">Payment Receipt (Optional)</label>
-                <div className="group relative border-2 border-dashed border-white/5 rounded-3xl p-8 text-center hover:border-rose-500/30 hover:bg-rose-500/5 transition-all cursor-pointer bg-white/5 backdrop-blur-sm">
+                <label className="group relative block border-2 border-dashed border-white/5 rounded-3xl p-8 text-center hover:border-rose-500/30 hover:bg-rose-500/5 transition-all cursor-pointer bg-white/5 backdrop-blur-sm">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => setFormData((prev) => ({ ...prev, receipt: e.target.files?.[0] ?? null }))}
+                  />
                   <Upload className="mx-auto text-gray-500 group-hover:text-rose-500 group-hover:scale-110 transition-all mb-3" size={32} />
-                  <p className="text-sm font-bold text-gray-400 group-hover:text-white transition-colors">Tap to upload receipt</p>
+                  <p className="text-sm font-bold text-gray-400 group-hover:text-white transition-colors">
+                    {formData.receipt ? formData.receipt.name : 'Tap to upload receipt'}
+                  </p>
                   <p className="text-[10px] text-gray-600 font-medium mt-1">PNG, JPG or PDF up to 5MB</p>
-                </div>
+                </label>
               </div>
             </div>
 

@@ -15,39 +15,37 @@ const StudentDashboardOverview = () => {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [profileRes, ticketsRes] = await Promise.all([
+        api.get("student/profile/"),
+        api.get("tickets/my-tickets/"),
+      ]);
+
+      if (profileRes.data?.profile) setProfile(profileRes.data.profile);
+      else if (profileRes.data) setProfile(profileRes.data);
+
+      if (ticketsRes.data && Array.isArray(ticketsRes.data.tickets)) setTickets(ticketsRes.data.tickets);
+      else if (Array.isArray(ticketsRes.data)) setTickets(ticketsRes.data);
+      else setTickets([]);
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+      toast.error("Failed to load dashboard data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const [profileRes, ticketsRes] = await Promise.all([
-          api.get("student/profile/"),
-          api.get("tickets/my-tickets/"),
-        ]);
-
-        // Handle Profile Data
-        if (profileRes.data && profileRes.data.profile) {
-            setProfile(profileRes.data.profile);
-        } else if (profileRes.data) {
-            setProfile(profileRes.data);
-        }
-
-        // Handle Tickets Data
-        if (ticketsRes.data && Array.isArray(ticketsRes.data.tickets)) {
-            setTickets(ticketsRes.data.tickets);
-        } else if (Array.isArray(ticketsRes.data)) {
-             setTickets(ticketsRes.data);
-        } else {
-            setTickets([]);
-        }
-      } catch (error) {
-        console.error("Error fetching dashboard data:", error);
-        toast.error("Failed to load dashboard data");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchData();
+  }, []);
+
+  // Refetch tickets when updated (e.g. after booking or payment verify)
+  useEffect(() => {
+    const onTicketsUpdated = () => fetchData();
+    window.addEventListener("tickets-updated", onTicketsUpdated);
+    return () => window.removeEventListener("tickets-updated", onTicketsUpdated);
   }, []);
 
   if (loading) {

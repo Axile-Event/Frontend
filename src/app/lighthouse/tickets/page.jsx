@@ -43,27 +43,42 @@ function StatusBadge({ status }) {
   );
 }
 
+const ITEMS_PER_PAGE = 20;
+
 export default function TicketsPage() {
   const [loading, setLoading] = useState(true);
   const [tickets, setTickets] = useState([]);
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 20;
-
-  useEffect(() => {
-    fetchTickets();
-  }, [statusFilter]);
-
   const [search, setSearch] = useState("");
+  const [pagination, setPagination] = useState({
+    total_count: 0,
+    total_pages: 1,
+    page_size: ITEMS_PER_PAGE,
+    has_next: false,
+    has_previous: false,
+  });
 
-  const fetchTickets = async () => {
+  const fetchTickets = async (page = 1) => {
     setLoading(true);
     try {
-      const params = {};
+      const params = {
+        page,
+        page_size: ITEMS_PER_PAGE,
+      };
       if (statusFilter !== "all") params.status = statusFilter;
-      
+
       const data = await adminService.getAllTickets(params);
       setTickets(data.tickets || []);
+      if (data.pagination) {
+        setPagination({
+          total_count: data.pagination.total_count ?? 0,
+          total_pages: data.pagination.total_pages ?? 1,
+          page_size: data.pagination.page_size ?? ITEMS_PER_PAGE,
+          has_next: data.pagination.has_next ?? false,
+          has_previous: data.pagination.has_previous ?? false,
+        });
+      }
     } catch (error) {
       console.error(error);
       toast.error("Failed to fetch tickets");
@@ -71,6 +86,14 @@ export default function TicketsPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchTickets(currentPage);
+  }, [statusFilter, currentPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter]);
 
   const tabs = [
     { id: "all", label: "All" },
@@ -81,21 +104,22 @@ export default function TicketsPage() {
   ];
 
   const filteredTickets = tickets.filter((ticket) => {
-    const matchesSearch =
-      ticket.student_name?.toLowerCase().includes(search.toLowerCase()) ||
-      ticket.student_email?.toLowerCase().includes(search.toLowerCase()) ||
-      ticket.ticket_id?.toLowerCase().includes(search.toLowerCase()) ||
-      ticket.event_name?.toLowerCase().includes(search.toLowerCase()) ||
-      ticket.referral_source?.toLowerCase().includes(search.toLowerCase()) ||
-      ticket.referral_payload?.toLowerCase().includes(search.toLowerCase()) ||
-      ticket.referral?.toLowerCase().includes(search.toLowerCase());
-    return matchesSearch;
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    const ref = ticket.referral || ticket.referral_source || ticket.referral_payload || "";
+    return (
+      ticket.student_name?.toLowerCase().includes(q) ||
+      ticket.student_email?.toLowerCase().includes(q) ||
+      ticket.ticket_id?.toLowerCase().includes(q) ||
+      ticket.event_name?.toLowerCase().includes(q) ||
+      ref.toLowerCase().includes(q)
+    );
   });
 
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredTickets.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(filteredTickets.length / itemsPerPage);
+  const totalPages = pagination.total_pages;
+  const totalCount = pagination.total_count;
+  const indexOfFirstItem = totalCount === 0 ? 0 : (currentPage - 1) * pagination.page_size + 1;
+  const indexOfLastItem = Math.min(currentPage * pagination.page_size, totalCount);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -147,7 +171,7 @@ export default function TicketsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-border/40">
-              {currentItems.length === 0 ? (
+              {filteredTickets.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="p-12 text-center">
                     <Ticket className="w-8 h-8 mx-auto text-muted-foreground/40 mb-2" />
@@ -155,8 +179,8 @@ export default function TicketsPage() {
                   </td>
                 </tr>
               ) : (
-                currentItems.map((t) => {
-                  const refSource = t.referral_source || t.referral_payload || t.referral;
+                filteredTickets.map((t) => {
+                  const refDisplay = t.referral || t.referral_source || t.referral_payload;
                   return (
                     <tr key={t.ticket_id} className="hover:bg-muted/30 transition-colors">
                       <td className="p-4">
@@ -178,13 +202,7 @@ export default function TicketsPage() {
                         </div>
                       </td>
                       <td className="p-4">
-                        {refSource ? (
-                          <div className="min-w-0">
-                            <p className="text-sm text-foreground">{refSource}</p>
-                          </div>
-                        ) : (
-                          <p className="text-xs text-muted-foreground italic">None</p>
-                        )}
+                        <span className="text-xs text-muted-foreground">{refDisplay ? String(refDisplay) : "—"}</span>
                       </td>
                       <td className="p-4">
                         <StatusBadge status={t.status} />
@@ -205,34 +223,37 @@ export default function TicketsPage() {
           </table>
         </div>
 
-      </Card>
-      {totalPages >= 1 && (
-        <div className="flex items-center justify-between p-4 bg-muted/20 border border-border/40 rounded-xl mt-4">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
-            Page {currentPage} of {totalPages}
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="h-8 px-4 font-bold text-xs uppercase tracking-tighter"
-            >
-              Prev
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className="h-8 px-4 font-bold text-xs uppercase tracking-tighter"
-            >
-              Next
-            </Button>
+        {(totalPages > 1 || totalCount > 0) && (
+          <div className="flex items-center justify-between p-4 border-t border-border/40">
+            <p className="text-xs text-muted-foreground">
+              Showing {indexOfFirstItem}-{indexOfLastItem} of {totalCount}
+            </p>
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1 || !pagination.has_previous}
+                className="h-8 w-8 p-0"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm text-muted-foreground px-2">
+                {currentPage} / {totalPages}
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setCurrentPage((p) => p + 1)}
+                disabled={currentPage === totalPages || !pagination.has_next}
+                className="h-8 w-8 p-0"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </Card>
     </div>
   );
 }
