@@ -185,7 +185,8 @@ const EventDetailsPage = () => {
         items: items,
         // Scoped referral source for event:TO-56363
         ...(eventIdToUse === "event:TO-56363" && {
-          referral_source: referralSource === "Other" ? `Other: ${otherReferral}` : referralSource
+          referral_source: referralSource === "Other" ? `Other: ${otherReferral}` : referralSource,
+          referral: referralSource === "Other" ? `Other: ${otherReferral}` : referralSource
         })
       };
       

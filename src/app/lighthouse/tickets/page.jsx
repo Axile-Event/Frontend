@@ -87,7 +87,8 @@ export default function TicketsPage() {
       ticket.ticket_id?.toLowerCase().includes(search.toLowerCase()) ||
       ticket.event_name?.toLowerCase().includes(search.toLowerCase()) ||
       ticket.referral_source?.toLowerCase().includes(search.toLowerCase()) ||
-      ticket.referral_payload?.toLowerCase().includes(search.toLowerCase());
+      ticket.referral_payload?.toLowerCase().includes(search.toLowerCase()) ||
+      ticket.referral?.toLowerCase().includes(search.toLowerCase());
     return matchesSearch;
   });
 

@@ -91,11 +91,16 @@ export default function AnalyticsPage() {
     fetchAnalytics();
   }, [fetchAnalytics]);
 
-  const filteredTickets = data?.tickets?.filter(t => 
-    t.student_full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    t.student_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    t.ticket_id?.toLowerCase().includes(searchTerm.toLowerCase())
-  ) || [];
+  const filteredTickets = data?.tickets?.filter(t => {
+    const searchLower = searchTerm.toLowerCase();
+    const refSource = t.referral_source || t.referral_payload || t.referral || "";
+    return (
+      t.student_full_name?.toLowerCase().includes(searchLower) ||
+      t.student_email?.toLowerCase().includes(searchLower) ||
+      t.ticket_id?.toLowerCase().includes(searchLower) ||
+      refSource.toLowerCase().includes(searchLower)
+    );
+  }) || [];
 
   const exportToCSV = () => {
     if (!data?.tickets || data.tickets.length === 0) {
