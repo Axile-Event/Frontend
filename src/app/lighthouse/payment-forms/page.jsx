@@ -312,11 +312,21 @@ export default function PaymentFormsPage() {
                       </div>
                     </td>
                     <td className="px-4 py-4">
+                      <span className="font-mono text-[10px] text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded border border-border/50">
+                        #{form.id}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4">
                       <div className="space-y-2">
                         <StatusBadge status={form.status} />
+                        {form.admin_notes && (
+                          <p className="text-[10px] text-muted-foreground italic leading-tight max-w-[120px] truncate" title={form.admin_notes}>
+                            "{form.admin_notes}"
+                          </p>
+                        )}
                         {form.confirmed_at && (
                           <p className="text-[9px] text-muted-foreground/60 italic">
-                            Processed: {new Date(form.confirmed_at).toLocaleDateString()}
+                            {new Date(form.confirmed_at).toLocaleDateString()}
                           </p>
                         )}
                       </div>
