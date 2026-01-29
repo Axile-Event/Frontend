@@ -104,7 +104,7 @@ export default function AnalyticsPage() {
     }
 
     // Create CSV headers - includes category info from analytics endpoint
-    const headers = ["Attendee Name", "Email", "Ticket ID", "Category", "Price", "Quantity", "Status", "Check-in Time", "Purchase Date"];
+    const headers = ["Attendee Name", "Email", "Ticket ID", "Category", "Price", "Quantity", "Referral", "Status", "Check-in Time", "Purchase Date"];
     
     // Create CSV rows
     const rows = data.tickets.map(ticket => [
@@ -114,6 +114,7 @@ export default function AnalyticsPage() {
       ticket.category_name || "General",
       ticket.total_price || ticket.price_per_ticket || "0",
       ticket.quantity || 0,
+      ticket.referral_source || ticket.referral_payload || ticket.referral || "N/A",
       ticket.status || "N/A",
       ticket.checked_in_at ? new Date(ticket.checked_in_at).toLocaleString() : "Not Checked In",
       ticket.created_at ? new Date(ticket.created_at).toLocaleString() : "N/A"
@@ -254,6 +255,7 @@ export default function AnalyticsPage() {
                   <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-500">Attendee</th>
                   <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-500">Ticket ID</th>
                   <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-500">Category</th>
+                  <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-500">Quantity</th>
                   <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-500">Referral</th>
                   <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-500">Status</th>
                   <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-500">Check-in</th>
@@ -283,6 +285,9 @@ export default function AnalyticsPage() {
                       )}
                     </td>
                     <td className="px-6 py-5">
+                      <span className="text-sm font-bold">{t.quantity}</span>
+                    </td>
+                    <td className="px-6 py-5">
                       <p className="text-xs text-gray-300">
                         {t.referral_source || t.referral_payload || t.referral || (
                           <span className="text-gray-600 italic">None</span>
@@ -304,10 +309,9 @@ export default function AnalyticsPage() {
                       </p>
                     </td>
                   </tr>
-                ))}
- : (
+                )) : (
                   <tr>
-                    <td colSpan="6" className="px-6 py-20 text-center space-y-3">
+                    <td colSpan="7" className="px-6 py-20 text-center space-y-3">
                       <Users className="w-10 h-10 text-gray-800 mx-auto" />
                       <p className="text-gray-500 font-medium">No attendees found matching your search.</p>
                     </td>
