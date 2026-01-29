@@ -120,7 +120,7 @@ export default function RevenuePage() {
   // Pagination for transactions
   const [currentPage, setCurrentPage] = useState(1);
   const [totalTransactions, setTotalTransactions] = useState(0);
-  const itemsPerPage = 15;
+  const itemsPerPage = 20;
 
   useEffect(() => {
     fetchData();
@@ -507,7 +507,7 @@ export default function RevenuePage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border/40">
-                      {filteredWithdrawals.slice(0, 15).map((withdrawal) => (
+                      {filteredWithdrawals.slice(0, 20).map((withdrawal) => (
                         <tr key={withdrawal.transaction_id} className="hover:bg-muted/30 transition-colors">
                           <td className="py-3">
                             <p className="font-mono text-sm text-muted-foreground truncate max-w-[100px]" title={withdrawal.transaction_id}>

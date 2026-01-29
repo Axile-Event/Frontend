@@ -68,7 +68,7 @@ export default function UsersPage() {
   const [filterRole, setFilterRole] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 15;
+  const itemsPerPage = 20;
   const { confirm } = useConfirmModal();
 
   useEffect(() => {

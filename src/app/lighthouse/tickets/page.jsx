@@ -48,7 +48,7 @@ export default function TicketsPage() {
   const [tickets, setTickets] = useState([]);
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 15;
+  const itemsPerPage = 20;
 
   useEffect(() => {
     fetchTickets();

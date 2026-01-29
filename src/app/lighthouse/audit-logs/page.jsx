@@ -38,7 +38,7 @@ export default function AuditLogsPage() {
   const [logs, setLogs] = useState([]);
   const [filterAction, setFilterAction] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 15;
+  const itemsPerPage = 20;
 
   useEffect(() => {
     fetchLogs();
