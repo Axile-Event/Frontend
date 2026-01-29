@@ -197,6 +197,9 @@ export default function PaymentFormsPage() {
     return (
       form.Firstname?.toLowerCase().includes(query) ||
       form.Lastname?.toLowerCase().includes(query) ||
+      form.account_name?.toLowerCase().includes(query) ||
+      form.account_number?.includes(query) ||
+      form.bank_code?.toLowerCase().includes(query) ||
       String(form.amount_sent).includes(query)
     );
   });
@@ -270,36 +273,56 @@ export default function PaymentFormsPage() {
                 filteredForms.map((form) => (
                   <tr key={form.id} className="hover:bg-muted/20 transition-colors">
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <div className="h-8 w-8 rounded-full bg-muted/50 flex items-center justify-center">
+                      <div className="flex items-start gap-3">
+                        <div className="h-9 w-9 rounded-full bg-muted/50 flex items-center justify-center shrink-0 mt-0.5">
                           <User className="h-4 w-4 text-muted-foreground" />
                         </div>
-                        <div>
-                          <p className="text-sm font-medium text-foreground">
+                        <div className="min-w-0">
+                          <p className="text-sm font-semibold text-foreground truncate">
                             {form.Firstname} {form.Lastname}
                           </p>
+                          <div className="mt-1 space-y-1">
+                            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                              <CheckCircle className="w-3 h-3 text-emerald-500" />
+                              <span className="font-medium text-foreground/80">{form.account_name || 'N/A'}</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                              <Landmark className="w-3 h-3" />
+                              <span className="font-mono">{form.account_number || 'N/A'}</span>
+                              <span className="px-1 py-0.5 rounded bg-muted text-[9px] font-bold uppercase">{form.bank_code || 'BANK'}</span>
+                            </div>
+                          </div>
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <p className="text-sm font-medium text-foreground">{formatCurrency(form.amount_sent)}</p>
+                      <div className="space-y-1">
+                        <p className="text-sm font-bold text-foreground">{formatCurrency(form.amount_sent)}</p>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-tight">Amount Sent</p>
+                      </div>
                     </td>
                     <td className="px-4 py-3">
-                      <p className="text-sm text-muted-foreground">{formatDate(form.sent_at)}</p>
+                      <div className="space-y-1">
+                        <p className="text-sm text-foreground">{formatDate(form.sent_at)}</p>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-tight">Transfer Date</p>
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <StatusBadge status={form.status} />
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3 text-xs">
                       {form.confirmed_at ? (
-                        <div>
-                          <p className="text-sm text-muted-foreground">{formatDate(form.confirmed_at)}</p>
+                        <div className="space-y-1">
+                          <p className="text-muted-foreground">{formatDate(form.confirmed_at)}</p>
                           {form.confirmed_by && (
-                            <p className="text-xs text-muted-foreground/70">by {form.confirmed_by}</p>
+                            <p className="text-muted-foreground/70 flex items-center gap-1">
+                              <User className="w-2.5 h-2.5" />
+                              {form.confirmed_by}
+                            </p>
                           )}
                         </div>
                       ) : (
-                        <p className="text-sm text-muted-foreground">—</p>
+                        <p className="text-muted-foreground">—</p>
                       )}
                     </td>
                     <td className="px-4 py-3 text-right">
@@ -382,18 +405,26 @@ export default function PaymentFormsPage() {
           <div className="fixed inset-0 bg-black/50" onClick={() => setShowConfirmModal(false)} />
           <div className="relative bg-card border border-border rounded-lg shadow-lg w-full max-w-md p-6 z-10">
             <h3 className="text-lg font-semibold mb-4">Confirm Payment</h3>
-            <div className="space-y-3 mb-4">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Name:</span>
+            <div className="space-y-3 mb-4 p-3 bg-muted/40 rounded-lg border border-border/50">
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">User Name:</span>
                 <span className="font-medium">{selectedForm.Firstname} {selectedForm.Lastname}</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Amount:</span>
-                <span className="font-medium text-emerald-600">{formatCurrency(selectedForm.amount_sent)}</span>
+              <div className="flex justify-between text-xs pt-1 border-t border-border/20">
+                <span className="text-muted-foreground">Account Name:</span>
+                <span className="font-semibold text-emerald-600">{selectedForm.account_name || 'N/A'}</span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Submitted:</span>
-                <span className="font-medium">{formatDate(selectedForm.sent_at)}</span>
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">Bank:</span>
+                <span className="font-mono">{selectedForm.account_number || 'N/A'} ({selectedForm.bank_code || 'N/A'})</span>
+              </div>
+              <div className="flex justify-between text-sm pt-2 border-t border-border/20">
+                <span className="text-muted-foreground">Amount Total:</span>
+                <span className="font-bold text-lg text-emerald-600">{formatCurrency(selectedForm.amount_sent)}</span>
+              </div>
+              <div className="flex justify-between text-[11px]">
+                <span className="text-muted-foreground">Transfer Date:</span>
+                <span className="font-medium text-muted-foreground">{formatDate(selectedForm.sent_at)}</span>
               </div>
             </div>
             <div className="space-y-2 mb-4">
@@ -427,14 +458,18 @@ export default function PaymentFormsPage() {
           <div className="fixed inset-0 bg-black/50" onClick={() => setShowRejectModal(false)} />
           <div className="relative bg-card border border-border rounded-lg shadow-lg w-full max-w-md p-6 z-10">
             <h3 className="text-lg font-semibold mb-4">Reject Payment Form</h3>
-            <div className="space-y-3 mb-4">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Name:</span>
+            <div className="space-y-3 mb-4 p-3 bg-muted/40 rounded-lg border border-border/50">
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">User Name:</span>
                 <span className="font-medium">{selectedForm.Firstname} {selectedForm.Lastname}</span>
               </div>
-              <div className="flex justify-between text-sm">
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">Account:</span>
+                <span className="font-medium">{selectedForm.account_name || 'N/A'}</span>
+              </div>
+              <div className="flex justify-between text-sm pt-2 border-t border-border/20">
                 <span className="text-muted-foreground">Amount:</span>
-                <span className="font-medium">{formatCurrency(selectedForm.amount_sent)}</span>
+                <span className="font-bold text-red-600">{formatCurrency(selectedForm.amount_sent)}</span>
               </div>
             </div>
             <div className="space-y-2 mb-4">
