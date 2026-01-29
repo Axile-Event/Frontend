@@ -296,7 +296,7 @@ export default function PaymentFormsPage() {
                           <p className="text-[11px] font-mono">
                             {form.account_number || '0000000000'} 
                             <span className="ml-1.5 px-1.5 py-0.5 rounded bg-muted text-[9px] font-black uppercase text-muted-foreground/80 border border-border/50">
-                              {form.bank_code || 'BANK'}
+                              {form.bank_name || form.bank_code || 'BANK'}
                             </span>
                           </p>
                         </div>
@@ -377,7 +377,7 @@ export default function PaymentFormsPage() {
       </Card>
 
       {/* Pagination Controls */}
-      {pagination && pagination.total_pages > 1 && (
+      {pagination && (
         <div className="flex items-center justify-between p-4 bg-muted/20 border border-border/40 rounded-xl mt-4">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
             Page {currentPage} of {pagination.total_pages}
@@ -421,8 +421,12 @@ export default function PaymentFormsPage() {
                 <span className="font-semibold text-emerald-600">{selectedForm.account_name || 'N/A'}</span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Bank:</span>
-                <span className="font-mono">{selectedForm.account_number || 'N/A'} ({selectedForm.bank_code || 'N/A'})</span>
+                <span className="text-muted-foreground">Account Number:</span>
+                <span className="font-mono font-bold">{selectedForm.account_number || 'N/A'}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">Bank Name:</span>
+                <span className="font-medium">{selectedForm.bank_name || selectedForm.bank_code || 'N/A'}</span>
               </div>
               <div className="flex justify-between text-sm pt-2 border-t border-border/20">
                 <span className="text-muted-foreground">Amount Total:</span>
@@ -470,8 +474,16 @@ export default function PaymentFormsPage() {
                 <span className="font-medium">{selectedForm.Firstname} {selectedForm.Lastname}</span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Account:</span>
+                <span className="text-muted-foreground">Account Name:</span>
                 <span className="font-medium">{selectedForm.account_name || 'N/A'}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">Account Number:</span>
+                <span className="font-mono font-bold">{selectedForm.account_number || 'N/A'}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-muted-foreground">Bank Name:</span>
+                <span className="font-medium">{selectedForm.bank_name || selectedForm.bank_code || 'N/A'}</span>
               </div>
               <div className="flex justify-between text-sm pt-2 border-t border-border/20">
                 <span className="text-muted-foreground">Amount:</span>

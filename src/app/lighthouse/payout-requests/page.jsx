@@ -323,7 +323,7 @@ export default function PayoutRequestsPage() {
        </Card>
 
       {/* Pagination Controls */}
-      {totalPages > 1 && (
+      {totalPages >= 1 && (
         <div className="flex items-center justify-between p-4 bg-muted/20 border border-border/40 rounded-xl mt-4">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
             Page {currentPage} of {totalPages}

@@ -69,11 +69,15 @@ const ManualConfirmationModal = ({ isOpen, onClose, totalAmount }) => {
       const firstName = names[0] || 'Unknown';
       const lastName = names.slice(1).join(' ') || 'User';
 
+      const selectedBank = banks.find(b => b.code === formData.bankCode);
+      const bankName = selectedBank ? selectedBank.name : 'Unknown Bank';
+
       const payload = {
         Firstname: firstName,
         Lastname: lastName,
         account_name: formData.accountName,
         bank_code: formData.bankCode,
+        bank_name: bankName,
         account_number: formData.accountNumber,
         amount_sent: parseFloat(formData.amount),
         sent_at: new Date().toISOString()
