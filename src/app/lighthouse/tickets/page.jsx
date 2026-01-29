@@ -54,6 +54,8 @@ export default function TicketsPage() {
     fetchTickets();
   }, [statusFilter]);
 
+  const [search, setSearch] = useState("");
+
   const fetchTickets = async () => {
     setLoading(true);
     try {
@@ -78,31 +80,55 @@ export default function TicketsPage() {
     { id: "cancelled", label: "Cancelled" },
   ];
 
+  const filteredTickets = tickets.filter((ticket) => {
+    const matchesSearch =
+      ticket.student_name?.toLowerCase().includes(search.toLowerCase()) ||
+      ticket.student_email?.toLowerCase().includes(search.toLowerCase()) ||
+      ticket.ticket_id?.toLowerCase().includes(search.toLowerCase()) ||
+      ticket.event_name?.toLowerCase().includes(search.toLowerCase()) ||
+      ticket.referral_source?.toLowerCase().includes(search.toLowerCase()) ||
+      ticket.referral_payload?.toLowerCase().includes(search.toLowerCase());
+    return matchesSearch;
+  });
+
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = tickets.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(tickets.length / itemsPerPage);
+  const currentItems = filteredTickets.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = Math.ceil(filteredTickets.length / itemsPerPage);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [statusFilter]);
+  }, [statusFilter, search]);
 
   if (loading) {
-    return <AdminTableSkeleton columns={6} rows={8} />;
+    return <AdminTableSkeleton columns={7} rows={8} />;
   }
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center gap-1 p-1 bg-muted/30 rounded-xl border border-border/40 overflow-x-auto">
-        {tabs.map((tab) => (
-          <TabButton
-            key={tab.id}
-            active={statusFilter === tab.id}
-            onClick={() => setStatusFilter(tab.id)}
-          >
-            {tab.label}
-          </TabButton>
-        ))}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-1 p-1 bg-muted/30 rounded-xl border border-border/40 overflow-x-auto">
+          {tabs.map((tab) => (
+            <TabButton
+              key={tab.id}
+              active={statusFilter === tab.id}
+              onClick={() => setStatusFilter(tab.id)}
+            >
+              {tab.label}
+            </TabButton>
+          ))}
+        </div>
+
+        <div className="relative w-full md:w-72">
+          <Ticket className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Search tickets..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full h-10 pl-10 pr-4 bg-card border border-border/40 rounded-xl text-sm focus:outline-none focus:border-primary transition-colors"
+          />
+        </div>
       </div>
 
       <Card className="border-border/40 bg-card/50 backdrop-blur-sm overflow-hidden">
@@ -128,48 +154,51 @@ export default function TicketsPage() {
                   </td>
                 </tr>
               ) : (
-                currentItems.map((t) => (
-                  <tr key={t.ticket_id} className="hover:bg-muted/30 transition-colors">
-                    <td className="p-4">
-                      <div className="flex items-center gap-2">
-                        <Ticket className="w-4 h-4 text-muted-foreground shrink-0" />
-                        <span className="font-mono text-sm text-muted-foreground">{t.ticket_id}</span>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-foreground truncate max-w-[180px]">{t.event_name}</p>
-                        <p className="text-xs text-muted-foreground font-mono">{t.event_id}</p>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-foreground">{t.student_name}</p>
-                        <p className="text-xs text-muted-foreground truncate max-w-[150px]">{t.student_email}</p>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      {t.referral_source ? (
-                        <div className="min-w-0">
-                          <p className="text-sm text-foreground">{t.referral_source}</p>
+                currentItems.map((t) => {
+                  const refSource = t.referral_source || t.referral_payload || t.referral;
+                  return (
+                    <tr key={t.ticket_id} className="hover:bg-muted/30 transition-colors">
+                      <td className="p-4">
+                        <div className="flex items-center gap-2">
+                          <Ticket className="w-4 h-4 text-muted-foreground shrink-0" />
+                          <span className="font-mono text-sm text-muted-foreground">{t.ticket_id}</span>
                         </div>
-                      ) : (
-                        <p className="text-xs text-muted-foreground italic">None</p>
-                      )}
-                    </td>
-                    <td className="p-4">
-                      <StatusBadge status={t.status} />
-                    </td>
-                    <td className="p-4">
-                      <p className="text-sm font-semibold text-foreground">{formatCurrency(t.total_price)}</p>
-                    </td>
-                    <td className="p-4 text-right">
-                      <p className="text-sm text-muted-foreground">
-                        {new Date(t.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                      </p>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                      <td className="p-4">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate max-w-[180px]">{t.event_name}</p>
+                          <p className="text-xs text-muted-foreground font-mono">{t.event_id}</p>
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-foreground">{t.student_name}</p>
+                          <p className="text-xs text-muted-foreground truncate max-w-[150px]">{t.student_email}</p>
+                        </div>
+                      </td>
+                      <td className="p-4">
+                        {refSource ? (
+                          <div className="min-w-0">
+                            <p className="text-sm text-foreground">{refSource}</p>
+                          </div>
+                        ) : (
+                          <p className="text-xs text-muted-foreground italic">None</p>
+                        )}
+                      </td>
+                      <td className="p-4">
+                        <StatusBadge status={t.status} />
+                      </td>
+                      <td className="p-4">
+                        <p className="text-sm font-semibold text-foreground">{formatCurrency(t.total_price)}</p>
+                      </td>
+                      <td className="p-4 text-right">
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(t.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </p>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
