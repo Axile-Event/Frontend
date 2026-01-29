@@ -271,27 +271,24 @@ export default function WithdrawalsPage() {
             <p className="text-xs text-muted-foreground">
               Showing {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, withdrawals.length)} of {withdrawals.length}
             </p>
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-2">
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 onClick={() => setCurrentPage(currentPage - 1)}
                 disabled={currentPage === 1}
-                className="h-8 w-8 p-0"
+                className="h-8 px-4 font-bold text-xs uppercase tracking-tighter"
               >
-                <ChevronLeft className="h-4 w-4" />
+                Prev
               </Button>
-              <span className="text-sm text-muted-foreground px-2">
-                {currentPage} / {totalPages}
-              </span>
               <Button
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 onClick={() => setCurrentPage(currentPage + 1)}
                 disabled={currentPage === totalPages}
-                className="h-8 w-8 p-0"
+                className="h-8 px-4 font-bold text-xs uppercase tracking-tighter"
               >
-                <ChevronRight className="h-4 w-4" />
+                Next
               </Button>
             </div>
           </div>

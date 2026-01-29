@@ -117,9 +117,10 @@ export default function RevenuePage() {
   const [activeTab, setActiveTab] = useState('withdrawals'); // 'transactions' or 'withdrawals' - default to withdrawals since payment-transactions may not be available
   const [transactionsError, setTransactionsError] = useState(false);
   
-  // Pagination for transactions
+  // Pagination
   const [currentPage, setCurrentPage] = useState(1);
   const [totalTransactions, setTotalTransactions] = useState(0);
+  const [currentWithdrawalPage, setCurrentWithdrawalPage] = useState(1);
   const itemsPerPage = 20;
 
   useEffect(() => {
@@ -138,7 +139,7 @@ export default function RevenuePage() {
     // Use Promise.allSettled to handle partial failures gracefully
     const results = await Promise.allSettled([
       adminService.getAnalytics(),
-      adminService.getAllWithdrawals({ page: 1, page_size: 50 }),
+      adminService.getAllWithdrawals({ page: 1, page_size: 100 }), // Fetch more to allow client-side pagination or initial view
       adminService.getPaymentTransactions({ limit: itemsPerPage, offset: 0 })
     ]);
     
@@ -456,30 +457,27 @@ export default function RevenuePage() {
               {/* Pagination */}
               {totalPages > 1 && (
                 <div className="flex items-center justify-between pt-4 border-t border-border/40 mt-4">
-                  <p className="text-xs text-muted-foreground">
-                    Showing {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, totalTransactions)} of {totalTransactions}
+                  <p className="text-xs text-muted-foreground font-semibold uppercase tracking-widest">
+                    Page {currentPage} of {totalPages}
                   </p>
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-2">
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
                       onClick={() => setCurrentPage(currentPage - 1)}
                       disabled={currentPage === 1}
-                      className="h-8 w-8 p-0"
+                      className="h-8 text-xs font-bold uppercase tracking-tighter"
                     >
-                      <ChevronLeft className="h-4 w-4" />
+                      Prev
                     </Button>
-                    <span className="text-sm text-muted-foreground px-2">
-                      {currentPage} / {totalPages}
-                    </span>
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
                       onClick={() => setCurrentPage(currentPage + 1)}
                       disabled={currentPage === totalPages}
-                      className="h-8 w-8 p-0"
+                      className="h-8 text-xs font-bold uppercase tracking-tighter"
                     >
-                      <ChevronRight className="h-4 w-4" />
+                      Next
                     </Button>
                   </div>
                 </div>
@@ -507,7 +505,9 @@ export default function RevenuePage() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border/40">
-                      {filteredWithdrawals.slice(0, 20).map((withdrawal) => (
+                      {filteredWithdrawals
+                        .slice((currentWithdrawalPage - 1) * itemsPerPage, currentWithdrawalPage * itemsPerPage)
+                        .map((withdrawal) => (
                         <tr key={withdrawal.transaction_id} className="hover:bg-muted/30 transition-colors">
                           <td className="py-3">
                             <p className="font-mono text-sm text-muted-foreground truncate max-w-[100px]" title={withdrawal.transaction_id}>
@@ -541,6 +541,35 @@ export default function RevenuePage() {
                       ))}
                     </tbody>
                   </table>
+                </div>
+              )}
+
+              {/* Withdrawals Pagination */}
+              {Math.ceil(filteredWithdrawals.length / itemsPerPage) > 1 && (
+                <div className="flex items-center justify-between pt-4 border-t border-border/40 mt-4">
+                  <p className="text-xs text-muted-foreground font-semibold uppercase tracking-widest">
+                    Page {currentWithdrawalPage} of {Math.ceil(filteredWithdrawals.length / itemsPerPage)}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentWithdrawalPage(currentWithdrawalPage - 1)}
+                      disabled={currentWithdrawalPage === 1}
+                      className="h-8 text-xs font-bold uppercase tracking-tighter"
+                    >
+                      Prev
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentWithdrawalPage(currentWithdrawalPage + 1)}
+                      disabled={currentWithdrawalPage === Math.ceil(filteredWithdrawals.length / itemsPerPage)}
+                      className="h-8 text-xs font-bold uppercase tracking-tighter"
+                    >
+                      Next
+                    </Button>
+                  </div>
                 </div>
               )}
             </>
