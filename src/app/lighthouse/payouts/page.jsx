@@ -2,23 +2,19 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { adminService } from "../../../lib/admin";
-import { 
-  DollarSign, 
-  Clock, 
-  CheckCircle, 
-  XCircle, 
-  CreditCard,
-  ChevronLeft,
-  ChevronRight,
-  Building2,
-  User,
-  AlertCircle,
-  Loader2,
-  Check,
-  X
+import {
+	DollarSign,
+	Clock,
+	CheckCircle,
+	XCircle,
+	CreditCard,
+	Loader2,
+	Check,
+	X,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../../components/ui/card";
 import { Button } from "@/components/ui/button";
+import { AdminDataTable } from "@/components/ui/admin-data-table";
 import { AdminRevenueSkeleton } from "@/components/skeletons";
 import { cn, formatCurrency } from "@/lib/utils";
 import { toast } from "react-hot-toast";
@@ -110,6 +106,7 @@ export default function PayoutsPage() {
   const [statusFilter, setStatusFilter] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  const [pagination, setPagination] = useState(null);
   const [processing, setProcessing] = useState({});
   const itemsPerPage = 20;
 
@@ -253,250 +250,266 @@ export default function PayoutsPage() {
     }
   };
 
-  if (loading) {
+  const payoutColumns = [
+    {
+      key: "organizer",
+      label: "Organizer",
+      render: (_, request) => (
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-foreground truncate max-w-[120px]">
+            {request.organizer_name || "—"}
+          </p>
+          <p className="text-xs text-muted-foreground truncate max-w-[120px]">
+            {request.organizer_email || "—"}
+          </p>
+        </div>
+      ),
+    },
+    {
+      key: "bank",
+      label: "Bank Details",
+      render: (_, request) => (
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-foreground">
+            {request.bank_name || "—"}
+          </p>
+          <p className="text-xs text-muted-foreground">
+            {request.account_name || "—"}
+          </p>
+          <p className="text-xs text-muted-foreground font-mono">
+            {request.bank_account_number || "—"}
+          </p>
+        </div>
+      ),
+    },
+    {
+      key: "amount",
+      label: "Amount",
+      render: (_, request) => (
+        <p className="text-sm font-semibold text-foreground">
+          {formatCurrency(request.amount || 0)}
+        </p>
+      ),
+    },
+    {
+      key: "wallet",
+      label: "Wallet Balance",
+      render: (_, request) => (
+        <p className="text-sm text-muted-foreground">
+          {formatCurrency(request.current_wallet_balance || 0)}
+        </p>
+      ),
+    },
+    {
+      key: "status",
+      label: "Status",
+      render: (_, request) => (
+        <StatusBadge status={request.status || "pending"} />
+      ),
+    },
+    {
+      key: "date",
+      label: "Date",
+      className: "text-right",
+      render: (_, request) => (
+        <p className="text-sm text-muted-foreground">
+          {request.created_at
+            ? new Date(request.created_at).toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
+              })
+            : "—"}
+        </p>
+      ),
+    },
+    {
+      key: "actions",
+      label: "Actions",
+      className: "text-right",
+      render: (_, request) => (
+        <div className="flex items-center justify-end gap-2">
+          {request.status === "pending" && (
+            <>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8 px-3 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10"
+                onClick={() => handleApprove(request)}
+                disabled={!!processing[request.request_id]}
+              >
+                {processing[request.request_id] === "approve" ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <Check className="w-4 h-4 mr-1" />
+                    Approve
+                  </>
+                )}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="h-8 px-3 text-red-600 hover:text-red-700 hover:bg-red-500/10"
+                onClick={() => handleDecline(request)}
+                disabled={!!processing[request.request_id]}
+              >
+                {processing[request.request_id] === "decline" ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <>
+                    <X className="w-4 h-4 mr-1" />
+                    Decline
+                  </>
+                )}
+              </Button>
+            </>
+          )}
+          {request.status === "approved" && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-8 px-3 text-blue-600 hover:text-blue-700 hover:bg-blue-500/10"
+              onClick={() => handleMarkCompleted(request)}
+              disabled={!!processing[request.request_id]}
+            >
+              {processing[request.request_id] === "completing" ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  <CheckCircle className="w-4 h-4 mr-1" />
+                  Mark Complete
+                </>
+              )}
+            </Button>
+          )}
+          {(request.status === "completed" || request.status === "rejected") && (
+            <span className="text-xs text-muted-foreground px-3">—</span>
+          )}
+        </div>
+      ),
+    },
+  ];
+
+  const paginationObj =
+    pagination ||
+    ({
+      current_page: 1,
+      total_pages: 1,
+      total_count: 0,
+      page_size: itemsPerPage,
+      has_next: false,
+      has_previous: false,
+    });
+
+  if (loading && payoutRequests.length === 0) {
     return <AdminRevenueSkeleton />;
   }
 
-  const totalPages = Math.ceil(totalCount / itemsPerPage);
-
   return (
     <div className="space-y-6">
-      {/* Stats Overview */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-        <StatCard 
-          title="Pending Requests" 
-          value={stats.pending} 
+        <StatCard
+          title="Pending Requests"
+          value={stats.pending}
           subtitle={`${formatCurrency(stats.totalPendingAmount)} total`}
           icon={Clock}
           variant="pending"
         />
-        <StatCard 
-          title="Approved" 
-          value={stats.approved} 
+        <StatCard
+          title="Approved"
+          value={stats.approved}
           subtitle="Awaiting transfer"
           icon={Check}
           variant="approved"
         />
-        <StatCard 
-          title="Completed" 
-          value={stats.completed} 
+        <StatCard
+          title="Completed"
+          value={stats.completed}
           subtitle="Successfully transferred"
           icon={CheckCircle}
           variant="completed"
         />
-        <StatCard 
-          title="Rejected" 
-          value={stats.rejected} 
+        <StatCard
+          title="Rejected"
+          value={stats.rejected}
           subtitle="Declined requests"
           icon={XCircle}
           variant="rejected"
         />
-        <StatCard 
-          title="Total Requests" 
-          value={totalCount} 
+        <StatCard
+          title="Total Requests"
+          value={totalCount}
           subtitle="All time"
           icon={CreditCard}
         />
       </div>
 
-      {/* Payout Requests Table */}
-      <Card className="border-border/40 bg-card/50 backdrop-blur-sm">
-        <CardHeader className="pb-3">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <CreditCard className="w-4 h-4" />
-              Payout Requests
-            </CardTitle>
-            
-            {/* Status Filters */}
-            <div className="flex items-center gap-1 p-1 bg-muted/30 rounded-lg">
-              <TabButton 
-                active={statusFilter === null} 
-                onClick={() => { setStatusFilter(null); setCurrentPage(1); }}
-              >
-                All
-              </TabButton>
-              <TabButton 
-                active={statusFilter === 'pending'} 
-                onClick={() => { setStatusFilter('pending'); setCurrentPage(1); }}
-                variant="pending"
-                count={stats.pending}
-              >
-                Pending
-              </TabButton>
-              <TabButton 
-                active={statusFilter === 'approved'} 
-                onClick={() => { setStatusFilter('approved'); setCurrentPage(1); }}
-                variant="approved"
-                count={stats.approved}
-              >
-                Approved
-              </TabButton>
-              <TabButton 
-                active={statusFilter === 'completed'} 
-                onClick={() => { setStatusFilter('completed'); setCurrentPage(1); }}
-                variant="completed"
-              >
-                Completed
-              </TabButton>
-              <TabButton 
-                active={statusFilter === 'rejected'} 
-                onClick={() => { setStatusFilter('rejected'); setCurrentPage(1); }}
-                variant="rejected"
-              >
-                Rejected
-              </TabButton>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="pt-0">
-          {payoutRequests.length === 0 ? (
-            <div className="py-12 text-center">
-              <CreditCard className="w-8 h-8 mx-auto text-muted-foreground/40 mb-2" />
-              <p className="text-sm text-muted-foreground">No payout requests found</p>
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-border/40">
-                    <th className="text-left pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Organizer</th>
-                    <th className="text-left pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Bank Details</th>
-                    <th className="text-left pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Amount</th>
-                    <th className="text-left pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Wallet Balance</th>
-                    <th className="text-left pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Status</th>
-                    <th className="text-right pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Date</th>
-                    <th className="text-right pb-3 text-xs font-medium text-muted-foreground uppercase tracking-wide">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/40">
-                  {payoutRequests.map((request) => (
-                    <tr key={request.request_id} className="hover:bg-muted/30 transition-colors">
-                      <td className="py-3">
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-foreground truncate max-w-[120px]">{request.organizer_name || '—'}</p>
-                          <p className="text-xs text-muted-foreground truncate max-w-[120px]">{request.organizer_email || '—'}</p>
-                        </div>
-                      </td>
-                      <td className="py-3">
-                        <div className="min-w-0">
-                          <p className="text-sm font-medium text-foreground">{request.bank_name || '—'}</p>
-                          <p className="text-xs text-muted-foreground">{request.account_name || '—'}</p>
-                          <p className="text-xs text-muted-foreground font-mono">{request.bank_account_number || '—'}</p>
-                        </div>
-                      </td>
-                      <td className="py-3">
-                        <p className="text-sm font-semibold text-foreground">{formatCurrency(request.amount || 0)}</p>
-                      </td>
-                      <td className="py-3">
-                        <p className="text-sm text-muted-foreground">{formatCurrency(request.current_wallet_balance || 0)}</p>
-                      </td>
-                      <td className="py-3">
-                        <StatusBadge status={request.status || 'pending'} />
-                      </td>
-                      <td className="py-3 text-right">
-                        <p className="text-sm text-muted-foreground">
-                          {request.created_at ? new Date(request.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
-                        </p>
-                      </td>
-                      <td className="py-3 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          {request.status === 'pending' && (
-                            <>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-8 px-3 text-emerald-600 hover:text-emerald-700 hover:bg-emerald-500/10"
-                                onClick={() => handleApprove(request)}
-                                disabled={!!processing[request.request_id]}
-                              >
-                                {processing[request.request_id] === 'approve' ? (
-                                  <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                  <>
-                                    <Check className="w-4 h-4 mr-1" />
-                                    Approve
-                                  </>
-                                )}
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-8 px-3 text-red-600 hover:text-red-700 hover:bg-red-500/10"
-                                onClick={() => handleDecline(request)}
-                                disabled={!!processing[request.request_id]}
-                              >
-                                {processing[request.request_id] === 'decline' ? (
-                                  <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : (
-                                  <>
-                                    <X className="w-4 h-4 mr-1" />
-                                    Decline
-                                  </>
-                                )}
-                              </Button>
-                            </>
-                          )}
-                          {request.status === 'approved' && (
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-8 px-3 text-blue-600 hover:text-blue-700 hover:bg-blue-500/10"
-                              onClick={() => handleMarkCompleted(request)}
-                              disabled={!!processing[request.request_id]}
-                            >
-                              {processing[request.request_id] === 'completing' ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                              ) : (
-                                <>
-                                  <CheckCircle className="w-4 h-4 mr-1" />
-                                  Mark Complete
-                                </>
-                              )}
-                            </Button>
-                          )}
-                          {(request.status === 'completed' || request.status === 'rejected') && (
-                            <span className="text-xs text-muted-foreground px-3">—</span>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-        </CardContent>
-      </Card>
-
-      {totalPages >= 1 && (
-        <div className="flex items-center justify-between p-4 bg-muted/20 border border-border/40 rounded-xl mt-4">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
-            Page {currentPage} of {totalPages}
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="h-8 px-4 font-bold text-xs uppercase tracking-tighter"
+      <AdminDataTable
+        columns={payoutColumns}
+        data={payoutRequests}
+        pagination={paginationObj}
+        loading={loading}
+        onPageChange={setCurrentPage}
+        emptyMessage="No payout requests found"
+        emptyIcon={CreditCard}
+        extraToolbar={
+          <div className="flex items-center gap-1 p-1 bg-muted/30 rounded-lg">
+            <TabButton
+              active={statusFilter === null}
+              onClick={() => {
+                setStatusFilter(null);
+                setCurrentPage(1);
+              }}
             >
-              Prev
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className="h-8 px-4 font-bold text-xs uppercase tracking-tighter"
+              All
+            </TabButton>
+            <TabButton
+              active={statusFilter === "pending"}
+              onClick={() => {
+                setStatusFilter("pending");
+                setCurrentPage(1);
+              }}
+              variant="pending"
+              count={stats.pending}
             >
-              Next
-            </Button>
+              Pending
+            </TabButton>
+            <TabButton
+              active={statusFilter === "approved"}
+              onClick={() => {
+                setStatusFilter("approved");
+                setCurrentPage(1);
+              }}
+              variant="approved"
+              count={stats.approved}
+            >
+              Approved
+            </TabButton>
+            <TabButton
+              active={statusFilter === "completed"}
+              onClick={() => {
+                setStatusFilter("completed");
+                setCurrentPage(1);
+              }}
+              variant="completed"
+            >
+              Completed
+            </TabButton>
+            <TabButton
+              active={statusFilter === "rejected"}
+              onClick={() => {
+                setStatusFilter("rejected");
+                setCurrentPage(1);
+              }}
+              variant="rejected"
+            >
+              Rejected
+            </TabButton>
           </div>
-        </div>
-      )}
+        }
+        getRowKey={(row) => row.request_id}
+      />
 
       {/* Confirmation Modal */}
       <ConfirmationModal

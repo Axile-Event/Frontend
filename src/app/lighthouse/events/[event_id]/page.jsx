@@ -60,21 +60,10 @@ export default function AdminEventDetailsPage() {
     setLoading(true);
     try {
       const data = await adminService.getEventDetails(event_id);
-      
-      if (data.organizer) {
-        try {
-          const organizerData = await adminService.getUserDetails(data.organizer, 'organizer');
-          data.organizer_email = organizerData.email;
-          data.organizer_phone = organizerData.phone || organizerData.phone_number;
-          data.organizer_id = data.organizer;
-          if (!data.organisation_name && organizerData.name) {
-            data.organisation_name = organizerData.name;
-          }
-        } catch (orgError) {
-          console.warn("Failed to fetch extended organizer details:", orgError);
-        }
+      // Organizer name, email, phone come from backend (admin event detail or fallback)
+      if (data.organizer && !data.organizer_id) {
+        data.organizer_id = data.organizer;
       }
-      
       setEvent(data);
     } catch (error) {
       console.error(error);
@@ -233,7 +222,7 @@ export default function AdminEventDetailsPage() {
                         <Ticket className="w-4 h-4 text-muted-foreground shrink-0" />
                         <div className="min-w-0">
                           <p className="text-sm font-medium text-foreground truncate">{tier.name}</p>
-                          <p className="text-xs text-muted-foreground">{tier.quantity} available</p>
+                          <p className="text-xs text-muted-foreground">{tier.quantity ?? tier.max_tickets ?? 0} available</p>
                         </div>
                       </div>
                       <p className="text-sm font-semibold text-foreground">

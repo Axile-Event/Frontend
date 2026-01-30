@@ -34,13 +34,27 @@ export const adminService = {
     return response.data.events;
   },
   getEventDetails: async (eventId) => {
-    // 1. Fetch public details (rich content: description, images, etc.)
-    // This now includes tickets_sold and total_revenue from the backend
+    // Prefer admin event detail endpoint (one call, includes organizer name/email/phone)
+    try {
+      const adminResponse = await api.get(`/api/admin/events/${eventId}/`);
+      const data = adminResponse.data;
+      return {
+        ...data,
+        organizer_email: data.organiser_email ?? data.organizer_email,
+        organizer_phone: data.organiser_phone ?? data.organizer_phone,
+        organisation_name: data.organisation_name ?? data.organiser_name,
+      };
+    } catch (e) {
+      if (e.response?.status === 404 || e.response?.status === 403) {
+        // Fall back to public + admin list merge for non-admin or missing event
+      } else {
+        console.warn("Admin event detail failed, falling back to public merge", e);
+      }
+    }
+
+    // Fallback: public details + admin list merge
     const publicResponse = await api.get(`/events/${eventId}/details/`);
     const publicData = publicResponse.data;
-
-    // 2. Fetch admin list to get internal details (organizer ID, status, flags)
-    // This is necessary because the public endpoint might sanitize organizer ID, and there's no direct admin detail endpoint.
     let adminData = {};
     try {
       const adminResponse = await api.get("/api/admin/events/");
@@ -51,39 +65,47 @@ export const adminService = {
           String(e.id) === String(eventId),
       );
       if (found) adminData = found;
-    } catch (e) {
-      console.warn("Failed to fetch admin event list for enrichment", e);
+    } catch (err) {
+      console.warn("Failed to fetch admin event list for enrichment", err);
     }
 
-    // 3. Merge data
-    return {
+    const merged = {
       ...publicData,
-      ...adminData, // Admin data takes precedence for status and internal IDs
-
-      // Normalize fields
+      ...adminData,
       event_name:
         adminData.event_name || publicData.name || publicData.event_name,
-      // Admin list usually has 'organisation_name'
       organisation_name:
         adminData.organisation_name ||
         publicData.organization_name ||
         publicData.organisation_name,
-      // Public often has better image reference
       image_url:
         publicData.image || publicData.image_url || adminData.image_url,
       ticket_tiers:
         publicData.ticket_categories ||
         publicData.ticket_tiers ||
         adminData.ticket_tiers,
-
-      // Ensure we have an ID for fetching user details if needed
       organizer:
         adminData.organizer || adminData.organizer_id || publicData.organizer,
-      
-      // Use ticket statistics from backend (now included in publicData)
       tickets_sold: publicData.tickets_sold || 0,
-      revenue: publicData.total_revenue || 0, // Backend returns 'total_revenue', frontend expects 'revenue'
+      revenue: publicData.total_revenue || 0,
     };
+    // Optionally enrich with user details for organizer email/phone if not in admin list
+    if (merged.organizer && !merged.organiser_email && !merged.organizer_email) {
+      try {
+        const userRes = await api.get(
+          `/api/admin/users/${merged.organizer}/?role=organizer`
+        );
+        const user = userRes.data?.user;
+        if (user) {
+          merged.organizer_email = user.email;
+          merged.organizer_phone = user.phone || user.phone_number;
+          if (!merged.organisation_name) merged.organisation_name = user.name;
+        }
+      } catch (err) {
+        console.warn("Failed to fetch organizer user details", err);
+      }
+    }
+    return merged;
   },
   updateEventStatus: async (eventId, status) => {
     const response = await api.patch(`/api/admin/events/${eventId}/status/`, {

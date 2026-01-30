@@ -1,34 +1,30 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { 
-  Loader2, 
-  CheckCircle, 
-  XCircle, 
-  Clock,
-  AlertCircle,
-  User,
-  CreditCard,
-  Calendar,
-  ChevronLeft,
-  ChevronRight,
-  Filter,
-  Search,
-  Landmark
+import {
+	Loader2,
+	CheckCircle,
+	XCircle,
+	Clock,
+	User,
+	CreditCard,
+	Calendar,
+	Filter,
+	Landmark,
 } from "lucide-react";
 import { adminService } from "@/lib/admin";
 import { toast } from "react-hot-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { AdminDataTable } from "@/components/ui/admin-data-table";
 import { AdminTableSkeleton } from "@/components/skeletons";
 import { formatCurrency, cn } from "@/lib/utils";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
 } from "@/components/ui/select-component";
 
 function StatusBadge({ status }) {
@@ -191,17 +187,19 @@ export default function PaymentFormsPage() {
   const rejectedCount = forms.filter(f => f.status === 'rejected').length;
   const totalAmount = forms.reduce((sum, f) => sum + (parseFloat(f.amount_sent) || 0), 0);
 
-  // Filter by search
-  const filteredForms = forms.filter(form => {
+  const filteredForms = forms.filter((form) => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
+    const displayName =
+      form.account_name ||
+      [form.Firstname, form.Lastname].filter(Boolean).join(" ").trim();
     return (
-      form.Firstname?.toLowerCase().includes(query) ||
-      form.Lastname?.toLowerCase().includes(query) ||
-      form.account_name?.toLowerCase().includes(query) ||
+      displayName.toLowerCase().includes(query) ||
       form.account_number?.includes(query) ||
       form.bank_code?.toLowerCase().includes(query) ||
-      String(form.amount_sent).includes(query)
+      form.bank_name?.toLowerCase().includes(query) ||
+      String(form.amount_sent).includes(query) ||
+      form.payment_form_id?.toLowerCase().includes(query)
     );
   });
 
@@ -209,9 +207,147 @@ export default function PaymentFormsPage() {
     return <AdminTableSkeleton columns={6} rows={8} />;
   }
 
+  const displayName = (form) =>
+    form.account_name ||
+    [form.Firstname, form.Lastname].filter(Boolean).join(" ").trim() ||
+    "—";
+
+  const paymentFormColumns = [
+    {
+      key: "user_details",
+      label: "User Details",
+      render: (_, form) => (
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20">
+            <User className="h-5 w-5 text-primary" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-bold text-foreground">
+              {displayName(form)}
+            </p>
+            <p className="text-[10px] text-muted-foreground font-mono tracking-tight">
+              {form.account_number || form.bank_account_number || "No Account #"}
+            </p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "bank",
+      label: "Bank Verification",
+      render: (_, form) => (
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2">
+            <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
+            <span className="text-sm font-semibold text-foreground">
+              {form.account_name || "Not Verified"}
+            </span>
+          </div>
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <Landmark className="w-3.5 h-3.5" />
+            <p className="text-[11px] font-mono">
+              {form.account_number || form.bank_account_number || "—"}{" "}
+              <span className="ml-1.5 px-1.5 py-0.5 rounded bg-muted text-[9px] font-black uppercase text-muted-foreground/80 border border-border/50">
+                {form.bank_name || form.bank_code || "BANK"}
+              </span>
+            </p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "transfer",
+      label: "Transfer Info",
+      render: (_, form) => (
+        <div className="space-y-1">
+          <p className="text-sm font-black text-foreground">
+            ₦{Number(form.amount_sent).toLocaleString()}
+          </p>
+          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+            <Calendar className="w-3 h-3" />
+            <span>{formatDate(form.sent_at)}</span>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "internal_id",
+      label: "Internal ID",
+      render: (_, form) => (
+        <span className="font-mono text-[10px] text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded border border-border/50">
+          {form.payment_form_id || `#${form.id}`}
+        </span>
+      ),
+    },
+    {
+      key: "status",
+      label: "Status",
+      render: (_, form) => (
+        <div className="space-y-2">
+          <StatusBadge status={form.status} />
+          {form.admin_notes && (
+            <p
+              className="text-[10px] text-muted-foreground italic leading-tight max-w-[120px] truncate"
+              title={form.admin_notes}
+            >
+              "{form.admin_notes}"
+            </p>
+          )}
+          {form.confirmed_at && (
+            <p className="text-[9px] text-muted-foreground/60 italic">
+              {new Date(form.confirmed_at).toLocaleDateString()}
+            </p>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: "actions",
+      label: "Actions",
+      className: "text-right",
+      render: (_, form) =>
+        form.status === "pending" ? (
+          <div className="flex items-center justify-end gap-2">
+            <Button
+              size="sm"
+              className="h-8 bg-emerald-600/10 text-emerald-600 hover:bg-emerald-600 hover:text-white border border-emerald-600/20 text-xs font-bold transition-all px-3"
+              onClick={() => handleConfirmClick(form)}
+              disabled={processing === form.id}
+            >
+              {processing === form.id ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <>
+                  <CheckCircle className="h-3.5 w-3.5 mr-1.5" />
+                  Confirm
+                </>
+              )}
+            </Button>
+            <Button
+              size="sm"
+              className="h-8 bg-red-600/10 text-red-600 hover:bg-red-600 hover:text-white border border-red-600/20 text-xs font-bold transition-all px-3"
+              onClick={() => handleRejectClick(form)}
+              disabled={processing === form.id}
+            >
+              <XCircle className="h-3.5 w-3.5 mr-1.5" />
+              Reject
+            </Button>
+          </div>
+        ) : (
+          <div className="flex flex-col items-end gap-1">
+            <p className="text-[10px] font-bold text-muted-foreground uppercase opacity-50">
+              Handled By
+            </p>
+            <p className="text-[11px] text-muted-foreground font-medium truncate max-w-[120px]">
+              {form.confirmed_by || "System"}
+            </p>
+          </div>
+        ),
+    },
+  ];
+
   return (
     <div className="space-y-6">
-      {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard title="Total Forms" value={forms.length} icon={CreditCard} />
         <StatCard title="Pending" value={pendingCount} icon={Clock} variant="pending" />
@@ -219,194 +355,43 @@ export default function PaymentFormsPage() {
         <StatCard title="Rejected" value={rejectedCount} icon={XCircle} variant="rejected" />
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1 max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search by name or amount..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9 bg-card/50 border-border/40"
-          />
-        </div>
-        <div className="w-[180px]">
-          <Select value={statusFilter} onValueChange={(val) => { setStatusFilter(val); setCurrentPage(1); }}>
-            <SelectTrigger className="bg-card/50 border-border/40">
-              <div className="flex items-center gap-2 text-sm">
-                <Filter className="w-3.5 h-3.5 text-muted-foreground" />
-                <SelectValue placeholder="Filter status" />
-              </div>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="confirmed">Confirmed</SelectItem>
-              <SelectItem value="rejected">Rejected</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      {/* Table */}
-      <Card className="border-border/40 bg-card/50 backdrop-blur-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="border-b border-border/40 bg-muted/30 text-[10px] uppercase font-bold tracking-widest text-muted-foreground/70">
-                <th className="px-4 py-4 text-left">User Details</th>
-                <th className="px-4 py-4 text-left">Bank Verification</th>
-                <th className="px-4 py-4 text-left">Transfer Info</th>
-                <th className="px-4 py-4 text-left">Internal ID</th>
-                <th className="px-4 py-4 text-left">Status</th>
-                <th className="px-4 py-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border/40">
-              {filteredForms.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
-                    <CreditCard className="mx-auto h-8 w-8 mb-2 opacity-50" />
-                    <p className="text-sm">No payment forms found</p>
-                  </td>
-                </tr>
-              ) : (
-                filteredForms.map((form) => (
-                  <tr key={form.id} className="hover:bg-muted/30 transition-all border-b border-border/10 last:border-0">
-                    <td className="px-4 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20">
-                          <User className="h-5 w-5 text-primary" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-sm font-bold text-foreground">
-                            {form.Firstname} {form.Lastname}
-                          </p>
-                          <p className="text-[10px] text-muted-foreground font-mono tracking-tight">
-                            {form.account_number || form.bank_account_number || 'No Account #'}
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="space-y-1.5">
-                        <div className="flex items-center gap-2">
-                          <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
-                          <span className="text-sm font-semibold text-foreground">{form.account_name || 'Not Verified'}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <Landmark className="w-3.5 h-3.5" />
-                          <p className="text-[11px] font-mono">
-                            {form.account_number || form.bank_account_number || '0000000000'} 
-                            <span className="ml-1.5 px-1.5 py-0.5 rounded bg-muted text-[9px] font-black uppercase text-muted-foreground/80 border border-border/50">
-                              {form.bank_name || form.bank_code || 'BANK'}
-                            </span>
-                          </p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="space-y-1">
-                        <p className="text-sm font-black text-foreground">₦{Number(form.amount_sent).toLocaleString()}</p>
-                        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-                          <Calendar className="w-3 h-3" />
-                          <span>{formatDate(form.sent_at)}</span>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <span className="font-mono text-[10px] text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded border border-border/50">
-                        #{form.id}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="space-y-2">
-                        <StatusBadge status={form.status} />
-                        {form.admin_notes && (
-                          <p className="text-[10px] text-muted-foreground italic leading-tight max-w-[120px] truncate" title={form.admin_notes}>
-                            "{form.admin_notes}"
-                          </p>
-                        )}
-                        {form.confirmed_at && (
-                          <p className="text-[9px] text-muted-foreground/60 italic">
-                            {new Date(form.confirmed_at).toLocaleDateString()}
-                          </p>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 text-right">
-                      {form.status === 'pending' ? (
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            size="sm"
-                            className="h-8 bg-emerald-600/10 text-emerald-600 hover:bg-emerald-600 hover:text-white border border-emerald-600/20 text-xs font-bold transition-all px-3"
-                            onClick={() => handleConfirmClick(form)}
-                            disabled={processing === form.id}
-                          >
-                            {processing === form.id ? (
-                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                            ) : (
-                              <>
-                                <CheckCircle className="h-3.5 w-3.5 mr-1.5" />
-                                Confirm
-                              </>
-                            )}
-                          </Button>
-                          <Button
-                            size="sm"
-                            className="h-8 bg-red-600/10 text-red-600 hover:bg-red-600 hover:text-white border border-red-600/20 text-xs font-bold transition-all px-3"
-                            onClick={() => handleRejectClick(form)}
-                            disabled={processing === form.id}
-                          >
-                            <XCircle className="h-3.5 w-3.5 mr-1.5" />
-                            Reject
-                          </Button>
-                        </div>
-                      ) : (
-                        <div className="flex flex-col items-end gap-1">
-                          <p className="text-[10px] font-bold text-muted-foreground uppercase opacity-50">Handled By</p>
-                          <p className="text-[11px] text-muted-foreground font-medium truncate max-w-[120px]">
-                            {form.confirmed_by || 'System'}
-                          </p>
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </Card>
-
-      {/* Pagination Controls */}
-      {pagination && (
-        <div className="flex items-center justify-between p-4 bg-muted/20 border border-border/40 rounded-xl mt-4">
-          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
-            Page {currentPage} of {pagination.total_pages}
-          </p>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              disabled={!pagination.has_previous}
-              className="h-8 px-4 font-bold text-xs uppercase tracking-tighter"
+      <AdminDataTable
+        columns={paymentFormColumns}
+        data={filteredForms}
+        pagination={pagination || { current_page: 1, total_pages: 1, total_count: 0, page_size: itemsPerPage, has_next: false, has_previous: false }}
+        loading={loading}
+        onPageChange={setCurrentPage}
+        emptyMessage="No payment forms found"
+        emptyIcon={CreditCard}
+        searchPlaceholder="Search by name, amount, ID..."
+        searchValue={searchQuery}
+        onSearchChange={setSearchQuery}
+        extraToolbar={
+          <div className="w-[180px]">
+            <Select
+              value={statusFilter}
+              onValueChange={(val) => {
+                setStatusFilter(val);
+                setCurrentPage(1);
+              }}
             >
-              Prev
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setCurrentPage(p => p + 1)}
-              disabled={!pagination.has_next}
-              className="h-8 px-4 font-bold text-xs uppercase tracking-tighter"
-            >
-              Next
-            </Button>
+              <SelectTrigger className="bg-card/50 border-border/40">
+                <div className="flex items-center gap-2 text-sm">
+                  <Filter className="w-3.5 h-3.5 text-muted-foreground" />
+                  <SelectValue placeholder="Filter status" />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="confirmed">Confirmed</SelectItem>
+                <SelectItem value="rejected">Rejected</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-        </div>
-      )}
+        }
+        getRowKey={(row) => row.id}
+      />
 
       {/* Confirm Modal */}
       {showConfirmModal && selectedForm && (
@@ -416,11 +401,11 @@ export default function PaymentFormsPage() {
             <h3 className="text-lg font-semibold mb-4">Confirm Payment</h3>
             <div className="space-y-3 mb-4 p-3 bg-muted/40 rounded-lg border border-border/50">
               <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">User Name:</span>
-                <span className="font-medium">{selectedForm.Firstname} {selectedForm.Lastname}</span>
+                <span className="text-muted-foreground">User / Account Name:</span>
+                <span className="font-medium">{displayName(selectedForm)}</span>
               </div>
               <div className="flex justify-between text-xs pt-1 border-t border-border/20">
-                <span className="text-muted-foreground">Account Name:</span>
+                <span className="text-muted-foreground">Account Name (verified):</span>
                 <span className="font-semibold text-emerald-600">{selectedForm.account_name || 'N/A'}</span>
               </div>
               <div className="flex justify-between text-xs">
@@ -473,11 +458,11 @@ export default function PaymentFormsPage() {
             <h3 className="text-lg font-semibold mb-4">Reject Payment Form</h3>
             <div className="space-y-3 mb-4 p-3 bg-muted/40 rounded-lg border border-border/50">
               <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">User Name:</span>
-                <span className="font-medium">{selectedForm.Firstname} {selectedForm.Lastname}</span>
+                <span className="text-muted-foreground">User / Account Name:</span>
+                <span className="font-medium">{displayName(selectedForm)}</span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Account Name:</span>
+                <span className="text-muted-foreground">Account Name (verified):</span>
                 <span className="font-medium">{selectedForm.account_name || 'N/A'}</span>
               </div>
               <div className="flex justify-between text-xs">
