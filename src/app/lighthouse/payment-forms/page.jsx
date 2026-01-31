@@ -131,43 +131,48 @@ export default function PaymentFormsPage() {
   };
 
   const handleConfirm = async () => {
-    if (!selectedForm) return;
-    
+    if (!selectedForm?.id) {
+      toast.error("Invalid form. Please try again.");
+      return;
+    }
     setProcessing(selectedForm.id);
     try {
-      await adminService.updatePaymentFormStatus(selectedForm.id, 'confirmed', adminNotes || null);
+      await adminService.updatePaymentFormStatus(selectedForm.id, "confirmed", adminNotes || null);
       toast.success("Payment confirmed successfully!");
       setShowConfirmModal(false);
       setSelectedForm(null);
       setAdminNotes("");
       fetchForms();
     } catch (error) {
-      console.error(error);
-      toast.error(error.response?.data?.error || "Failed to confirm payment");
+      console.error("Confirm payment form error:", error);
+      const msg = error.response?.data?.error ?? error.response?.data?.details ?? "Failed to confirm payment";
+      toast.error(Array.isArray(msg) ? msg[0] : msg);
     } finally {
       setProcessing(null);
     }
   };
 
   const handleReject = async () => {
-    if (!selectedForm) return;
-    
+    if (!selectedForm?.id) {
+      toast.error("Invalid form. Please try again.");
+      return;
+    }
     if (!adminNotes.trim()) {
       toast.error("Please provide a reason for rejection");
       return;
     }
-
     setProcessing(selectedForm.id);
     try {
-      await adminService.updatePaymentFormStatus(selectedForm.id, 'rejected', adminNotes);
+      await adminService.updatePaymentFormStatus(selectedForm.id, "rejected", adminNotes);
       toast.success("Payment form rejected");
       setShowRejectModal(false);
       setSelectedForm(null);
       setAdminNotes("");
       fetchForms();
     } catch (error) {
-      console.error(error);
-      toast.error(error.response?.data?.error || "Failed to reject payment");
+      console.error("Reject payment form error:", error);
+      const msg = error.response?.data?.error ?? error.response?.data?.details ?? "Failed to reject payment";
+      toast.error(Array.isArray(msg) ? msg[0] : msg);
     } finally {
       setProcessing(null);
     }

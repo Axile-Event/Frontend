@@ -257,7 +257,8 @@ export default function CheckoutPaymentPage() {
                   />
                 ) : (
                   <ManualTransferTab 
-                    summary={bookingData} 
+                    summary={bookingData}
+                    bookingId={booking_id}
                   />
                 )}
               </div>

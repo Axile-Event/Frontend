@@ -4,7 +4,7 @@ import { Copy, Check, Landmark, Info } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ManualConfirmationModal from './ManualConfirmationModal';
 
-const ManualTransferTab = ({ summary }) => {
+const ManualTransferTab = ({ summary, bookingId }) => {
   const [copied, setCopied] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -80,6 +80,7 @@ const ManualTransferTab = ({ summary }) => {
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
         totalAmount={summary.total}
+        bookingId={bookingId}
       />
     </div>
   );

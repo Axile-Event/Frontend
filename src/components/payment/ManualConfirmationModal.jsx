@@ -8,7 +8,7 @@ import toast from 'react-hot-toast';
 import CustomDropdown from "@/components/ui/CustomDropdown";
 import { Landmark } from 'lucide-react';
 
-const ManualConfirmationModal = ({ isOpen, onClose, totalAmount }) => {
+const ManualConfirmationModal = ({ isOpen, onClose, totalAmount, bookingId }) => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   
@@ -64,8 +64,9 @@ const ManualConfirmationModal = ({ isOpen, onClose, totalAmount }) => {
     setLoading(true);
 
     try {
-      // Use FormData for multipart/form-data (account_name, bank_name, amount_sent, sent_at, payment_receipt)
+      // Use FormData for multipart/form-data (booking_id, account_name, bank_name, amount_sent, sent_at, payment_receipt)
       const formDataToSend = new FormData();
+      if (bookingId) formDataToSend.append('booking_id', bookingId);
       formDataToSend.append('account_name', formData.accountName.trim() || 'Unknown');
       const selectedBank = banks.find((b) => b.code === formData.bankCode);
       const bankName = selectedBank ? selectedBank.name : '';
