@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Ticket } from "lucide-react";
 
-const PaymentSummary = ({ summary }) => {
+const PaymentSummary = ({ summary, activeTab }) => {
   const { 
     ticketNumber, 
     event_name,
@@ -11,7 +11,8 @@ const PaymentSummary = ({ summary }) => {
     quantity = 1,
     subtotal = 0,
     platformFee = 0, 
-    total = 0 
+    totalPaystack= 0,
+    totalManual= 0 
   } = summary || {};
 
   return (
@@ -80,7 +81,7 @@ const PaymentSummary = ({ summary }) => {
         {/* Total */}
         <div className="flex justify-between items-center">
           <span className="text-base font-semibold">Total Amount</span>
-          <span className="text-2xl font-bold text-rose-500">₦{total?.toLocaleString()}</span>
+          <span className="text-2xl font-bold text-rose-500">₦{activeTab === "paystack" ? totalPaystack?.toLocaleString() : totalManual?.toLocaleString()}</span>
         </div>
       </CardContent>
     </Card>

@@ -20,7 +20,7 @@ const PaystackTab = ({ summary, onPay, loading = false }) => {
           ) : (
             <>
               <Lock className="mr-2 h-4 w-4" />
-              Pay ₦{summary?.total?.toLocaleString()}
+              Pay ₦{summary?.totalPaystack?.toLocaleString()}
             </>
           )}
         </Button>
