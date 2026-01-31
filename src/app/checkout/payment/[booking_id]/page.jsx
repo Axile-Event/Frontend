@@ -2,7 +2,15 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Loader2, AlertCircle, Ticket, ShieldCheck, Zap, CheckCircle2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Loader2,
+  AlertCircle,
+  Ticket,
+  ShieldCheck,
+  Zap,
+  CheckCircle2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import api from "@/lib/axios";
 import toast from "react-hot-toast";
@@ -23,20 +31,20 @@ const calculatePaystackFee = (amount) => {
     // Fee waived for transactions under ₦2500
     return Math.min(amount * 0.015, 2000);
   }
-  const fee = (amount * 0.015) + 100;
+  const fee = amount * 0.015 + 100;
   return Math.min(fee, 2000); // Cap at ₦2000
 };
 
 export default function CheckoutPaymentPage() {
   const router = useRouter();
   const { booking_id } = useParams();
-  
+
   const [activeTab, setActiveTab] = useState("paystack");
   const [loading, setLoading] = useState(true);
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [bookingData, setBookingData] = useState(null);
   const [error, setError] = useState(null);
-  
+
   useEffect(() => {
     const fetchBookingData = async () => {
       if (!booking_id) {
@@ -55,51 +63,65 @@ export default function CheckoutPaymentPage() {
         if (!storedBooking) {
           storedBooking = localStorage.getItem(`booking_${booking_id}`);
         }
-        
+
         if (storedBooking) {
           const parsed = JSON.parse(storedBooking);
-          
+
           // Handle multi-category bookings (new format with items array)
           let subtotal = 0;
           let totalQuantity = 0;
           let items = [];
-          
+
           if (parsed.items && Array.isArray(parsed.items)) {
             // New format: multiple categories
             items = parsed.items;
-            subtotal = parsed.subtotal || items.reduce((sum, item) => sum + (item.total || item.price * item.quantity), 0);
-            totalQuantity = parsed.total_quantity || items.reduce((sum, item) => sum + item.quantity, 0);
+            subtotal =
+              parsed.subtotal ||
+              items.reduce(
+                (sum, item) => sum + (item.total || item.price * item.quantity),
+                0,
+              );
+            totalQuantity =
+              parsed.total_quantity ||
+              items.reduce((sum, item) => sum + item.quantity, 0);
           } else {
             // Legacy format: single category
             const quantity = parsed.quantity || 1;
             const pricePerTicket = parseFloat(parsed.price_per_ticket || 0);
             subtotal = pricePerTicket * quantity;
             totalQuantity = quantity;
-            items = [{
-              name: parsed.category_name,
-              price: pricePerTicket,
-              quantity: quantity,
-              total: subtotal
-            }];
+            items = [
+              {
+                name: parsed.category_name,
+                price: pricePerTicket,
+                quantity: quantity,
+                total: subtotal,
+              },
+            ];
           }
-          
+
           const serviceFee = subtotal > 0 ? PLATFORM_FEE : 0; // ₦80 service fee for paid tickets
           // Paystack calculates fee on the total amount INCLUDING platform service fee
           const paystackFee = calculatePaystackFee(subtotal + serviceFee);
           const platformFee = serviceFee + paystackFee; // Combined: ₦80 + Paystack fee
-          const total = subtotal + platformFee;
+          // const total = subtotal + platformFee;
+          const totalPaystack = subtotal + platformFee;
+          const totalManual = subtotal + serviceFee;
 
           setBookingData({
             booking_id: parsed.booking_id,
-            ticketNumber: parsed.booking_id?.replace('booking:', '') || decodedBookingId.replace('booking:', ''),
+            ticketNumber:
+              parsed.booking_id?.replace("booking:", "") ||
+              decodedBookingId.replace("booking:", ""),
             event_name: parsed.event_name,
             items: items, // Array of categories
             quantity: totalQuantity,
             subtotal: subtotal,
             platformFee: platformFee,
-            total: total,
+            totalPaystack,
+            totalManual,
             payment_url: parsed.payment_url,
-            payment_reference: parsed.payment_reference
+            payment_reference: parsed.payment_reference,
           });
           setLoading(false);
           return;
@@ -107,11 +129,15 @@ export default function CheckoutPaymentPage() {
 
         // No localStorage data found - show error with helpful message
         // The booking data should have been stored when the user initiated the booking
-        setError("Booking session expired or not found. Please go back to the event page and try booking again.");
+        setError(
+          "Booking session expired or not found. Please go back to the event page and try booking again.",
+        );
         setLoading(false);
       } catch (err) {
         console.error("Error loading booking:", err);
-        setError("Unable to load booking details. Please try booking again from the event page.");
+        setError(
+          "Unable to load booking details. Please try booking again from the event page.",
+        );
         setLoading(false);
       }
     };
@@ -132,10 +158,10 @@ export default function CheckoutPaymentPage() {
       }
 
       // Otherwise, initialize payment
-      const response = await api.post('/tickets/initialize-payment/', { 
-        booking_id: booking_id 
+      const response = await api.post("/tickets/initialize-payment/", {
+        booking_id: booking_id,
       });
-      
+
       if (response.data.payment_url) {
         window.location.href = response.data.payment_url;
       } else {
@@ -143,7 +169,10 @@ export default function CheckoutPaymentPage() {
       }
     } catch (error) {
       console.error("Payment initialization error:", error);
-      toast.error(error.response?.data?.error || "Failed to initialize payment. Please try again.");
+      toast.error(
+        error.response?.data?.error ||
+          "Failed to initialize payment. Please try again.",
+      );
       setPaymentLoading(false);
     }
   };
@@ -187,14 +216,14 @@ export default function CheckoutPaymentPage() {
       <div className="sticky top-0 z-40 bg-background/95 backdrop-blur-md border-b border-border/50">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-14 md:h-16">
-            <button 
+            <button
               onClick={() => router.back()}
               className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               <ArrowLeft size={18} />
               <span className="hidden sm:inline">Back</span>
             </button>
-            
+
             {/* Checkout indicator */}
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-rose-500/10 text-rose-600 dark:text-rose-400">
               <ShieldCheck size={14} />
@@ -202,8 +231,12 @@ export default function CheckoutPaymentPage() {
             </div>
 
             <div className="text-right">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Total</p>
-              <p className="font-bold text-rose-500">₦{bookingData?.total?.toLocaleString()}</p>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">
+                Total
+              </p>
+              <p className="font-bold text-rose-500">
+                ₦{bookingData?.totalPaystack?.toLocaleString()}
+              </p>
             </div>
           </div>
         </div>
@@ -211,7 +244,6 @@ export default function CheckoutPaymentPage() {
 
       <div className="container mx-auto px-4 py-4 md:py-8">
         <div className="max-w-4xl mx-auto">
-          
           {/* Page Title - Desktop */}
           <div className="hidden md:block mb-6">
             <div className="flex items-center gap-3">
@@ -234,7 +266,9 @@ export default function CheckoutPaymentPage() {
                 <Ticket className="w-5 h-5 text-rose-500" />
               </div>
               <div className="min-w-0">
-                <p className="font-semibold text-sm truncate">{bookingData?.event_name}</p>
+                <p className="font-semibold text-sm truncate">
+                  {bookingData?.event_name}
+                </p>
                 <p className="text-xs text-muted-foreground">
                   {bookingData?.quantity}x {bookingData?.category_name}
                 </p>
@@ -247,18 +281,16 @@ export default function CheckoutPaymentPage() {
             {/* Left: Payment Options (wider) */}
             <div className="lg:col-span-3 space-y-3 md:space-y-4">
               <PaymentTabs activeTab={activeTab} onChange={setActiveTab} />
-              
+
               <div>
                 {activeTab === "paystack" ? (
-                  <PaystackTab 
-                    summary={bookingData} 
+                  <PaystackTab
+                    summary={bookingData}
                     onPay={handlePayWithPaystack}
                     loading={paymentLoading}
                   />
                 ) : (
-                  <ManualTransferTab 
-                    summary={bookingData} 
-                  />
+                  <ManualTransferTab summary={bookingData} />
                 )}
               </div>
             </div>
@@ -266,8 +298,8 @@ export default function CheckoutPaymentPage() {
             {/* Right: Order Summary */}
             <div className="lg:col-span-2">
               <div className="lg:sticky lg:top-20 space-y-4">
-                <PaymentSummary summary={bookingData} />
-                
+                <PaymentSummary summary={bookingData} activeTab={activeTab}/>
+
                 {/* Payment Info Card */}
                 <div className="bg-muted/30 rounded-xl p-4 space-y-3">
                   <div className="flex items-start gap-3">
@@ -275,11 +307,15 @@ export default function CheckoutPaymentPage() {
                       <Zap className="w-4 h-4 text-emerald-500" />
                     </div>
                     <div>
-                      <p className="font-medium text-sm">Instant Confirmation</p>
-                      <p className="text-xs text-muted-foreground mt-0.5">Your ticket will be delivered immediately after payment</p>
+                      <p className="font-medium text-sm">
+                        Instant Confirmation
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Your ticket will be delivered immediately after payment
+                      </p>
                     </div>
                   </div>
-                  
+
                   <div className="border-t border-border/50 pt-3 space-y-2">
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <CheckCircle2 size={12} className="text-emerald-500" />
@@ -313,22 +349,25 @@ export default function CheckoutPaymentPage() {
 
           {/* Footer Info */}
           <p className="text-center text-xs text-muted-foreground mt-6 md:mt-4">
-            Need help? 
-            <button className="text-primary ml-1 hover:underline">Contact Support</button>
+            Need help?
+            <button className="text-primary ml-1 hover:underline">
+              Contact Support
+            </button>
           </p>
-
         </div>
       </div>
-      
+
       {/* Mobile: Sticky Bottom Summary */}
       <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-md border-t border-border/50 p-3 z-40">
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-[10px] text-muted-foreground">Total Amount</p>
-            <p className="text-base font-bold">₦{bookingData?.total?.toLocaleString()}</p>
+            <p className="text-base font-bold">
+              ₦{bookingData?.total?.toLocaleString()}
+            </p>
           </div>
           {activeTab === "paystack" && (
-            <Button 
+            <Button
               onClick={handlePayWithPaystack}
               disabled={paymentLoading}
               className="h-10 px-6 text-sm bg-rose-600 hover:bg-rose-700 shadow-md"
@@ -342,7 +381,7 @@ export default function CheckoutPaymentPage() {
           )}
         </div>
       </div>
-      
+
       {/* Spacer for mobile sticky footer */}
       <div className="lg:hidden h-20" />
     </div>
