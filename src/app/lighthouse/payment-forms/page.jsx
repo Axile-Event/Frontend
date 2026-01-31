@@ -26,6 +26,7 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select-component";
+import { Input } from "@/components/ui/input";
 
 function StatusBadge({ status }) {
   const styles = {

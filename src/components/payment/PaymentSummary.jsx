@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Ticket } from "lucide-react";
+import { Ticket, Info } from "lucide-react";
 
 const PaymentSummary = ({ summary, activeTab }) => {
   const { 
@@ -10,10 +10,16 @@ const PaymentSummary = ({ summary, activeTab }) => {
     items = [], // Array of ticket categories
     quantity = 1,
     subtotal = 0,
-    platformFee = 0, 
-    totalPaystack= 0,
-    totalManual= 0 
+    serviceFee = 0, // Platform service fee (₦80)
+    paystackFee = 0, // Paystack processing fee
+    platformFee = 0, // Combined fees (fallback)
+    totalPaystack = 0,
+    totalManual = 0 
   } = summary || {};
+
+  // Determine which fees to show based on active tab
+  const isPaystack = activeTab === "paystack";
+  const currentTotal = isPaystack ? totalPaystack : totalManual;
 
   return (
     <Card className="border-border bg-card/50 backdrop-blur-sm">
@@ -67,11 +73,47 @@ const PaymentSummary = ({ summary, activeTab }) => {
               </div>
             </>
           )}
+        </div>
+
+        <Separator className="bg-border/50" />
+
+        {/* Fee Breakdown Section */}
+        <div className="space-y-2">
+          <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
+            <Info className="h-3.5 w-3.5" />
+            <span>Fee Breakdown</span>
+          </div>
           
-          {platformFee > 0 && (
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Platform Fee</span>
-              <span className="text-foreground">₦{platformFee?.toLocaleString()}</span>
+          {/* Service Fee - always shown for paid tickets */}
+          {serviceFee > 0 && (
+            <div className="flex justify-between items-center text-sm">
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">Service Fee</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground/70">
+                  Platform
+                </span>
+              </div>
+              <span className="text-foreground">₦{serviceFee?.toLocaleString()}</span>
+            </div>
+          )}
+          
+          {/* Paystack Fee - only shown when Paystack tab is active */}
+          {isPaystack && paystackFee > 0 && (
+            <div className="flex justify-between items-center text-sm">
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">Payment Processing</span>
+                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                  Paystack
+                </span>
+              </div>
+              <span className="text-foreground">₦{paystackFee?.toLocaleString()}</span>
+            </div>
+          )}
+
+          {/* Show note for manual transfer */}
+          {!isPaystack && (
+            <div className="mt-2 text-xs text-muted-foreground/70 italic">
+              No payment processing fee for bank transfer
             </div>
           )}
         </div>
@@ -79,9 +121,23 @@ const PaymentSummary = ({ summary, activeTab }) => {
         <Separator className="bg-border/50" />
 
         {/* Total */}
-        <div className="flex justify-between items-center">
+        <div className="flex justify-between items-center pt-1">
           <span className="text-base font-semibold">Total Amount</span>
-          <span className="text-2xl font-bold text-rose-500">₦{activeTab === "paystack" ? totalPaystack?.toLocaleString() : totalManual?.toLocaleString()}</span>
+          <div className="text-right">
+            <span className="text-2xl font-bold text-rose-500">
+              ₦{currentTotal?.toLocaleString()}
+            </span>
+            {isPaystack && paystackFee > 0 && (
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                Includes ₦{(serviceFee + paystackFee).toLocaleString()} in fees
+              </p>
+            )}
+            {!isPaystack && serviceFee > 0 && (
+              <p className="text-[10px] text-muted-foreground mt-0.5">
+                Includes ₦{serviceFee.toLocaleString()} service fee
+              </p>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>
