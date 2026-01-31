@@ -56,7 +56,7 @@ const ManualTransferTab = ({ summary, bookingId }) => {
           </div>
           <div className="flex justify-between items-center text-sm">
             <span className="text-muted-foreground">Amount to Pay</span>
-            <span className="font-bold text-rose-500 text-lg">₦{summary.total?.toLocaleString()}</span>
+            <span className="font-bold text-rose-500 text-lg">₦{summary.totalManual?.toLocaleString()}</span>
           </div>
         </div>
       </div>
