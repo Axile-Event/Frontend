@@ -13,6 +13,7 @@ import toast from "react-hot-toast";
 import useAuthStore from "@/store/authStore";
 import { getImageUrl } from "@/lib/utils";
 import { EventDetailsSkeleton } from "@/components/skeletons";
+import useTempBookingStore from "@/store/tempBookingStore";
 
 // Platform fee constants
 const PLATFORM_FEE = 80;
@@ -33,6 +34,12 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
   const [event, setEvent] = useState(initialEvent || null);
   const [loading, setLoading] = useState(!initialEvent);
   const [bookingLoading, setBookingLoading] = useState(false);
+
+  //Getting booking id for tracking tickets
+  const [bookingID,setBookingID] = useState(null)
+  
+  // Use persistent store for booking ID
+  const { setBookingId: setPersistentBookingId } = useTempBookingStore();
 
   // Booking state - now tracks quantities per category
   const [categories, setCategories] = useState([]);
@@ -265,6 +272,8 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
       const tickets = response.data.tickets || [];
       
       if (bookingId) {
+        setBookingID(bookingId);
+        setPersistentBookingId(bookingId); // Set in persistent store
         // Store booking data in localStorage for checkout page
         const bookingDataForCheckout = {
           booking_id: bookingId,

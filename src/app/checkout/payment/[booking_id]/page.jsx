@@ -117,7 +117,9 @@ export default function CheckoutPaymentPage() {
             items: items, // Array of categories
             quantity: totalQuantity,
             subtotal: subtotal,
-            platformFee: platformFee,
+            serviceFee: serviceFee, // ₦80 platform service fee
+            paystackFee: paystackFee, // Paystack processing fee
+            platformFee: platformFee, // Combined fees (for backwards compatibility)
             totalPaystack,
             totalManual,
             payment_url: parsed.payment_url,
@@ -292,7 +294,7 @@ export default function CheckoutPaymentPage() {
                 ) : (
                   <ManualTransferTab 
                     summary={bookingData}
-                    bookingId={booking_id}
+                    bookingId={decodeURIComponent(booking_id)}
                   />
                 )}
               </div>
@@ -366,7 +368,7 @@ export default function CheckoutPaymentPage() {
           <div>
             <p className="text-[10px] text-muted-foreground">Total Amount</p>
             <p className="text-base font-bold">
-              ₦{bookingData?.total?.toLocaleString()}
+              ₦{activeTab === "paystack" ? bookingData?.totalPaystack?.toLocaleString() : bookingData?.totalManual?.toLocaleString()}
             </p>
           </div>
           {activeTab === "paystack" && (
