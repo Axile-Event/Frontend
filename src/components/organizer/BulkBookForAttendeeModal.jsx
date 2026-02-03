@@ -247,7 +247,14 @@ export default function BulkBookForAttendeeModal({ isOpen, onClose, event, event
 			
 		} catch (error) {
 			console.error("Bulk booking error:", error)
-			const errorMsg = error.response?.data?.error || error.response?.data?.detail || "Failed to book tickets"
+			const data = error.response?.data
+			let errorMsg = data?.error || data?.detail || "Failed to book tickets"
+			if (typeof data === "object" && !data?.error && !data?.detail) {
+				const firstKey = Object.keys(data)[0]
+				const firstVal = data[firstKey]
+				if (Array.isArray(firstVal)) errorMsg = firstVal[0] || errorMsg
+				else if (typeof firstVal === "string") errorMsg = firstVal
+			}
 			toast.error(errorMsg)
 		} finally {
 			setLoading(false)

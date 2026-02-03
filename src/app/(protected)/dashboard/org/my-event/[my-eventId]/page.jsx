@@ -90,13 +90,15 @@ function BookForAttendeeModal({ isOpen, onClose, event, eventId, onSuccess }) {
       // Ensure event_id is properly decoded (handles URL encoding like event%3ATE-12345)
       const decodedEventId = decodeURIComponent(eventId);
       
+      // Backend expects items array: [{ category_name, quantity }]
       const payload = {
         firstname: formData.firstname.trim(),
         lastname: formData.lastname.trim(),
         email: formData.email.trim(),
         event_id: decodedEventId,
-        category_name: effectiveCategoryName,
-        quantity: formData.quantity
+        items: [
+          { category_name: effectiveCategoryName, quantity: formData.quantity }
+        ]
       };
 
       console.log("Booking payload:", payload);
@@ -138,7 +140,14 @@ function BookForAttendeeModal({ isOpen, onClose, event, eventId, onSuccess }) {
 
     } catch (error) {
       console.error("Book for attendee error:", error);
-      const errorMsg = error.response?.data?.error || error.response?.data?.detail || "Failed to book ticket";
+      const data = error.response?.data;
+      let errorMsg = data?.error || data?.detail || "Failed to book ticket";
+      if (typeof data === "object" && !data?.error && !data?.detail) {
+        const firstKey = Object.keys(data)[0];
+        const firstVal = data[firstKey];
+        if (Array.isArray(firstVal)) errorMsg = firstVal[0] || errorMsg;
+        else if (typeof firstVal === "string") errorMsg = firstVal;
+      }
       toast.error(errorMsg);
     } finally {
       setLoading(false);
