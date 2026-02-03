@@ -161,13 +161,13 @@ export default function BulkBookForAttendeeModal({ isOpen, onClose, event, event
 			const email = (parts[2] ?? '').trim()
 			const category_name = (parts[3] ?? '').trim() || defaultCategoryName
 
-			if (parts.length >= 3 && firstname && lastname && email && email.includes('@')) {
+			if (parts.length >= 3) {
 				results.push({
 					firstname,
 					lastname,
 					email,
 					category_name,
-					isValid: true
+					isValid: !!(firstname && lastname && email && email.includes('@'))
 				})
 			}
 		}
@@ -247,7 +247,12 @@ export default function BulkBookForAttendeeModal({ isOpen, onClose, event, event
 					}
 					setAttendees(parsed)
 					setTicketCount(parsed.length)
-					toast.success(`Imported ${parsed.length} attendee(s) from Excel`)
+					const invalidCount = parsed.filter((p) => !p.isValid).length
+					toast.success(
+						invalidCount > 0
+							? `Imported ${parsed.length} row(s). ${invalidCount} need(s) completion before booking.`
+							: `Imported ${parsed.length} attendee(s) from Excel`
+					)
 				} catch (err) {
 					console.error(err)
 					toast.error("Failed to parse Excel file")
@@ -268,7 +273,12 @@ export default function BulkBookForAttendeeModal({ isOpen, onClose, event, event
 					}
 					setAttendees(parsed)
 					setTicketCount(parsed.length)
-					toast.success(`Imported ${parsed.length} attendee(s) from CSV`)
+					const invalidCount = parsed.filter((p) => !p.isValid).length
+					toast.success(
+						invalidCount > 0
+							? `Imported ${parsed.length} row(s). ${invalidCount} need(s) completion before booking.`
+							: `Imported ${parsed.length} attendee(s) from CSV`
+					)
 				} catch (err) {
 					toast.error("Failed to parse CSV file")
 				}
@@ -603,7 +613,7 @@ export default function BulkBookForAttendeeModal({ isOpen, onClose, event, event
  */
 function AttendeeForm({ index, attendee, isExpanded, onToggle, onUpdate, categories, isPaidEvent }) {
 	return (
-		<div className={`border rounded-xl overflow-hidden transition-all ${
+		<div className={`border rounded-xl overflow-visible transition-all ${
 			attendee.isValid 
 				? 'border-emerald-500/30 bg-emerald-500/5' 
 				: 'border-white/10 bg-white/2'
@@ -691,15 +701,17 @@ function AttendeeForm({ index, attendee, isExpanded, onToggle, onUpdate, categor
 						</div>
 					</div>
 					
-					{/* Category selection for paid events */}
-					{isPaidEvent && categories.length > 0 && (
-						<CustomDropdown
-							label="Ticket Category"
-							value={attendee.category_name}
-							onChange={(value) => onUpdate('category_name', value)}
-							options={categories}
-							placeholder="Select a category"
-						/>
+					{/* Category selection - show when event has categories (paid or free) */}
+					{categories.length > 0 && (
+						<div className="relative z-[100]">
+							<CustomDropdown
+								label="Ticket Category"
+								value={attendee.category_name}
+								onChange={(value) => onUpdate('category_name', value)}
+								options={categories}
+								placeholder="Select a category"
+							/>
+						</div>
 					)}
 				</div>
 			)}
