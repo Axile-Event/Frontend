@@ -426,7 +426,7 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
                 {/* All Sold Out Banner */}
                 {allSoldOut && (
                   <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-sm font-medium text-center animate-in fade-in zoom-in-95 duration-300">
-                    😔 All tickets are sold out for this event
+                    All tickets are sold out for this event
                   </div>
                 )}
 
@@ -437,6 +437,9 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
                       const qty = ticketSelections[cat.category_id] || 0;
                       const price = parseFloat(cat.price) || 0;
                       const isCatSoldOut = cat.is_sold_out;
+                      const availableTickets = cat.available_tickets;
+                      const maxTickets = cat.max_tickets;
+                      const isLowStock = availableTickets > 0 && availableTickets <= 10;
                       
                       return (
                         <div
@@ -445,7 +448,7 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
                             qty > 0
                               ? "border-rose-500 bg-rose-500/5 shadow-lg shadow-rose-500/10"
                               : "border-border bg-card hover:border-border/80 hover:bg-card/80"
-                          } ${isCatSoldOut ? "opacity-50 grayscale" : ""}`}
+                          } ${isCatSoldOut ? "opacity-50" : ""}`}
                         >
                           <div className="flex items-start justify-between gap-4">
                             {/* Category Info */}
@@ -455,8 +458,8 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
                                   {cat.name}
                                 </h3>
                                 {isCatSoldOut && (
-                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-red-500/20 text-red-500 font-bold uppercase">
-                                    Sold Out
+                                  <span className="text-[10px] px-2 py-0.5 rounded bg-red-500/10 text-red-500 font-semibold uppercase">
+                                    Sold out
                                   </span>
                                 )}
                               </div>
@@ -465,6 +468,12 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
                               </p>
                               {cat.description && (
                                 <p className="text-sm text-muted-foreground mt-2 leading-relaxed">{cat.description}</p>
+                              )}
+                              {/* Ticket availability - professional style */}
+                              {!isCatSoldOut && availableTickets !== undefined && (
+                                <p className={`text-xs mt-2 ${isLowStock ? "text-orange-500 font-medium" : "text-muted-foreground"}`}>
+                                  {isLowStock ? `Only ${availableTickets} left` : `${availableTickets} tickets available`}
+                                </p>
                               )}
                             </div>
 
