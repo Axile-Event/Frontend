@@ -11,6 +11,9 @@ import {
 	Calendar,
 	Filter,
 	Landmark,
+	Image as ImageIcon,
+	ZoomIn,
+	AlertCircle,
 } from "lucide-react";
 import { adminService } from "@/lib/admin";
 import { toast } from "react-hot-toast";
@@ -51,6 +54,45 @@ function StatusBadge({ status }) {
       <Icon className="w-3 h-3" />
       {status.charAt(0).toUpperCase() + status.slice(1)}
     </span>
+  );
+}
+
+function ReceiptImage({ receiptUrl }) {
+  const [imageError, setImageError] = useState(false);
+
+  if (!receiptUrl) {
+    return (
+      <div className="h-12 w-12 flex items-center justify-center rounded-lg bg-muted/30 border border-border/30 text-muted-foreground/50">
+        <ImageIcon className="h-5 w-5" />
+      </div>
+    );
+  }
+
+  if (imageError) {
+    return (
+      <div
+        className="h-12 w-12 flex items-center justify-center rounded-lg bg-muted/50 border border-border/50 text-muted-foreground cursor-pointer hover:border-primary/50 transition-all"
+        onClick={() => window.open(receiptUrl, '_blank')}
+        title="Click to view receipt"
+      >
+        <ImageIcon className="h-5 w-5" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative group">
+      <img
+        src={receiptUrl}
+        alt="Payment receipt"
+        className="h-12 w-12 object-cover rounded-lg border border-border/50 cursor-pointer hover:border-primary/50 transition-all group-hover:scale-105"
+        onClick={() => window.open(receiptUrl, '_blank')}
+        onError={() => setImageError(true)}
+      />
+      <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/20 rounded-lg transition-all opacity-0 group-hover:opacity-100 pointer-events-none">
+        <ZoomIn className="h-4 w-4 text-white" />
+      </div>
+    </div>
   );
 }
 
@@ -210,7 +252,7 @@ export default function PaymentFormsPage() {
   });
 
   if (loading && forms.length === 0) {
-    return <AdminTableSkeleton columns={6} rows={8} />;
+    return <AdminTableSkeleton columns={7} rows={8} />;
   }
 
   const displayName = (form) =>
@@ -235,6 +277,15 @@ export default function PaymentFormsPage() {
               {form.account_number || form.bank_account_number || "No Account #"}
             </p>
           </div>
+        </div>
+      ),
+    },
+    {
+      key: "receipt_image",
+      label: "Receipt",
+      render: (_, form) => (
+        <div className="flex items-center justify-center">
+          <ReceiptImage receiptUrl={form.payment_receipt} />
         </div>
       ),
     },
