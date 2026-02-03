@@ -97,13 +97,17 @@ const ManualConfirmationModal = ({
     setLoading(true);
 
     try {
-      // Use FormData for multipart/form-data (booking_id, account_name, bank_name, amount_sent, sent_at, payment_receipt)
+      // Use FormData for multipart/form-data (booking_id, account_name, account_number, bank_name, amount_sent, sent_at, payment_receipt)
       const formDataToSend = new FormData();
       formDataToSend.append("booking_id", bookingId); // Required field
       formDataToSend.append(
         "account_name",
         formData.accountName.trim() || "Unknown",
       );
+      // Add account number if provided
+      if (formData.accountNumber) {
+        formDataToSend.append("account_number", formData.accountNumber);
+      }
       const selectedBank = banks.find((b) => b.code === formData.bankCode);
       const bankName = selectedBank ? selectedBank.name : "";
       if (bankName) formDataToSend.append("bank_name", bankName);

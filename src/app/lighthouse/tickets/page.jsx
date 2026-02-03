@@ -132,6 +132,15 @@ export default function TicketsPage() {
 			),
 		},
 		{
+			key: "booking_id",
+			label: "Booking ID",
+			render: (_, t) => (
+				<span className="font-mono text-xs text-muted-foreground">
+					{t.booking_id || "—"}
+				</span>
+			),
+		},
+		{
 			key: "event_name",
 			label: "Event",
 			render: (_, t) => (
@@ -202,7 +211,7 @@ export default function TicketsPage() {
 	];
 
 	if (loading && tickets.length === 0) {
-		return <AdminTableSkeleton columns={7} rows={8} />;
+		return <AdminTableSkeleton columns={8} rows={8} />;
 	}
 
 	return (
