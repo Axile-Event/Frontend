@@ -119,7 +119,7 @@ export function AdminDataTable({
 										<th
 											key={header.id}
 											className={cn(
-												"text-left p-4 text-xs font-medium text-muted-foreground uppercase tracking-wide",
+												"text-left p-4 text-xs font-medium text-muted-foreground uppercase tracking-wide whitespace-nowrap",
 												header.column.columnDef.meta?.className
 											)}
 										>
@@ -168,7 +168,7 @@ export function AdminDataTable({
 											<td
 												key={cell.id}
 												className={cn(
-													"p-4",
+													"p-4 whitespace-nowrap",
 													cell.column.columnDef.meta?.className
 												)}
 											>
