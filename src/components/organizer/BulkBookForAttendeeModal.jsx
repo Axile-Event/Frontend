@@ -22,7 +22,7 @@ import {
 	Trash2
 } from "lucide-react"
 import toast from "react-hot-toast"
-import api from "../../../lib/axios"
+import api from "@/lib/axios"
 import CustomDropdown from "@/components/ui/CustomDropdown"
 
 /**
