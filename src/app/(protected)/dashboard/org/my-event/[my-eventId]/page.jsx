@@ -30,6 +30,7 @@ import toast from "react-hot-toast";
 import { getImageUrl } from "../../../../../../lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import CustomDropdown from "@/components/ui/CustomDropdown";
+import BulkBookForAttendeeModal from "@/components/organizer/BulkBookForAttendeeModal";
 
 // Book for Attendee Modal Component
 function BookForAttendeeModal({ isOpen, onClose, event, eventId, onSuccess }) {
@@ -345,6 +346,7 @@ export default function EventDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [coverBroken, setCoverBroken] = useState(false);
   const [showBookModal, setShowBookModal] = useState(false);
+  const [showBulkBookModal, setShowBulkBookModal] = useState(false);
   const isMountedRef = useRef(true);
 
   const formattedDate = (iso) => {
@@ -679,18 +681,35 @@ export default function EventDetailsPage() {
           >
             <Edit2 className="w-4 h-4" /> Edit Event
           </button>
-          <button
-            onClick={event.status === 'verified' ? () => setShowBookModal(true) : null}
-            disabled={event.status !== 'verified'}
-            className={`flex items-center gap-2 px-4 py-3 rounded-xl font-bold text-sm transition-all shadow-lg ${
-              event.status === 'verified'
-                ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-600/20 active:scale-95 cursor-pointer'
-                : 'bg-emerald-600/30 text-gray-400 shadow-none cursor-not-allowed opacity-50'
-            }`}
-            title={event.status === 'verified' ? 'Book tickets for an attendee' : 'Event must be verified to book tickets'}
-          >
-            <UserPlus className="w-4 h-4" /> Book for Attendee
-          </button>
+          
+          {/* Booking buttons - Single and Bulk */}
+          <div className="flex items-center gap-1 bg-white/5 rounded-xl border border-white/10 p-1">
+            <button
+              onClick={event.status === 'verified' ? () => setShowBookModal(true) : null}
+              disabled={event.status !== 'verified'}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg font-bold text-xs transition-all ${
+                event.status === 'verified'
+                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white active:scale-95 cursor-pointer'
+                  : 'bg-emerald-600/30 text-gray-400 cursor-not-allowed opacity-50'
+              }`}
+              title={event.status === 'verified' ? 'Book single ticket' : 'Event must be verified'}
+            >
+              <UserPlus className="w-3.5 h-3.5" /> Single
+            </button>
+            <button
+              onClick={event.status === 'verified' ? () => setShowBulkBookModal(true) : null}
+              disabled={event.status !== 'verified'}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg font-bold text-xs transition-all ${
+                event.status === 'verified'
+                  ? 'bg-blue-600 hover:bg-blue-700 text-white active:scale-95 cursor-pointer'
+                  : 'bg-blue-600/30 text-gray-400 cursor-not-allowed opacity-50'
+              }`}
+              title={event.status === 'verified' ? 'Bulk book multiple tickets' : 'Event must be verified'}
+            >
+              <Users className="w-3.5 h-3.5" /> Bulk
+            </button>
+          </div>
+          
           <button
             onClick={event.status === 'verified' ? handleCopyLink : null}
             disabled={event.status !== 'verified'}
@@ -886,10 +905,19 @@ export default function EventDetailsPage() {
         </div>
       </div>
 
-      {/* Book for Attendee Modal */}
+      {/* Book for Attendee Modal - Single */}
       <BookForAttendeeModal
         isOpen={showBookModal}
         onClose={() => setShowBookModal(false)}
+        event={event}
+        eventId={event?.event_id || event?.id || id}
+        onSuccess={fetchEvent}
+      />
+      
+      {/* Bulk Book for Attendees Modal */}
+      <BulkBookForAttendeeModal
+        isOpen={showBulkBookModal}
+        onClose={() => setShowBulkBookModal(false)}
         event={event}
         eventId={event?.event_id || event?.id || id}
         onSuccess={fetchEvent}

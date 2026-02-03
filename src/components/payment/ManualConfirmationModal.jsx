@@ -22,6 +22,7 @@ const ManualConfirmationModal = ({
 
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [bookingError, setBookingError] = useState(null);
 
   const [formData, setFormData] = useState({
     accountName: "",
@@ -32,6 +33,15 @@ const ManualConfirmationModal = ({
   });
   const [banks, setBanks] = useState([]);
   const [verifying, setVerifying] = useState(false);
+  
+  // Validate booking ID on mount
+  useEffect(() => {
+    if (isOpen && !bookingId) {
+      setBookingError("No booking ID found. Please complete the ticket booking process first before confirming payment.");
+    } else {
+      setBookingError(null);
+    }
+  }, [isOpen, bookingId]);
 
   useEffect(() => {
     const fetchBanks = async () => {
@@ -77,13 +87,19 @@ const ManualConfirmationModal = ({
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate booking ID exists
+    if (!bookingId) {
+      toast.error("No booking ID found. Please complete the ticket booking process first.");
+      return;
+    }
+    
     setLoading(true);
 
     try {
-      console.log(bookingId)
       // Use FormData for multipart/form-data (booking_id, account_name, bank_name, amount_sent, sent_at, payment_receipt)
       const formDataToSend = new FormData();
-      if (bookingId) formDataToSend.append("booking_id", bookingId);
+      formDataToSend.append("booking_id", bookingId); // Required field
       formDataToSend.append(
         "account_name",
         formData.accountName.trim() || "Unknown",
@@ -107,10 +123,23 @@ const ManualConfirmationModal = ({
       }, 3000);
     } catch (error) {
       console.error("Submission error:", error);
-      const msg =
-        error.response?.data?.message ||
-        error.response?.data?.error ||
-        "Failed to submit confirmation. Please try again.";
+      
+      // Handle specific error cases
+      const errorData = error.response?.data;
+      let msg = "Failed to submit confirmation. Please try again.";
+      
+      if (errorData?.error === "No pending tickets found") {
+        msg = "No pending tickets found for this booking. Please ensure you have completed the ticket booking process first.";
+      } else if (errorData?.error === "Tickets already confirmed") {
+        msg = "Your tickets have already been confirmed. No payment confirmation needed.";
+      } else if (errorData?.error === "booking_id is required") {
+        msg = "Booking ID is missing. Please go back to the event and book tickets first.";
+      } else if (error.response?.status === 401) {
+        msg = "Please log in to submit payment confirmation.";
+      } else {
+        msg = errorData?.message || errorData?.error || msg;
+      }
+      
       toast.error(msg);
     } finally {
       setLoading(false);
@@ -131,7 +160,20 @@ const ManualConfirmationModal = ({
           </button>
         </div>
 
-        {success ? (
+        {bookingError ? (
+          <div className="p-12 text-center space-y-4 animate-in zoom-in-95 duration-300">
+            <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
+              <X className="text-red-500" size={40} />
+            </div>
+            <h3 className="text-2xl font-bold">Missing Booking</h3>
+            <p className="text-muted-foreground">
+              {bookingError}
+            </p>
+            <Button onClick={onClose} className="mt-4" variant="outline">
+              Close
+            </Button>
+          </div>
+        ) : success ? (
           <div className="p-12 text-center space-y-4 animate-in zoom-in-95 duration-300">
             <div className="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-6">
               <CheckCircle2 className="text-green-500" size={40} />
