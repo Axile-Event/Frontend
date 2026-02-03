@@ -470,7 +470,7 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
                                 <p className="text-sm text-muted-foreground mt-2 leading-relaxed">{cat.description}</p>
                               )}
                               {/* Ticket availability - professional style */}
-                              {!isCatSoldOut && availableTickets !== undefined && (
+                              {!isCatSoldOut && availableTickets != null && (
                                 <p className={`text-xs mt-2 ${isLowStock ? "text-orange-500 font-medium" : "text-muted-foreground"}`}>
                                   {isLowStock ? `Only ${availableTickets} left` : `${availableTickets} tickets available`}
                                 </p>
