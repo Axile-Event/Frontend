@@ -135,30 +135,39 @@ export default function BulkBookForAttendeeModal({ isOpen, onClose, event, event
 		toast.success("Category copied to all attendees")
 	}
 	
-	// Parse CSV data
+	// Parse CSV data (strip BOM so header row is detected correctly)
 	const parseCSV = (text) => {
-		const lines = text.trim().split('\n')
+		const raw = typeof text === 'string' ? text.replace(/^\uFEFF/, '') : ''
+		const lines = raw.trim().split(/\r?\n/)
 		const results = []
-		
-		// Skip header row if it looks like a header
-		const startIdx = lines[0]?.toLowerCase().includes('firstname') ||
-			lines[0]?.toLowerCase().includes('first name') ||
-			lines[0]?.toLowerCase().includes('email') ? 1 : 0
+
+		const firstLine = lines[0] ?? ''
+		const firstLineLower = firstLine.toLowerCase()
+		const isHeader =
+			firstLineLower.includes('firstname') ||
+			firstLineLower.includes('first name') ||
+			firstLineLower.includes('lastname') ||
+			firstLineLower.includes('last name') ||
+			firstLineLower.includes('email')
+		const startIdx = isHeader ? 1 : 0
 
 		for (let i = startIdx; i < lines.length; i++) {
 			const line = lines[i].trim()
 			if (!line) continue
 
-			// Handle both comma and tab separated values
 			const parts = line.includes('\t') ? line.split('\t') : line.split(',')
+			const firstname = (parts[0] ?? '').trim()
+			const lastname = (parts[1] ?? '').trim()
+			const email = (parts[2] ?? '').trim()
+			const category_name = (parts[3] ?? '').trim() || defaultCategoryName
 
-			if (parts.length >= 3) {
+			if (parts.length >= 3 && firstname && lastname && email && email.includes('@')) {
 				results.push({
-					firstname: parts[0]?.trim() || '',
-					lastname: parts[1]?.trim() || '',
-					email: parts[2]?.trim() || '',
-					category_name: parts[3]?.trim() || defaultCategoryName,
-					isValid: !!(parts[0]?.trim() && parts[1]?.trim() && parts[2]?.trim()?.includes('@'))
+					firstname,
+					lastname,
+					email,
+					category_name,
+					isValid: true
 				})
 			}
 		}
@@ -204,13 +213,13 @@ export default function BulkBookForAttendeeModal({ isOpen, onClose, event, event
 			const lastname = String(row[idx.lastname] ?? '').trim()
 			const email = String(row[idx.email] ?? '').trim()
 			const category_name = String(row[idx.category] ?? '').trim() || defaultCategoryName
-			if (!firstname && !lastname && !email) continue
+			if (!firstname || !lastname || !email || !email.includes('@')) continue
 			results.push({
 				firstname,
 				lastname,
 				email,
 				category_name,
-				isValid: !!(firstname && lastname && email && email.includes('@'))
+				isValid: true
 			})
 		}
 		return results
@@ -325,10 +334,17 @@ export default function BulkBookForAttendeeModal({ isOpen, onClose, event, event
 			if (typeof data === "object" && !data?.error && !data?.detail) {
 				const firstKey = Object.keys(data)[0]
 				const firstVal = data[firstKey]
-				if (Array.isArray(firstVal)) errorMsg = firstVal[0] || errorMsg
-				else if (typeof firstVal === "string") errorMsg = firstVal
+				if (Array.isArray(firstVal) && firstVal.length > 0) {
+					const first = firstVal[0]
+					if (typeof first === "string") errorMsg = first
+					else if (typeof first === "object" && first !== null) {
+						const fieldKey = Object.keys(first)[0]
+						const fieldMsg = first[fieldKey]
+						errorMsg = Array.isArray(fieldMsg) ? fieldMsg[0] : String(fieldMsg)
+					}
+				} else if (typeof firstVal === "string") errorMsg = firstVal
 			}
-			toast.error(errorMsg)
+			toast.error(errorMsg || "Failed to book tickets")
 		} finally {
 			setLoading(false)
 		}

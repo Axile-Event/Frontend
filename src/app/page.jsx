@@ -114,7 +114,7 @@ const LandingPage = () => {
               variants={fadeInScale}
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-sm font-medium"
             >
-              <Sparkles className="h-4 w-4 text-primary" />
+              <Sparkles className="h-4 w-4 text-primary" />     
               <span className="text-primary">Nigeria's #1 Campus Ticketing Platform</span>
             </motion.div>
             
