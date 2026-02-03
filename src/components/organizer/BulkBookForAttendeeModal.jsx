@@ -33,7 +33,7 @@ import CustomDropdown from "@/components/ui/CustomDropdown"
  * - Step 1: Select number of tickets to book
  * - Step 2: Fill individual attendee forms (collapsible accordion)
  * - Copy from first attendee feature
- * - CSV import for bulk data entry
+ * - CSV or Excel import for bulk data entry
  * - Progress indicator
  * - Validation and error handling
  */
@@ -141,17 +141,17 @@ export default function BulkBookForAttendeeModal({ isOpen, onClose, event, event
 		const results = []
 		
 		// Skip header row if it looks like a header
-		const startIdx = lines[0]?.toLowerCase().includes('firstname') || 
+		const startIdx = lines[0]?.toLowerCase().includes('firstname') ||
 			lines[0]?.toLowerCase().includes('first name') ||
 			lines[0]?.toLowerCase().includes('email') ? 1 : 0
-		
+
 		for (let i = startIdx; i < lines.length; i++) {
 			const line = lines[i].trim()
 			if (!line) continue
-			
+
 			// Handle both comma and tab separated values
 			const parts = line.includes('\t') ? line.split('\t') : line.split(',')
-			
+
 			if (parts.length >= 3) {
 				results.push({
 					firstname: parts[0]?.trim() || '',
@@ -162,39 +162,112 @@ export default function BulkBookForAttendeeModal({ isOpen, onClose, event, event
 				})
 			}
 		}
-		
+
 		return results
 	}
-	
-	// Handle CSV file upload
-	const handleCSVUpload = (e) => {
-		const file = e.target.files?.[0]
-		if (!file) return
-		
-		const reader = new FileReader()
-		reader.onload = (event) => {
-			try {
-				const text = event.target?.result
-				const parsed = parseCSV(text)
-				
-				if (parsed.length === 0) {
-					toast.error("No valid data found in CSV. Format: firstname, lastname, email, category (optional)")
-					return
-				}
-				
-				setAttendees(parsed)
-				setTicketCount(parsed.length)
-				toast.success(`Imported ${parsed.length} attendee(s) from CSV`)
-			} catch (err) {
-				toast.error("Failed to parse CSV file")
+
+	// Parse Excel (.xlsx, .xls) - columns A=firstname, B=lastname, C=email, D=category (optional)
+	const parseExcel = (arrayBuffer) => {
+		const XLSX = require('xlsx')
+		const workbook = XLSX.read(arrayBuffer, { type: 'array' })
+		const firstSheet = workbook.Sheets[workbook.SheetNames[0]]
+		const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: '' })
+		if (!rows.length) return []
+
+		const results = []
+		const rawHeader = rows[0].map((h) => String(h || '').toLowerCase())
+		const hasHeader =
+			rawHeader.some((h) => h.includes('first') || h.includes('name')) &&
+			rawHeader.some((h) => h.includes('email'))
+
+		const startRow = hasHeader ? 1 : 0
+		const getColIdx = () => {
+			if (!hasHeader) {
+				return { firstname: 0, lastname: 1, email: 2, category: 3 }
+			}
+			const first = rawHeader.findIndex((h) => /first|given|fname/i.test(h) || h === 'firstname')
+			const last = rawHeader.findIndex((h) => /last|surname|lname|family/i.test(h) || h === 'lastname')
+			const email = rawHeader.findIndex((h) => h.includes('email') || h === 'e-mail')
+			const cat = rawHeader.findIndex((h) => h.includes('category') || h === 'ticket')
+			return {
+				firstname: first >= 0 ? first : 0,
+				lastname: last >= 0 ? last : 1,
+				email: email >= 0 ? email : 2,
+				category: cat >= 0 ? cat : 3
 			}
 		}
-		reader.readAsText(file)
-		
-		// Reset file input
-		if (fileInputRef.current) {
-			fileInputRef.current.value = ''
+		const idx = getColIdx()
+
+		for (let i = startRow; i < rows.length; i++) {
+			const row = Array.isArray(rows[i]) ? rows[i] : []
+			const firstname = String(row[idx.firstname] ?? '').trim()
+			const lastname = String(row[idx.lastname] ?? '').trim()
+			const email = String(row[idx.email] ?? '').trim()
+			const category_name = String(row[idx.category] ?? '').trim() || defaultCategoryName
+			if (!firstname && !lastname && !email) continue
+			results.push({
+				firstname,
+				lastname,
+				email,
+				category_name,
+				isValid: !!(firstname && lastname && email && email.includes('@'))
+			})
 		}
+		return results
+	}
+
+	// Handle CSV or Excel file upload
+	const handleFileUpload = (e) => {
+		const file = e.target.files?.[0]
+		if (!file) return
+
+		const fileName = (file.name || '').toLowerCase()
+		const isExcel = fileName.endsWith('.xlsx') || fileName.endsWith('.xls')
+
+		if (isExcel) {
+			const reader = new FileReader()
+			reader.onload = (event) => {
+				try {
+					const arrayBuffer = event.target?.result
+					const parsed = parseExcel(arrayBuffer)
+					if (parsed.length === 0) {
+						toast.error(
+							"No valid data in Excel. Use columns: A=First name, B=Last name, C=Email, D=Category (optional)"
+						)
+						return
+					}
+					setAttendees(parsed)
+					setTicketCount(parsed.length)
+					toast.success(`Imported ${parsed.length} attendee(s) from Excel`)
+				} catch (err) {
+					console.error(err)
+					toast.error("Failed to parse Excel file")
+				}
+			}
+			reader.readAsArrayBuffer(file)
+		} else {
+			const reader = new FileReader()
+			reader.onload = (event) => {
+				try {
+					const text = event.target?.result
+					const parsed = parseCSV(text)
+					if (parsed.length === 0) {
+						toast.error(
+							"No valid data found. Use columns: firstname, lastname, email, category (optional)"
+						)
+						return
+					}
+					setAttendees(parsed)
+					setTicketCount(parsed.length)
+					toast.success(`Imported ${parsed.length} attendee(s) from CSV`)
+				} catch (err) {
+					toast.error("Failed to parse CSV file")
+				}
+			}
+			reader.readAsText(file)
+		}
+
+		if (fileInputRef.current) fileInputRef.current.value = ''
 	}
 	
 	// Count valid attendees
@@ -373,20 +446,36 @@ export default function BulkBookForAttendeeModal({ isOpen, onClose, event, event
 								<span className="text-gray-500">tickets</span>
 							</div>
 							
-							{/* CSV Import option */}
+							{/* CSV or Excel Import */}
 							<div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
 								<div className="flex items-center gap-2 text-sm font-medium text-gray-400">
 									<FileSpreadsheet className="w-4 h-4" />
-									Import from CSV
+									Import from CSV or Excel
 								</div>
-								<p className="text-xs text-gray-600">
-									Upload a CSV file with columns: firstname, lastname, email, category (optional)
-								</p>
+								<div className="text-xs text-gray-600 space-y-2">
+									<p className="font-medium text-gray-500">Required columns (row 1 = header):</p>
+									<table className="w-full text-[11px] border border-white/10 rounded overflow-hidden">
+										<thead>
+											<tr className="bg-white/5">
+												<th className="text-left py-1.5 px-2 font-semibold">Column</th>
+												<th className="text-left py-1.5 px-2 font-semibold">Content</th>
+												<th className="text-left py-1.5 px-2 font-semibold">Required</th>
+											</tr>
+										</thead>
+										<tbody className="text-gray-400">
+											<tr><td className="py-1 px-2">A (or header: First name / firstname)</td><td className="py-1 px-2">First name</td><td className="py-1 px-2">Yes</td></tr>
+											<tr><td className="py-1 px-2">B (or header: Last name / lastname)</td><td className="py-1 px-2">Last name</td><td className="py-1 px-2">Yes</td></tr>
+											<tr><td className="py-1 px-2">C (or header: Email / email)</td><td className="py-1 px-2">Email address</td><td className="py-1 px-2">Yes</td></tr>
+											<tr><td className="py-1 px-2">D (or header: Category / ticket)</td><td className="py-1 px-2">Ticket category name</td><td className="py-1 px-2">Optional</td></tr>
+										</tbody>
+									</table>
+									<p>Row 1 can be a header row (e.g. First name, Last name, Email, Category). Data starts from row 2. CSV: same order, comma or tab separated.</p>
+								</div>
 								<input
 									ref={fileInputRef}
 									type="file"
-									accept=".csv,.txt"
-									onChange={handleCSVUpload}
+									accept=".csv,.txt,.xlsx,.xls"
+									onChange={handleFileUpload}
 									className="hidden"
 								/>
 								<button
@@ -394,7 +483,7 @@ export default function BulkBookForAttendeeModal({ isOpen, onClose, event, event
 									className="w-full py-2.5 rounded-lg border border-dashed border-white/20 text-gray-400 hover:border-emerald-500/50 hover:text-emerald-400 transition-colors text-sm font-medium flex items-center justify-center gap-2"
 								>
 									<Upload className="w-4 h-4" />
-									Choose CSV File
+									Choose CSV or Excel File
 								</button>
 							</div>
 						</div>
