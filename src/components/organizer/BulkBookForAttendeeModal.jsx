@@ -19,7 +19,9 @@ import {
 	CheckCircle2,
 	ArrowLeft,
 	ArrowRight,
-	Trash2
+	Trash2,
+	CreditCard,
+	Landmark
 } from "lucide-react"
 import toast from "react-hot-toast"
 import api from "@/lib/axios"
@@ -37,12 +39,13 @@ import CustomDropdown from "@/components/ui/CustomDropdown"
  * - Progress indicator
  * - Validation and error handling
  */
-export default function BulkBookForAttendeeModal({ isOpen, onClose, event, eventId, onSuccess }) {
+export default function BulkBookForAttendeeModal({ isOpen, onClose, event, eventId, onSuccess, onManualPaymentRequired }) {
 	// Steps: 1 = Select quantity, 2 = Fill forms
 	const [step, setStep] = useState(1)
 	const [ticketCount, setTicketCount] = useState(5)
 	const [loading, setLoading] = useState(false)
 	const [expandedIndex, setExpandedIndex] = useState(0)
+	const [paymentMethod, setPaymentMethod] = useState('paystack')
 	const fileInputRef = useRef(null)
 	
 	const isPaidEvent = event?.pricing_type === "paid"
@@ -326,13 +329,30 @@ export default function BulkBookForAttendeeModal({ isOpen, onClose, event, event
 					category_name: a.category_name || defaultCategoryName
 				}))
 			}
+			if (isPaidEvent) {
+				payload.payment_method = paymentMethod
+			}
 			
 			const response = await api.post('/tickets/organizer/bulk-book-for-attendees/', payload)
 			const result = response.data
 			
-			toast.success(`Successfully booked ${result.ticket_count} ticket(s) for ${result.unique_attendees} attendee(s)`)
+			// Paid: redirect to Paystack
+			if (result.payment_url) {
+				toast.success('Redirecting to payment...')
+				window.location.href = result.payment_url
+				return
+			}
 			
-			// Reset and close
+			// Paid: manual bank transfer — open manual confirmation modal
+			if (result.booking_id != null && result.total_amount != null && result.payment_method === 'manual_bank_transfer') {
+				onManualPaymentRequired?.(result.booking_id, result.total_amount)
+				resetModal()
+				onClose()
+				return
+			}
+			
+			// Free or success without payment redirect
+			toast.success(`Successfully booked ${result.ticket_count} ticket(s) for ${result.unique_attendees ?? result.attendees?.length ?? ticketCount} attendee(s)`)
 			resetModal()
 			onSuccess?.()
 			onClose()
@@ -365,6 +385,7 @@ export default function BulkBookForAttendeeModal({ isOpen, onClose, event, event
 		setStep(1)
 		setTicketCount(5)
 		setExpandedIndex(0)
+		setPaymentMethod('paystack')
 		setAttendees(Array.from({ length: 5 }, () => ({
 			firstname: '',
 			lastname: '',
@@ -568,6 +589,39 @@ export default function BulkBookForAttendeeModal({ isOpen, onClose, event, event
 				
 				{/* Footer */}
 				<div className="shrink-0 px-4 sm:px-6 py-4 border-t border-white/5 bg-[#0A0A0A]">
+					{step === 2 && isPaidEvent && (
+						<div className="mb-4 space-y-2">
+							<div className="text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-widest">
+								Payment method
+							</div>
+							<div className="flex gap-2">
+								<button
+									type="button"
+									onClick={() => setPaymentMethod('paystack')}
+									className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border transition-all ${
+										paymentMethod === 'paystack'
+											? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400'
+											: 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'
+									}`}
+								>
+									<CreditCard className="w-4 h-4" />
+									<span className="text-sm font-medium">Paystack</span>
+								</button>
+								<button
+									type="button"
+									onClick={() => setPaymentMethod('manual_bank_transfer')}
+									className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border transition-all ${
+										paymentMethod === 'manual_bank_transfer'
+											? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400'
+											: 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'
+									}`}
+								>
+									<Landmark className="w-4 h-4" />
+									<span className="text-sm font-medium">Bank transfer</span>
+								</button>
+							</div>
+						</div>
+					)}
 					<div className="flex items-center gap-3">
 						{step === 2 && (
 							<button

@@ -31,10 +31,14 @@ import { getImageUrl } from "../../../../../../lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import CustomDropdown from "@/components/ui/CustomDropdown";
 import BulkBookForAttendeeModal from "@/components/organizer/BulkBookForAttendeeModal";
+import ManualConfirmationModal from "@/components/payment/ManualConfirmationModal";
+import useTempBookingStore from "@/store/tempBookingStore";
+import { Landmark } from "lucide-react";
 
 // Book for Attendee Modal Component
-function BookForAttendeeModal({ isOpen, onClose, event, eventId, onSuccess }) {
+function BookForAttendeeModal({ isOpen, onClose, event, eventId, onSuccess, onManualPaymentRequired }) {
   const [loading, setLoading] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('paystack');
   const [formData, setFormData] = useState({
     firstname: '',
     lastname: '',
@@ -100,26 +104,33 @@ function BookForAttendeeModal({ isOpen, onClose, event, eventId, onSuccess }) {
           { category_name: effectiveCategoryName, quantity: formData.quantity }
         ]
       };
+      if (isPaidEvent) {
+        payload.payment_method = paymentMethod;
+      }
 
       console.log("Booking payload:", payload);
 
       const response = await api.post('/tickets/organizer/book-for-attendee/', payload);
       const result = response.data;
 
-      // Check if it's a paid event with payment URL
+      // Paid event: redirect to Paystack
       if (result.payment_url) {
-        // Store organizer booking context for payment callback
-        // Using localStorage because sessionStorage may not persist after Paystack redirect
         localStorage.setItem('organizer_booking', JSON.stringify({
           eventId: decodedEventId,
           attendeeEmail: formData.email,
           attendeeName: `${formData.firstname} ${formData.lastname}`,
           returnUrl: window.location.pathname,
-          timestamp: Date.now() // For cleanup of old entries
+          timestamp: Date.now()
         }));
-        
         toast.success("Redirecting to payment...");
         window.location.href = result.payment_url;
+        return;
+      }
+
+      // Paid event: manual bank transfer — open manual confirmation modal
+      if (result.booking_id != null && result.total_amount != null && result.payment_method === 'manual_bank_transfer') {
+        onManualPaymentRequired?.(result.booking_id, result.total_amount);
+        onClose();
         return;
       }
 
@@ -322,6 +333,41 @@ function BookForAttendeeModal({ isOpen, onClose, event, eventId, onSuccess }) {
             </div>
           )}
 
+          {/* Payment method for paid events */}
+          {isPaidEvent && formData.category_name && (
+            <div className="bg-white/2 border border-white/5 rounded-xl sm:rounded-2xl p-3 sm:p-4 space-y-3">
+              <div className="flex items-center gap-2 text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-widest">
+                Payment method
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('paystack')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border transition-all ${
+                    paymentMethod === 'paystack'
+                      ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400'
+                      : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'
+                  }`}
+                >
+                  <CreditCard className="w-4 h-4" />
+                  <span className="text-sm font-medium">Paystack</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('manual_bank_transfer')}
+                  className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border transition-all ${
+                    paymentMethod === 'manual_bank_transfer'
+                      ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400'
+                      : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'
+                  }`}
+                >
+                  <Landmark className="w-4 h-4" />
+                  <span className="text-sm font-medium">Bank transfer</span>
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Submit Button */}
           <button
             type="submit"
@@ -356,7 +402,9 @@ export default function EventDetailsPage() {
   const [coverBroken, setCoverBroken] = useState(false);
   const [showBookModal, setShowBookModal] = useState(false);
   const [showBulkBookModal, setShowBulkBookModal] = useState(false);
+  const [manualConfirm, setManualConfirm] = useState({ open: false, bookingId: null, totalAmount: null });
   const isMountedRef = useRef(true);
+  const setBookingId = useTempBookingStore((s) => s.setBookingId);
 
   const formattedDate = (iso) => {
     if (!iso) return "TBD";
@@ -921,8 +969,13 @@ export default function EventDetailsPage() {
         event={event}
         eventId={event?.event_id || event?.id || id}
         onSuccess={fetchEvent}
+        onManualPaymentRequired={(bookingId, totalAmount) => {
+          setBookingId(bookingId);
+          setManualConfirm({ open: true, bookingId, totalAmount });
+          setShowBookModal(false);
+        }}
       />
-      
+
       {/* Bulk Book for Attendees Modal */}
       <BulkBookForAttendeeModal
         isOpen={showBulkBookModal}
@@ -930,6 +983,19 @@ export default function EventDetailsPage() {
         event={event}
         eventId={event?.event_id || event?.id || id}
         onSuccess={fetchEvent}
+        onManualPaymentRequired={(bookingId, totalAmount) => {
+          setBookingId(bookingId);
+          setManualConfirm({ open: true, bookingId, totalAmount });
+          setShowBulkBookModal(false);
+        }}
+      />
+
+      {/* Manual bank transfer confirmation modal */}
+      <ManualConfirmationModal
+        isOpen={manualConfirm.open}
+        onClose={() => setManualConfirm({ open: false, bookingId: null, totalAmount: null })}
+        totalAmount={manualConfirm.totalAmount}
+        bookingId={manualConfirm.bookingId}
       />
     </div>
   );
