@@ -353,9 +353,8 @@ export default function BulkBookForAttendeeModal({ isOpen, onClose, event, event
 				return
 			}
 			
-			// Paid + Paystack: store booking and redirect to checkout
-			if (isPaidEvent && result.booking_id != null && result.total_amount != null) {
-				const totalAmount = Number(result.total_amount)
+			// Paid + Paystack: store booking with base subtotal so checkout page adds platform + Paystack fees
+			if (isPaidEvent && result.booking_id != null && result.payment_url != null) {
 				const categoryTotals = {}
 				attendees.forEach(a => {
 					const catName = a.category_name || defaultCategoryName
@@ -365,6 +364,7 @@ export default function BulkBookForAttendeeModal({ isOpen, onClose, event, event
 					categoryTotals[catName].quantity += 1
 				})
 				const items = Object.values(categoryTotals)
+				const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
 				const bookingData = {
 					booking_id: result.booking_id,
 					event_name: event?.name || 'Event',
@@ -372,10 +372,7 @@ export default function BulkBookForAttendeeModal({ isOpen, onClose, event, event
 					event_image: event?.image,
 					items,
 					total_quantity: result.ticket_count ?? ticketCount,
-					subtotal: totalAmount,
-					serviceFee: 0,
-					totalPaystack: totalAmount,
-					totalManual: totalAmount,
+					subtotal,
 					payment_url: result.payment_url || null,
 					payment_reference: result.payment_reference || null,
 					tickets: result.tickets || [],

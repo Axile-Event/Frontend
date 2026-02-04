@@ -110,14 +110,15 @@ function BookForAttendeeModal({ isOpen, onClose, event, eventId, onSuccess, onMa
       const response = await api.post('/tickets/organizer/book-for-attendee/', payload);
       const result = response.data;
 
-      // Paid event: store booking in same shape as normal flow and redirect to checkout
-      if (isPaidEvent && result.booking_id != null && result.total_amount != null) {
-        const totalAmount = Number(result.total_amount);
+      // Paid event: store booking with base subtotal so checkout page adds platform + Paystack fees
+      if (isPaidEvent && result.booking_id != null && result.payment_url != null) {
+        const price = selectedCategory?.price ?? 0;
+        const subtotal = price * formData.quantity;
         const items = [{
           name: effectiveCategoryName,
-          price: selectedCategory?.price ?? 0,
+          price,
           quantity: formData.quantity,
-          total: (selectedCategory?.price ?? 0) * formData.quantity
+          total: subtotal
         }];
         const bookingData = {
           booking_id: result.booking_id,
@@ -126,10 +127,7 @@ function BookForAttendeeModal({ isOpen, onClose, event, eventId, onSuccess, onMa
           event_image: event?.image,
           items,
           total_quantity: formData.quantity,
-          subtotal: totalAmount,
-          serviceFee: 0,
-          totalPaystack: totalAmount,
-          totalManual: totalAmount,
+          subtotal,
           payment_url: result.payment_url || null,
           payment_reference: result.payment_reference || null,
           tickets: result.tickets || [],
