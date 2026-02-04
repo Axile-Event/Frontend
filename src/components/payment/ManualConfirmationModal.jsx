@@ -1,13 +1,18 @@
 import React, { useState, useEffect } from "react";
-import { X, Upload, Loader2, CheckCircle2 } from "lucide-react";
+import { X, Upload, Loader2, CheckCircle2, Landmark, Copy, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import api from "@/lib/axios";
 import toast from "react-hot-toast";
 import CustomDropdown from "@/components/ui/CustomDropdown";
-import { Landmark } from "lucide-react";
 import useTempBookingStore from "@/store/tempBookingStore";
+
+// Payee bank details (where to send the money) - same as ManualTransferTab
+const PAYEE_BANK_DETAILS = {
+	accountName: "Fawole Taiwo Oluwatomisin",
+	accountNumber: "2005212352",
+	bankName: "Kuda",
+};
 
 const ManualConfirmationModal = ({
   isOpen,
@@ -33,7 +38,15 @@ const ManualConfirmationModal = ({
   });
   const [banks, setBanks] = useState([]);
   const [verifying, setVerifying] = useState(false);
-  
+  const [copiedAccount, setCopiedAccount] = useState(false);
+
+  const handleCopyAccountNumber = () => {
+    navigator.clipboard.writeText(PAYEE_BANK_DETAILS.accountNumber);
+    setCopiedAccount(true);
+    toast.success("Account number copied!");
+    setTimeout(() => setCopiedAccount(false), 2000);
+  };
+
   // Validate booking ID on mount
   useEffect(() => {
     if (isOpen && !bookingId) {
@@ -194,6 +207,48 @@ const ManualConfirmationModal = ({
         ) : (
           <form onSubmit={handleSubmit} className="p-6 space-y-4">
             <div className="space-y-6 max-h-[65vh] overflow-y-auto px-1 custom-scrollbar">
+              {/* Where to send the money - same as normal booking */}
+              <div className="bg-muted/40 border border-border/50 rounded-2xl p-4 space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                    <Landmark className="text-primary" size={20} />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-sm">Transfer to this account</h3>
+                    <p className="text-xs text-muted-foreground">Send the amount below to:</p>
+                  </div>
+                </div>
+                <div className="space-y-2 pt-1">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">Bank</span>
+                    <span className="font-medium">{PAYEE_BANK_DETAILS.bankName}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">Account Name</span>
+                    <span className="font-medium text-right text-xs">{PAYEE_BANK_DETAILS.accountName}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-muted-foreground">Account Number</span>
+                    <button
+                      type="button"
+                      onClick={handleCopyAccountNumber}
+                      className="flex items-center gap-2 font-mono text-primary hover:underline"
+                    >
+                      {PAYEE_BANK_DETAILS.accountNumber}
+                      {copiedAccount ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+                    </button>
+                  </div>
+                </div>
+                <div className="border-t border-border/50 pt-3 mt-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium text-muted-foreground">Amount to pay</span>
+                    <span className="text-lg font-bold text-rose-500">₦{Number(totalAmount || 0).toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-xs font-medium text-muted-foreground">After transferring, fill your details below and submit.</p>
+
               <div className="space-y-2">
                 <CustomDropdown
                   label="Select Your Bank"

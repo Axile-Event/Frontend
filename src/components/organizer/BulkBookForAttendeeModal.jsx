@@ -1,9 +1,9 @@
 "use client"
 
-import React, { useState, useCallback, useRef } from "react"
+import React, { useState, useCallback, useRef, useMemo } from "react"
+import { useRouter } from "next/navigation"
 import {
 	X,
-	UserPlus,
 	Users,
 	Ticket,
 	ChevronDown,
@@ -15,8 +15,6 @@ import {
 	User,
 	Upload,
 	FileSpreadsheet,
-	AlertCircle,
-	CheckCircle2,
 	ArrowLeft,
 	ArrowRight,
 	Trash2,
@@ -40,6 +38,7 @@ import CustomDropdown from "@/components/ui/CustomDropdown"
  * - Validation and error handling
  */
 export default function BulkBookForAttendeeModal({ isOpen, onClose, event, eventId, onSuccess, onManualPaymentRequired }) {
+	const router = useRouter()
 	// Steps: 1 = Select quantity, 2 = Fill forms
 	const [step, setStep] = useState(1)
 	const [ticketCount, setTicketCount] = useState(5)
@@ -80,6 +79,15 @@ export default function BulkBookForAttendeeModal({ isOpen, onClose, event, event
 		value: cat.name,
 		label: isPaidEvent ? `${cat.name} - ₦${cat.price?.toLocaleString() || 0}` : cat.name
 	}))
+	
+	// Total amount for paid events (sum of each attendee's category price)
+	const bulkTotalAmount = useMemo(() => {
+		if (!isPaidEvent || !attendees?.length) return 0
+		return attendees.reduce((sum, a) => {
+			const cat = categories.find(c => c.name === (a.category_name || defaultCategoryName))
+			return sum + (cat?.price ? Number(cat.price) : 0)
+		}, 0)
+	}, [isPaidEvent, attendees, categories, defaultCategoryName])
 	
 	// Update attendee field
 	const updateAttendee = useCallback((index, field, value) => {
@@ -336,22 +344,53 @@ export default function BulkBookForAttendeeModal({ isOpen, onClose, event, event
 			const response = await api.post('/tickets/organizer/bulk-book-for-attendees/', payload)
 			const result = response.data
 			
-			// Paid: redirect to Paystack
-			if (result.payment_url) {
-				toast.success('Redirecting to payment...')
-				window.location.href = result.payment_url
-				return
-			}
-			
-			// Paid: manual bank transfer — open manual confirmation modal
-			if (result.booking_id != null && result.total_amount != null && result.payment_method === 'manual_bank_transfer') {
+			// Paid + manual bank transfer — open manual confirmation modal
+			if (isPaidEvent && result.booking_id != null && result.total_amount != null && result.payment_method === 'manual_bank_transfer') {
 				onManualPaymentRequired?.(result.booking_id, result.total_amount)
 				resetModal()
 				onClose()
 				return
 			}
 			
-			// Free or success without payment redirect
+			// Paid + Paystack: store booking and redirect to checkout
+			if (isPaidEvent && result.booking_id != null && result.total_amount != null) {
+				const totalAmount = Number(result.total_amount)
+				const categoryTotals = {}
+				attendees.forEach(a => {
+					const catName = a.category_name || defaultCategoryName
+					const cat = categories.find(c => c.name === catName)
+					const price = cat?.price ? Number(cat.price) : 0
+					if (!categoryTotals[catName]) categoryTotals[catName] = { name: catName, price, quantity: 0 }
+					categoryTotals[catName].quantity += 1
+				})
+				const items = Object.values(categoryTotals)
+				const bookingData = {
+					booking_id: result.booking_id,
+					event_name: event?.name || 'Event',
+					event_id: decodedEventId,
+					event_image: event?.image,
+					items,
+					total_quantity: result.ticket_count ?? ticketCount,
+					subtotal: totalAmount,
+					serviceFee: 0,
+					totalPaystack: totalAmount,
+					totalManual: totalAmount,
+					payment_url: result.payment_url || null,
+					payment_reference: result.payment_reference || null,
+					tickets: result.tickets || [],
+					created_at: new Date().toISOString(),
+					organizer_booking: { returnUrl: window.location.pathname }
+				}
+				localStorage.setItem(`booking_${result.booking_id}`, JSON.stringify(bookingData))
+				resetModal()
+				onSuccess?.()
+				onClose()
+				toast.success('Proceeding to checkout...')
+				router.push(`/checkout/payment/${result.booking_id}`)
+				return
+			}
+			
+			// Free event
 			toast.success(`Successfully booked ${result.ticket_count} ticket(s) for ${result.unique_attendees ?? result.attendees?.length ?? ticketCount} attendee(s)`)
 			resetModal()
 			onSuccess?.()
@@ -589,38 +628,44 @@ export default function BulkBookForAttendeeModal({ isOpen, onClose, event, event
 				
 				{/* Footer */}
 				<div className="shrink-0 px-4 sm:px-6 py-4 border-t border-white/5 bg-[#0A0A0A]">
-					{step === 2 && isPaidEvent && (
-						<div className="mb-4 space-y-2">
-							<div className="text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-widest">
-								Payment method
+					{step === 2 && isPaidEvent && bulkTotalAmount > 0 && (
+						<>
+							<div className="mb-3 flex items-center justify-between rounded-xl bg-white/5 border border-white/10 px-4 py-3">
+								<span className="text-sm font-medium text-gray-400">Total ({ticketCount} tickets)</span>
+								<span className="text-lg font-bold text-emerald-400">₦{bulkTotalAmount.toLocaleString()}</span>
 							</div>
-							<div className="flex gap-2">
-								<button
-									type="button"
-									onClick={() => setPaymentMethod('paystack')}
-									className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border transition-all ${
-										paymentMethod === 'paystack'
-											? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400'
-											: 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'
-									}`}
-								>
-									<CreditCard className="w-4 h-4" />
-									<span className="text-sm font-medium">Paystack</span>
-								</button>
-								<button
-									type="button"
-									onClick={() => setPaymentMethod('manual_bank_transfer')}
-									className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border transition-all ${
-										paymentMethod === 'manual_bank_transfer'
-											? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400'
-											: 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'
-									}`}
-								>
-									<Landmark className="w-4 h-4" />
-									<span className="text-sm font-medium">Bank transfer</span>
-								</button>
+							<div className="mb-4 space-y-2">
+								<div className="text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-widest">
+									Payment method
+								</div>
+								<div className="flex gap-2">
+									<button
+										type="button"
+										onClick={() => setPaymentMethod('paystack')}
+										className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border transition-all ${
+											paymentMethod === 'paystack'
+												? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400'
+												: 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'
+										}`}
+									>
+										<CreditCard className="w-4 h-4" />
+										<span className="text-sm font-medium">Paystack</span>
+									</button>
+									<button
+										type="button"
+										onClick={() => setPaymentMethod('manual_bank_transfer')}
+										className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl border transition-all ${
+											paymentMethod === 'manual_bank_transfer'
+												? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400'
+												: 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'
+										}`}
+									>
+										<Landmark className="w-4 h-4" />
+										<span className="text-sm font-medium">Bank transfer</span>
+									</button>
+								</div>
 							</div>
-						</div>
+						</>
 					)}
 					<div className="flex items-center gap-3">
 						{step === 2 && (
@@ -651,7 +696,7 @@ export default function BulkBookForAttendeeModal({ isOpen, onClose, event, event
 							) : (
 								<>
 									<Ticket className="w-4 h-4 sm:w-5 sm:h-5" />
-									<span>Book {ticketCount} Ticket{ticketCount > 1 ? 's' : ''}</span>
+									<span>{isPaidEvent ? 'Proceed to checkout' : `Book ${ticketCount} Ticket${ticketCount > 1 ? 's' : ''}`}</span>
 								</>
 							)}
 						</button>
