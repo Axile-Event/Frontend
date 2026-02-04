@@ -10,6 +10,7 @@ import {
 	ChevronUp,
 	Copy,
 	Check,
+	CheckCircle2,
 	Loader2,
 	Mail,
 	User,
