@@ -2,18 +2,21 @@
 
 import React, { useEffect, useState, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axios";
 import { Loader2, CheckCircle2, XCircle, Ticket } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import toast from "react-hot-toast";
+import { queryKeys } from "@/lib/query-keys";
 
 const VerifyPaymentContent = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
   const reference = searchParams.get("reference");
   const trxref = searchParams.get("trxref");
-  
-  const [status, setStatus] = useState("verifying"); // verifying, success, error
+
+  const [status, setStatus] = useState("verifying");
   const [message, setMessage] = useState("Verifying your payment...");
   const [ticketDetails, setTicketDetails] = useState(null);
   const verificationAttempted = useRef(false);
@@ -42,6 +45,8 @@ const VerifyPaymentContent = () => {
         setMessage("Payment verified successfully!");
         setTicketDetails(response.data.ticket);
         toast.success("Payment verified!");
+        queryClient.invalidateQueries({ queryKey: queryKeys.tickets.myTickets });
+        queryClient.invalidateQueries({ queryKey: queryKeys.student.dashboard });
         if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("tickets-updated"));
 
         // Auto redirect after 5 seconds

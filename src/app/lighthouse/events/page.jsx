@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
+import { queryKeys } from "@/lib/query-keys";
 import {
 	Calendar,
 	MapPin,
@@ -53,29 +55,21 @@ function StatusBadge({ status }) {
 }
 
 export default function EventsPage() {
-  const [loading, setLoading] = useState(true);
-  const [events, setEvents] = useState([]);
+  const queryClient = useQueryClient();
   const [filter, setFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
   const { confirm } = useConfirmModal();
 
-  useEffect(() => {
-    fetchEvents();
-  }, []);
-
-  const fetchEvents = async () => {
-    try {
+  const { data: events = [], isLoading: loading } = useQuery({
+    queryKey: queryKeys.events.adminAll,
+    queryFn: async () => {
       const data = await adminService.getAllEvents();
-      setEvents(data);
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to fetch events");
-    } finally {
-      setLoading(false);
-    }
-  };
+      return data;
+    },
+    refetchOnWindowFocus: true
+  });
 
   const handleStatusUpdate = async (eventId, newStatus) => {
     const isApproving = newStatus === 'verified';
@@ -92,7 +86,7 @@ export default function EventsPage() {
     try {
       await adminService.updateEventStatus(eventId, newStatus);
       toast.success(`Event marked as ${newStatus}`);
-      fetchEvents(); 
+      queryClient.invalidateQueries({ queryKey: queryKeys.events.adminAll });
     } catch (error) {
       console.error(error);
       toast.error("Failed to update event status");
@@ -111,7 +105,7 @@ export default function EventsPage() {
     try {
       await adminService.deleteEvent(eventId);
       toast.success("Event deleted successfully");
-      fetchEvents();
+      queryClient.invalidateQueries({ queryKey: queryKeys.events.adminAll });
     } catch (error) {
       console.error(error);
       toast.error("Failed to delete event");

@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 import {
 	Loader2,
 	CheckCircle,
@@ -122,12 +124,10 @@ function StatCard({ title, value, icon: Icon, variant }) {
 }
 
 export default function PaymentFormsPage() {
-  const [loading, setLoading] = useState(true);
-  const [forms, setForms] = useState([]);
+  const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const [pagination, setPagination] = useState(null);
   const [processing, setProcessing] = useState(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -135,31 +135,27 @@ export default function PaymentFormsPage() {
   const [adminNotes, setAdminNotes] = useState("");
   const itemsPerPage = 20;
 
-  useEffect(() => {
-    fetchForms();
-  }, [statusFilter, currentPage]);
-
-  const fetchForms = async () => {
-    setLoading(true);
-    try {
+  const { data, isLoading: loading } = useQuery({
+    queryKey: queryKeys.admin.paymentForms({ statusFilter, currentPage }),
+    queryFn: async () => {
       const params = { page: currentPage, page_size: itemsPerPage };
       if (statusFilter !== "all") params.status = statusFilter;
-      
-      const data = await adminService.getPaymentForms(params);
-      setForms(data.payment_forms || []);
-      setPagination(data.pagination || null);
-    } catch (error) {
-      console.error(error);
-      if (error.response?.status === 500 || error.response?.status === 404) {
-        toast.error("Payment forms endpoint not available yet.");
-      } else {
-        toast.error("Failed to fetch payment forms");
+      try {
+        return await adminService.getPaymentForms(params);
+      } catch (err) {
+        if (err.response?.status === 500 || err.response?.status === 404) {
+          toast.error("Payment forms endpoint not available yet.");
+        } else {
+          toast.error("Failed to fetch payment forms");
+        }
+        throw err;
       }
-      setForms([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    refetchOnWindowFocus: true
+  });
+
+  const forms = data?.payment_forms ?? [];
+  const pagination = data?.pagination ?? null;
 
   const handleConfirmClick = (form) => {
     setSelectedForm(form);
@@ -185,7 +181,8 @@ export default function PaymentFormsPage() {
       setShowConfirmModal(false);
       setSelectedForm(null);
       setAdminNotes("");
-      fetchForms();
+      queryClient.invalidateQueries({ queryKey: ["admin", "payment-forms"] });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tickets.all });
     } catch (error) {
       console.error("Confirm payment form error:", error);
       const msg = error.response?.data?.error ?? error.response?.data?.details ?? "Failed to confirm payment";
@@ -211,7 +208,7 @@ export default function PaymentFormsPage() {
       setShowRejectModal(false);
       setSelectedForm(null);
       setAdminNotes("");
-      fetchForms();
+      queryClient.invalidateQueries({ queryKey: ["admin", "payment-forms"] });
     } catch (error) {
       console.error("Reject payment form error:", error);
       const msg = error.response?.data?.error ?? error.response?.data?.details ?? "Failed to reject payment";

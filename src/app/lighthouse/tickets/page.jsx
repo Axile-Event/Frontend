@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Ticket } from "lucide-react";
 import { adminService } from "@/lib/admin";
 import { toast } from "react-hot-toast";
+import { queryKeys } from "@/lib/query-keys";
 import { AdminTableSkeleton } from "@/components/skeletons";
 import { AdminDataTable } from "@/components/ui/admin-data-table";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -45,49 +47,41 @@ function StatusBadge({ status }) {
 
 const ITEMS_PER_PAGE = 20;
 
+const defaultPagination = {
+	current_page: 1,
+	total_count: 0,
+	total_pages: 1,
+	page_size: ITEMS_PER_PAGE,
+	has_next: false,
+	has_previous: false
+};
+
 export default function TicketsPage() {
-	const [loading, setLoading] = useState(true);
-	const [tickets, setTickets] = useState([]);
 	const [statusFilter, setStatusFilter] = useState("all");
 	const [currentPage, setCurrentPage] = useState(1);
 	const [search, setSearch] = useState("");
-	const [pagination, setPagination] = useState({
-		current_page: 1,
-		total_count: 0,
-		total_pages: 1,
-		page_size: ITEMS_PER_PAGE,
-		has_next: false,
-		has_previous: false,
+
+	const { data, isLoading: loading } = useQuery({
+		queryKey: [...queryKeys.tickets.adminAll({ statusFilter }), currentPage],
+		queryFn: async () => {
+			const params = { page: currentPage, page_size: ITEMS_PER_PAGE };
+			if (statusFilter !== "all") params.status = statusFilter;
+			return adminService.getAllTickets(params);
+		},
+		refetchOnWindowFocus: true
 	});
 
-	const fetchTickets = async (page = 1) => {
-		setLoading(true);
-		try {
-			const params = { page, page_size: ITEMS_PER_PAGE };
-			if (statusFilter !== "all") params.status = statusFilter;
-			const data = await adminService.getAllTickets(params);
-			setTickets(data.tickets || []);
-			if (data.pagination) {
-				setPagination({
-					current_page: data.pagination.current_page ?? page,
-					total_count: data.pagination.total_count ?? 0,
-					total_pages: data.pagination.total_pages ?? 1,
-					page_size: data.pagination.page_size ?? ITEMS_PER_PAGE,
-					has_next: data.pagination.has_next ?? false,
-					has_previous: data.pagination.has_previous ?? false,
-				});
+	const tickets = data?.tickets ?? [];
+	const pagination = data?.pagination
+		? {
+				current_page: data.pagination.current_page ?? currentPage,
+				total_count: data.pagination.total_count ?? 0,
+				total_pages: data.pagination.total_pages ?? 1,
+				page_size: data.pagination.page_size ?? ITEMS_PER_PAGE,
+				has_next: data.pagination.has_next ?? false,
+				has_previous: data.pagination.has_previous ?? false
 			}
-		} catch (error) {
-			console.error(error);
-			toast.error("Failed to fetch tickets");
-		} finally {
-			setLoading(false);
-		}
-	};
-
-	useEffect(() => {
-		fetchTickets(currentPage);
-	}, [statusFilter, currentPage]);
+		: defaultPagination;
 
 	useEffect(() => {
 		setCurrentPage(1);

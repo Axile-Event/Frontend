@@ -1,52 +1,49 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import api from "@/lib/axios";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Loader2, Ticket, Calendar, ArrowRight, User } from "lucide-react";
 import { motion } from "framer-motion";
 import useAuthStore from "@/store/authStore";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import { StudentDashboardSkeleton } from "@/components/skeletons";
+import { queryKeys } from "@/lib/query-keys";
 
 const StudentDashboardOverview = () => {
   const { user } = useAuthStore();
-  const [profile, setProfile] = useState(null);
-  const [tickets, setTickets] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
+  const { data, isLoading: loading } = useQuery({
+    queryKey: queryKeys.student.dashboard,
+    queryFn: async () => {
       const [profileRes, ticketsRes] = await Promise.all([
         api.get("student/profile/"),
         api.get("tickets/my-tickets/"),
       ]);
-
-      if (profileRes.data?.profile) setProfile(profileRes.data.profile);
-      else if (profileRes.data) setProfile(profileRes.data);
-
-      if (ticketsRes.data && Array.isArray(ticketsRes.data.tickets)) setTickets(ticketsRes.data.tickets);
-      else if (Array.isArray(ticketsRes.data)) setTickets(ticketsRes.data);
-      else setTickets([]);
-    } catch (error) {
-      console.error("Error fetching dashboard data:", error);
-      toast.error("Failed to load dashboard data");
-    } finally {
-      setLoading(false);
-    }
-  };
+      const profile = profileRes.data?.profile ?? profileRes.data;
+      const tickets = Array.isArray(ticketsRes.data?.tickets)
+        ? ticketsRes.data.tickets
+        : Array.isArray(ticketsRes.data)
+          ? ticketsRes.data
+          : [];
+      return { profile, tickets };
+    },
+    refetchOnWindowFocus: true
+  });
 
   useEffect(() => {
-    fetchData();
-  }, []);
-
-  // Refetch tickets when updated (e.g. after booking or payment verify)
-  useEffect(() => {
-    const onTicketsUpdated = () => fetchData();
+    const onTicketsUpdated = () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.student.dashboard });
+      queryClient.invalidateQueries({ queryKey: queryKeys.tickets.myTickets });
+    };
     window.addEventListener("tickets-updated", onTicketsUpdated);
     return () => window.removeEventListener("tickets-updated", onTicketsUpdated);
-  }, []);
+  }, [queryClient]);
+
+  const profile = data?.profile ?? null;
+  const tickets = data?.tickets ?? [];
 
   if (loading) {
     return <StudentDashboardSkeleton />;
