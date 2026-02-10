@@ -1,21 +1,21 @@
 "use client";
 
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useState } from "react";
 import { useRouter, useParams } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "../../../../../../../lib/axios";
 import { Plus, Trash2, Edit2, ArrowLeft, Loader2, Save, X, Ticket, AlertTriangle } from "lucide-react";
 import toast from "react-hot-toast";
 import PinPromptModal from "@/components/PinPromptModal";
+import { queryKeys } from "@/lib/query-keys";
 
 export default function ManageTicketsPage() {
     const router = useRouter();
     const params = useParams();
+    const queryClient = useQueryClient();
     const id = params?.["my-eventId"];
 
-    const [categories, setCategories] = useState([]);
-    const [loading, setLoading] = useState(true);
     const [creating, setCreating] = useState(false);
-    const [event, setEvent] = useState(null);
 
     const [newCategory, setNewCategory] = useState({
         name: "",
@@ -27,11 +27,34 @@ export default function ManageTicketsPage() {
     const [editingId, setEditingId] = useState(null);
     const [editForm, setEditForm] = useState({});
 
-    // Delete confirmation states
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [categoryToDelete, setCategoryToDelete] = useState(null);
     const [showPinPrompt, setShowPinPrompt] = useState(false);
     const [deleting, setDeleting] = useState(false);
+
+    const { data, isLoading: loading } = useQuery({
+        queryKey: queryKeys.organizer.eventTickets(id),
+        queryFn: async () => {
+            const eventRes = await api.get(`/events/${id}/details/`);
+            const event = eventRes.data;
+            let categories = [];
+            try {
+                const catRes = await api.get(`/tickets/categories/?event_id=${id}`);
+                const categoriesData = Array.isArray(catRes.data)
+                    ? catRes.data
+                    : (catRes.data?.categories || []);
+                categories = categoriesData.length > 0 ? categoriesData : (event.ticket_categories || []);
+            } catch {
+                categories = event.ticket_categories || [];
+            }
+            return { event, categories };
+        },
+        enabled: !!id,
+        refetchOnWindowFocus: true
+    });
+
+    const event = data?.event ?? null;
+    const categories = data?.categories ?? [];
 
     // Format number with commas for display
     const formatPriceWithCommas = (value) => {
@@ -56,46 +79,11 @@ export default function ManageTicketsPage() {
         }
     };
 
-    const fetchEventAndCategories = useCallback(async () => {
-        if (!id) return;
-        setLoading(true);
-        try {
-            // First get event details (which may include ticket_categories)
-            const eventRes = await api.get(`/events/${id}/details/`);
-            console.log("Event response:", eventRes.data);
-            setEvent(eventRes.data);
-            
-            // Try to get categories from dedicated endpoint first
-            try {
-                const catRes = await api.get(`/tickets/categories/?event_id=${id}`);
-                console.log("Categories response:", catRes.data);
-                // Handle both array and object response formats
-                const categoriesData = Array.isArray(catRes.data) 
-                    ? catRes.data 
-                    : (catRes.data.categories || []);
-                
-                if (categoriesData.length > 0) {
-                    setCategories(categoriesData);
-                } else {
-                    // Fallback to ticket_categories from event details
-                    setCategories(eventRes.data.ticket_categories || []);
-                }
-            } catch (catErr) {
-                console.log("Categories endpoint failed, using event details:", catErr);
-                // Fallback to ticket_categories from event details
-                setCategories(eventRes.data.ticket_categories || []);
-            }
-        } catch (err) {
-            console.error("Fetch error:", err);
-            toast.error(err?.response?.data?.error || "Failed to load ticket data");
-        } finally {
-            setLoading(false);
-        }
-    }, [id]);
-
-    useEffect(() => {
-        fetchEventAndCategories();
-    }, [fetchEventAndCategories]);
+    const invalidateEventTickets = () => {
+        queryClient.invalidateQueries({ queryKey: queryKeys.organizer.eventTickets(id) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.organizer.eventDetail(id) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.organizer.events });
+    };
 
     const handleCreate = async (e) => {
         e.preventDefault();
@@ -124,7 +112,7 @@ export default function ManageTicketsPage() {
             await api.post("/tickets/categories/create/", payload);
             toast.success("Ticket category created!");
             setNewCategory({ name: "", price: "", max_tickets: "", description: "" });
-            fetchEventAndCategories();
+            invalidateEventTickets();
         } catch (err) {
             const errors = err?.response?.data;
             if (errors && typeof errors === 'object') {
@@ -156,7 +144,7 @@ export default function ManageTicketsPage() {
         try {
             await api.delete(`/tickets/categories/${categoryToDelete.category_id}/`);
             toast.success("Category deleted");
-            fetchEventAndCategories();
+            invalidateEventTickets();
         } catch (err) {
             console.error("Delete error:", err);
             toast.error(err?.response?.data?.error || "Failed to delete category");
@@ -204,7 +192,7 @@ export default function ManageTicketsPage() {
             await api.patch(`/tickets/categories/${editingId}/`, payload);
             toast.success("Category updated");
             setEditingId(null);
-            fetchEventAndCategories();
+            invalidateEventTickets();
         } catch (err) {
             console.error("Update error:", err?.response?.data || err);
             const errorMsg = err?.response?.data?.error || err?.response?.data?.detail || "Failed to update category";

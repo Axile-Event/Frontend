@@ -1,8 +1,10 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import api from "../../../../../lib/axios";
+import { queryKeys } from "@/lib/query-keys";
 import toast from "react-hot-toast";
 import useOrganizerStore from "../../../../../store/orgStore";
 import CustomDropdown from "@/components/ui/CustomDropdown";
@@ -37,7 +39,7 @@ const FALLBACK_EVENT_TYPES = [
 
 export default function CreateEvent() {
   const router = useRouter();
-  // const { triggerRefetch } = useOrganizerStore(); // triggerRefetch is not in the store definition
+  const queryClient = useQueryClient();
   const { addEvent, organization } = useOrganizerStore();
 
   const [configLoading, setConfigLoading] = useState(true);
@@ -417,7 +419,8 @@ export default function CreateEvent() {
 
         setCreatedEventId(newId);
         setShowSuccessModal(true);
-        
+        queryClient.invalidateQueries({ queryKey: queryKeys.organizer.events });
+        queryClient.invalidateQueries({ queryKey: queryKeys.organizer.dashboard });
         // resetForm();
       } else {
         toast.error(`Unexpected server response: ${res?.status}`);

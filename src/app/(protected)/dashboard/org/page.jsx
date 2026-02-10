@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "../../../../lib/axios";
 import { Ticket, Users, Calendar, TrendingUp, DollarSign, Clock, Plus, ChevronRight, ShieldAlert, X, Eye, EyeOff, MapPin } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -11,19 +12,10 @@ import { OrganizerDashboardSkeleton } from "@/components/skeletons";
 import OtpPinInput from "@/components/OtpPinInput";
 import { getImageUrl } from "../../../../lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
+import { queryKeys } from "@/lib/query-keys";
 
 
 export default function Overview() {
-  const [analytics, setAnalytics] = useState(null);
-  const [eventsSummary, setEventsSummary] = useState(null);
-  const [recentEvents, setRecentEvents] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [eventStatusStats, setEventStatusStats] = useState({
-    total_events_created: 0,
-    verified_events: 0,
-    pending_events: 0,
-    denied_events: 0
-  });
   const [showPinReminder, setShowPinReminder] = useState(false);
   const [showSetPinModal, setShowSetPinModal] = useState(false);
   const [pinValue, setPinValue] = useState('');
@@ -33,132 +25,81 @@ export default function Overview() {
   const [hideBalances, setHideBalances] = useState(true);
 
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { user } = useAuthStore();
-  const { events, setOrganization, setEvents, lastUpdate, hydrated } = useOrganizerStore();
-  
-  // Track initial lastUpdate to prevent refetch loop on mount
+  const { setOrganization, setEvents, lastUpdate, hydrated } = useOrganizerStore();
   const initialLastUpdateRef = useRef(lastUpdate);
 
-  useEffect(() => {
-    // Wait for orgStore hydration before fetching data
-    if (!hydrated) return;
-
-    async function fetchOverview() {
-      setLoading(true);
-      try {
-        setLoading(true);
-
-        const [
-          analyticsRes,
-          eventsRes,
-          orgRes,
-        ] = await Promise.allSettled([
-          api.get("/analytics/global/"),
-          api.get("/organizer/events/"),
-          api.get("/organizer/profile/"),
-        ]);
-        // Process events data first to calculate correct ticket counts
-        let totalTicketsFromEvents = 0;
-        if (eventsRes.status === "fulfilled") {
-          const eventsData = eventsRes.value.data.events || [];
-          console.log("Events Data with ticket_stats:", eventsData);
-          setEvents(eventsData);
-          
-          // Sort events by created_at in descending order (latest created first) and take the first 3
-          const sortedEvents = [...eventsData].sort((a, b) => {
-            const dateA = new Date(a.created_at || a.date);
-            const dateB = new Date(b.created_at || b.date);
-            return dateB - dateA;
-          });
-          setRecentEvents(sortedEvents.slice(0, 3));
-
-          // Calculate event status statistics from organizer's events
-          const stats = eventsData.reduce((acc, event) => {
-            acc.total_events_created++;
-            if (event.status === 'verified') acc.verified_events++;
-            else if (event.status === 'pending') acc.pending_events++;
-            else if (event.status === 'denied') acc.denied_events++;
-            return acc;
-          }, {
-            total_events_created: 0,
-            verified_events: 0,
-            pending_events: 0,
-            denied_events: 0
-          });
-          setEventStatusStats(stats);
-
-          // Calculate total tickets sold from event ticket_stats
-          totalTicketsFromEvents = eventsData.reduce((total, event) => {
-            return total + (event.ticket_stats?.confirmed_tickets || 0);
-          }, 0);
-          console.log("Total tickets calculated from events:", totalTicketsFromEvents);
-        }
-
-        // Set analytics with corrected ticket count and total events
-        if (analyticsRes.status === "fulfilled") {
-          const analyticsData = analyticsRes.value.data.analytics || analyticsRes.value.data;
-          console.log("Analytics API Response:", analyticsData);
-          
-          const eventsData = eventsRes.status === "fulfilled" ? (eventsRes.value.data.events || []) : [];
-          
-          // Use calculated values from events data instead of potentially incorrect API values
-          const correctedAnalytics = {
-            ...analyticsData,
-            total_tickets_sold: totalTicketsFromEvents,
-            total_events: eventsData.length
-          };
-          
-          if (analyticsData.total_tickets_sold !== totalTicketsFromEvents) {
-            console.warn(`Analytics endpoint returned ${analyticsData.total_tickets_sold} tickets, corrected to ${totalTicketsFromEvents} from events data`);
-          }
-          if (analyticsData.total_events !== eventsData.length) {
-            console.warn(`Analytics endpoint returned ${analyticsData.total_events} events, corrected to ${eventsData.length} from events data`);
-          }
-          
-          setAnalytics(correctedAnalytics);
-        } else {
-          console.error("Analytics API failed:", analyticsRes.reason);
-          // Fallback: Create analytics from events data
-          if (eventsRes.status === "fulfilled") {
-            const eventsData = eventsRes.value.data.events || [];
-            const totalPendingTickets = eventsData.reduce((total, event) => {
-              return total + (event.ticket_stats?.pending_tickets || 0);
-            }, 0);
-            const totalRevenue = eventsData.reduce((total, event) => {
-              return total + (event.ticket_stats?.total_revenue || 0);
-            }, 0);
-            
-            setAnalytics({
-              total_events: eventsData.length,
-              total_tickets_sold: totalTicketsFromEvents,
-              total_tickets_pending: totalPendingTickets,
-              total_revenue: totalRevenue,
-              revenue_by_event: [],
-              average_revenue_per_event: eventsData.length > 0 ? totalRevenue / eventsData.length : 0
-            });
-            console.log("Using fallback analytics calculated from events data");
-          }
-        }
-
-        if (orgRes.status === "fulfilled") {
-          setOrganization(orgRes.value.data.Org_profile || orgRes.value.data);
-        }
-
-        setLoading(false);
-      } catch (err) {
-        console.error(err);
-        toast.error("Failed to load overview");
-        setLoading(false);
+  const { data, isLoading: loading } = useQuery({
+    queryKey: queryKeys.organizer.dashboard,
+    queryFn: async () => {
+      const [analyticsRes, eventsRes, orgRes] = await Promise.allSettled([
+        api.get("/analytics/global/"),
+        api.get("/organizer/events/"),
+        api.get("/organizer/profile/"),
+      ]);
+      let totalTicketsFromEvents = 0;
+      let eventsData = [];
+      if (eventsRes.status === "fulfilled") {
+        eventsData = eventsRes.value.data.events || [];
+        totalTicketsFromEvents = eventsData.reduce((t, e) => t + (e.ticket_stats?.confirmed_tickets || 0), 0);
       }
+      const recentEvents = [...eventsData].sort((a, b) =>
+        new Date(b.created_at || b.date) - new Date(a.created_at || a.date)
+      ).slice(0, 3);
+      const eventStatusStats = eventsData.reduce((acc, e) => {
+        acc.total_events_created++;
+        if (e.status === 'verified') acc.verified_events++;
+        else if (e.status === 'pending') acc.pending_events++;
+        else if (e.status === 'denied') acc.denied_events++;
+        return acc;
+      }, { total_events_created: 0, verified_events: 0, pending_events: 0, denied_events: 0 });
+
+      let analytics = null;
+      if (analyticsRes.status === "fulfilled") {
+        const analyticsData = analyticsRes.value.data.analytics || analyticsRes.value.data;
+        analytics = { ...analyticsData, total_tickets_sold: totalTicketsFromEvents, total_events: eventsData.length };
+      } else if (eventsRes.status === "fulfilled") {
+        const totalPendingTickets = eventsData.reduce((t, e) => t + (e.ticket_stats?.pending_tickets || 0), 0);
+        const totalRevenue = eventsData.reduce((t, e) => t + (e.ticket_stats?.total_revenue || 0), 0);
+        analytics = {
+          total_events: eventsData.length,
+          total_tickets_sold: totalTicketsFromEvents,
+          total_tickets_pending: totalPendingTickets,
+          total_revenue: totalRevenue,
+          revenue_by_event: [],
+          average_revenue_per_event: eventsData.length > 0 ? totalRevenue / eventsData.length : 0
+        };
+      }
+      const organization = orgRes.status === "fulfilled"
+        ? (orgRes.value.data.Org_profile || orgRes.value.data)
+        : null;
+      return { analytics, eventsData, organization, recentEvents, eventStatusStats };
+    },
+    enabled: !!hydrated,
+    refetchOnWindowFocus: true
+  });
+
+  const analytics = data?.analytics ?? null;
+  const recentEvents = data?.recentEvents ?? [];
+  const eventStatusStats = data?.eventStatusStats ?? { total_events_created: 0, verified_events: 0, pending_events: 0, denied_events: 0 };
+  const { organization: orgFromStore } = useOrganizerStore();
+  const organization = data?.organization ?? orgFromStore;
+
+  useEffect(() => {
+    if (!data) return;
+    if (data.eventsData?.length !== undefined) setEvents(data.eventsData);
+    if (data.organization) setOrganization(data.organization);
+  }, [data, setEvents, setOrganization]);
+
+  useEffect(() => {
+    if (lastUpdate === null || lastUpdate === initialLastUpdateRef.current) {
+      initialLastUpdateRef.current = lastUpdate;
+      return;
     }
-
-
-    fetchOverview();
-  }, [hydrated, setOrganization, setEvents]);
-
-  // get the organization from the store to display in the welcome message
-  const { organization } = useOrganizerStore();
-  organization && console.log("Organization Name:", organization.Organization_Name);
+    initialLastUpdateRef.current = lastUpdate;
+    queryClient.invalidateQueries({ queryKey: queryKeys.organizer.dashboard });
+  }, [lastUpdate, queryClient]);
 
   // Removed first-welcome logic (no longer needed)
   

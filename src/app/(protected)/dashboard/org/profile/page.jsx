@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../../../../../lib/axios';
 import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -18,40 +19,39 @@ import { useRouter } from 'next/navigation';
 import { ProfileSkeleton } from '@/components/skeletons';
 import PinPromptModal from '@/components/PinPromptModal';
 import { hasPinSet } from '@/lib/pinPrompt';
+import { queryKeys } from '@/lib/query-keys';
 
 export default function ProfilePage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [isLoading, setIsLoading] = useState(false);
-  const [loadingProfile, setLoadingProfile] = useState(true);
   const [showPinPrompt, setShowPinPrompt] = useState(false);
   const [pendingProfileData, setPendingProfileData] = useState(null);
 
-  // Profile State
+  const { data, isLoading: loadingProfile } = useQuery({
+    queryKey: queryKeys.organizer.profile,
+    queryFn: async () => {
+      const res = await api.get('/organizer/profile/');
+      return res.data?.Org_profile ?? {};
+    },
+    refetchOnWindowFocus: true
+  });
+
   const [profile, setProfile] = useState({
     Organization_Name: '',
     Email: '',
     Phone: '',
   });
 
-  // Fetch Initial Data
-  useEffect(() => {
-    fetchProfile();
-  }, []);
-
-  const fetchProfile = async () => {
-    try {
-      setLoadingProfile(true);
-      const res = await api.get('/organizer/profile/');
-      if (res.data.Org_profile) {
-        setProfile(res.data.Org_profile);
-      }
-    } catch (error) {
-      console.error("Failed to fetch profile", error);
-      toast.error("Failed to load profile data");
-    } finally {
-      setLoadingProfile(false);
+  React.useEffect(() => {
+    if (data && Object.keys(data).length) {
+      setProfile({
+        Organization_Name: data.Organization_Name ?? '',
+        Email: data.Email ?? '',
+        Phone: data.Phone ?? '',
+      });
     }
-  };
+  }, [data]);
 
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
@@ -80,6 +80,8 @@ export default function ProfilePage() {
       await api.post('/organizer/profile/', pendingProfileData);
       toast.success('Profile updated successfully');
       setPendingProfileData(null);
+      queryClient.invalidateQueries({ queryKey: queryKeys.organizer.profile });
+      queryClient.invalidateQueries({ queryKey: queryKeys.organizer.dashboard });
     } catch (error) {
       toast.error(error.response?.data?.error || 'Failed to update profile');
     } finally {

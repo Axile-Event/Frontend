@@ -9,6 +9,7 @@ import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 
 import { ThemeProvider } from "@/components/theme-provider";
+import { QueryProvider } from "@/components/query-provider";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta-sans",
@@ -113,6 +114,7 @@ export default function RootLayout({ children }) {
           }}
         />
         <GoogleAuthProvider>
+          <QueryProvider>
           <ThemeProvider
             attribute="class"
             defaultTheme="dark"
@@ -129,6 +131,7 @@ export default function RootLayout({ children }) {
             <Analytics />
             <SpeedInsights />
           </ThemeProvider>
+          </QueryProvider>
         </GoogleAuthProvider>
       </body>
     </html>

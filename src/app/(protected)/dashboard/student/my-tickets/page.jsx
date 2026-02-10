@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import api from "@/lib/axios";
+import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -11,43 +12,20 @@ import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
 
 import { TicketsPageSkeleton } from "@/components/skeletons";
+import { queryKeys } from "@/lib/query-keys";
 
 const MyTicketsPage = () => {
-  const [tickets, setTickets] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState(""); // Add search state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedTicket, setSelectedTicket] = useState(null);
 
-  const fetchTickets = async () => {
-    try {
-      setLoading(true);
+  const { data: tickets = [], isLoading: loading } = useQuery({
+    queryKey: queryKeys.tickets.myTickets,
+    queryFn: async () => {
       const response = await api.get("/tickets/my-tickets/");
-      setTickets(response.data.tickets || []);
-    } catch (error) {
-      console.error("Error fetching tickets:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchTickets();
-  }, []);
-
-  // Invalidate and refetch when tickets are updated (e.g. after booking or payment verify)
-  useEffect(() => {
-    const onTicketsUpdated = () => fetchTickets();
-    window.addEventListener("tickets-updated", onTicketsUpdated);
-    return () => window.removeEventListener("tickets-updated", onTicketsUpdated);
-  }, []);
-
-  // Refetch when user returns to this tab (e.g. after Paystack redirect)
-  useEffect(() => {
-    const onVisibilityChange = () => {
-      if (document.visibilityState === "visible") fetchTickets();
-    };
-    document.addEventListener("visibilitychange", onVisibilityChange);
-    return () => document.removeEventListener("visibilitychange", onVisibilityChange);
-  }, []);
+      return response.data.tickets || [];
+    },
+    refetchOnWindowFocus: true
+  });
 
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
@@ -64,14 +42,10 @@ const MyTicketsPage = () => {
     }
   };
 
-  const filteredTickets = tickets.filter(ticket => 
-    ticket.event_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    ticket.ticket_id.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredTickets = tickets.filter((ticket) =>
+    ticket.event_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    ticket.ticket_id?.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
-  const [selectedTicket, setSelectedTicket] = useState(null);
-
-  // ... (existing getStatusColor function) ...
 
   if (loading) {
     return <TicketsPageSkeleton />;

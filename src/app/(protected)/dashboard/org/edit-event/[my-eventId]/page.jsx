@@ -2,7 +2,9 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axios";
+import { queryKeys } from "@/lib/query-keys";
 import toast from "react-hot-toast";
 import { ChevronLeft, Save, Loader2, X, Plus, Edit2, Trash2, Camera, MapPin, Eye, ImageIcon, Zap, Ticket, Calendar } from "lucide-react";
 import Loading from "@/components/ui/Loading";
@@ -338,6 +340,10 @@ export default function EditEventPage() {
         }
 
         toast.success("Event updated successfully!");
+        queryClient.invalidateQueries({ queryKey: queryKeys.organizer.events });
+        queryClient.invalidateQueries({ queryKey: queryKeys.organizer.dashboard });
+        queryClient.invalidateQueries({ queryKey: queryKeys.organizer.eventDetail(eventId) });
+        queryClient.invalidateQueries({ queryKey: queryKeys.organizer.eventTickets(eventId) });
         router.push(`/dashboard/org/my-event/${eventId}`);
       } else {
         toast.error(`Unexpected server response: ${response?.status}`);

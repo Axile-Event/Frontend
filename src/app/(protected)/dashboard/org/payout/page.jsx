@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import api from '../../../../../lib/axios';
 import { toast } from 'react-hot-toast';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -25,65 +26,51 @@ import { useRouter } from 'next/navigation';
 import { WalletPageSkeleton } from '@/components/skeletons';
 import PinPromptModal from '@/components/PinPromptModal';
 import { hasPinSet } from '@/lib/pinPrompt';
+import { queryKeys } from '@/lib/query-keys';
+
+const defaultStats = {
+  available_balance: '0.00',
+  pending_balance: '0.00',
+  total_earnings: '0.00',
+  total_withdrawn: '0.00',
+  has_bank_account: false,
+  bank_name: '',
+  bank_account_number: '',
+};
 
 export default function PayoutPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
   const [withdrawing, setWithdrawing] = useState(false);
   const [hideBalances, setHideBalances] = useState(true);
   const [showPinPrompt, setShowPinPrompt] = useState(false);
   const [pendingWithdrawal, setPendingWithdrawal] = useState(null);
-  const [activeTab, setActiveTab] = useState('requests'); // 'requests', 'all', or 'withdrawals'
-  const [stats, setStats] = useState({
-    available_balance: '0.00',
-    pending_balance: '0.00',
-    total_earnings: '0.00',
-    total_withdrawn: '0.00',
-    has_bank_account: false,
-    bank_name: '',
-    bank_account_number: '',
-  });
-  const [transactions, setTransactions] = useState([]);
-  const [withdrawals, setWithdrawals] = useState([]);
-  const [payoutRequests, setPayoutRequests] = useState([]);
+  const [activeTab, setActiveTab] = useState('requests');
   const [withdrawAmount, setWithdrawAmount] = useState('');
 
-  const fetchData = useCallback(async () => {
-    try {
-      setLoading(true);
+  const { data, isLoading: loading } = useQuery({
+    queryKey: queryKeys.organizer.wallet,
+    queryFn: async () => {
       const [balanceRes, transRes, withdrawalRes] = await Promise.all([
         api.get('/wallet/balance/'),
         api.get('/wallet/transactions/?limit=10'),
         api.get('/wallet/withdrawals/?limit=20')
       ]);
-      
-      if (balanceRes.data) {
-        setStats(balanceRes.data);
-      }
-      
-      if (transRes.data && transRes.data.transactions) {
-        setTransactions(transRes.data.transactions);
-      }
+      const stats = balanceRes.data ?? defaultStats;
+      const transactions = transRes.data?.transactions ?? [];
+      const withdrawalsList = withdrawalRes.data?.withdrawals ?? [];
+      const payoutRequests = withdrawalsList.filter(w => 
+        w.status === 'pending' || w.status === 'approved' || w.request_id
+      );
+      return { stats, transactions, withdrawals: withdrawalsList, payoutRequests };
+    },
+    refetchOnWindowFocus: true
+  });
 
-      if (withdrawalRes.data && withdrawalRes.data.withdrawals) {
-        setWithdrawals(withdrawalRes.data.withdrawals);
-        // Extract payout requests from withdrawals (those with request_id or pending/approved status)
-        const requests = withdrawalRes.data.withdrawals.filter(w => 
-          w.status === 'pending' || w.status === 'approved' || w.request_id
-        );
-        setPayoutRequests(requests);
-      }
-    } catch (error) {
-      console.error("Failed to fetch payout data", error);
-      toast.error("Failed to load financial data");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  const stats = data?.stats ?? defaultStats;
+  const transactions = data?.transactions ?? [];
+  const withdrawals = data?.withdrawals ?? [];
+  const payoutRequests = data?.payoutRequests ?? [];
 
   // Format number with commas for display
   const formatWithCommas = (value) => {
@@ -171,7 +158,7 @@ export default function PayoutPage() {
       
       setWithdrawAmount('');
       setPendingWithdrawal(null);
-      fetchData(); // Refresh balances
+      queryClient.invalidateQueries({ queryKey: queryKeys.organizer.wallet });
     } catch (error) {
       const errorData = error.response?.data;
       

@@ -1,43 +1,26 @@
 "use client";
 
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "../../../../../lib/axios";
 import { Loader2, Copy, Check, ExternalLink, Plus, Clock, Search } from "lucide-react";
 import toast from "react-hot-toast";
 import { getImageUrl } from "../../../../../lib/utils";
 import { Input } from "@/components/ui/input";
 import { OrganizerEventsPageSkeleton } from "@/components/skeletons";
+import { queryKeys } from "@/lib/query-keys";
 
 const MyEvent = () => {
   const router = useRouter();
-  const [events, setEvents] = useState([]);
-  const [filteredEvents, setFilteredEvents] = useState([]);
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState("");
-  const [loading, setLoading] = useState(false);
   const [localImages, setLocalImages] = useState({});
   const [brokenImages, setBrokenImages] = useState({});
-  const isMountedRef = useRef(true);
 
-  // Filter effect
-  useEffect(() => {
-    if (!events) {
-        setFilteredEvents([]);
-        return;
-    }
-    const lowerQuery = searchQuery.toLowerCase();
-    const filtered = events.filter(ev => 
-        (ev.name && ev.name.toLowerCase().includes(lowerQuery)) ||
-        (ev.event_type && ev.event_type.toLowerCase().includes(lowerQuery)) ||
-        (ev.location && ev.location.toLowerCase().includes(lowerQuery))
-    );
-    setFilteredEvents(filtered);
-  }, [searchQuery, events]);
-
-  const fetchEvents = useCallback(async () => {
-    if (!isMountedRef.current) return;
-    setLoading(true);
-    try {
+  const { data: events = [], isLoading: loading } = useQuery({
+    queryKey: queryKeys.organizer.events,
+    queryFn: async () => {
       const res = await api.get("/organizer/events/");
       const payload = res?.data;
       let list = [];
@@ -45,15 +28,13 @@ const MyEvent = () => {
       else if (Array.isArray(payload?.events)) list = payload.events;
       else if (Array.isArray(payload?.data)) list = payload.data;
       else list = [];
-      
-      // Fetch fresh ticket statistics for each event
+
       const eventsWithStats = await Promise.all(
         list.map(async (event) => {
           const eventId = event.event_id ?? event.id;
           try {
             const ticketsRes = await api.get(`/tickets/organizer/${eventId}/tickets/`);
             const stats = ticketsRes.data?.statistics || {};
-            // Override with fresh statistics - map API fields correctly
             return {
               ...event,
               ticket_stats: {
@@ -65,7 +46,6 @@ const MyEvent = () => {
             };
           } catch (ticketErr) {
             console.warn(`Could not fetch ticket stats for event ${eventId}:`, ticketErr);
-            // Keep existing ticket_stats or set defaults
             return {
               ...event,
               ticket_stats: event.ticket_stats || {
@@ -78,38 +58,31 @@ const MyEvent = () => {
           }
         })
       );
-      
-      // Sort events by created_at in descending order (latest created first)
-      const sortedList = [...eventsWithStats].sort((a, b) => {
+
+      return [...eventsWithStats].sort((a, b) => {
         const dateA = new Date(a.created_at || a.date);
         const dateB = new Date(b.created_at || b.date);
         return dateB - dateA;
       });
-      
-      if (isMountedRef.current) setEvents(sortedList);
-    } catch (err) {
-      const msg =
-        err?.response?.data?.detail ||
-        err?.response?.data?.message ||
-        (err?.response?.data ? JSON.stringify(err.response.data) : null) ||
-        err?.message ||
-        "Failed to load events";
-      if (isMountedRef.current) {
-        toast.error(msg);
-      }
-      console.error("Error fetching events:", msg);
-    } finally {
-      if (isMountedRef.current) setLoading(false);
-    }
-  }, []);
+    },
+    refetchOnWindowFocus: true
+  });
 
-  useEffect(() => {
-    isMountedRef.current = true;
-    fetchEvents();
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, [fetchEvents]);
+  const filteredEvents = !events
+    ? []
+    : events.filter((ev) => {
+        const lowerQuery = searchQuery.toLowerCase();
+        return (
+          (ev.name && ev.name.toLowerCase().includes(lowerQuery)) ||
+          (ev.event_type && ev.event_type.toLowerCase().includes(lowerQuery)) ||
+          (ev.location && ev.location.toLowerCase().includes(lowerQuery))
+        );
+      });
+
+  const refetchEvents = () => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.organizer.events });
+    queryClient.invalidateQueries({ queryKey: queryKeys.organizer.dashboard });
+  };
 
   // ... (localImages effect remains same)
   useEffect(() => {
@@ -187,7 +160,7 @@ const MyEvent = () => {
             <Plus className="w-4 h-4" /> Create
           </button>
           <button
-            onClick={fetchEvents}
+            onClick={refetchEvents}
             className="flex items-center gap-2 bg-white/5 hover:bg-white/10 text-white border border-white/10 px-4 py-2.5 rounded-xl transition-all active:scale-95 font-semibold text-xs"
           >
             Refresh
