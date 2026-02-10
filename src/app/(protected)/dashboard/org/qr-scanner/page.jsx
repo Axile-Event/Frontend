@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useEffect, useState, useRef, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { queryKeys } from "@/lib/query-keys";
 import { 
   Camera, 
   RotateCw, 
@@ -107,32 +109,27 @@ const cleanTicketId = (rawId, isManual = false) => {
 // --- Components ---
 
 export default function QrScanner() {
-  const [events, setEvents] = useState([]);
   const [selectedEventId, setSelectedEventId] = useState("");
   const [isScanning, setIsScanning] = useState(false);
   const [cameraFacingMode, setCameraFacingMode] = useState("environment");
   const [history, setHistory] = useState([]);
-  const [scanResult, setScanResult] = useState(null); 
+  const [scanResult, setScanResult] = useState(null);
   const [manualCode, setManualCode] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [activeTab, setActiveTab] = useState("scanner"); // "scanner" or "manual"
+  const [activeTab, setActiveTab] = useState("scanner");
 
   const scannerRef = useRef(null);
   const regionId = "reader";
 
-  useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        const res = await api.get("/organizer/events/");
-        const payload = res?.data;
-        let list = Array.isArray(payload) ? payload : (payload?.events || payload?.data || payload?.results || []);
-        setEvents(list);
-      } catch (err) {
-        toast.error("Failed to load events.");
-      }
-    };
-    fetchEvents();
-  }, []);
+  const { data: events = [] } = useQuery({
+    queryKey: queryKeys.organizer.events,
+    queryFn: async () => {
+      const res = await api.get("/organizer/events/");
+      const payload = res?.data;
+      return Array.isArray(payload) ? payload : (payload?.events || payload?.data || payload?.results || []);
+    },
+    refetchOnWindowFocus: true
+  });
 
   useEffect(() => {
     return () => {

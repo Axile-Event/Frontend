@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useState } from "react";
 import { useRouter, useParams } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import api from "../../../../../../../lib/axios";
 import { 
   ArrowLeft, 
@@ -17,79 +18,47 @@ import {
 } from "lucide-react";
 import toast from "react-hot-toast";
 import Loading from "@/components/ui/Loading";
+import { queryKeys } from "@/lib/query-keys";
 
 export default function AnalyticsPage() {
   const router = useRouter();
   const params = useParams();
   const id = params?.["my-eventId"] ?? params?.id;
 
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const fetchAnalytics = useCallback(async () => {
-    if (!id) return;
-    setLoading(true);
-    try {
-      // Use the dedicated analytics endpoint for richer data
-      const res = await api.get(`/analytics/event/${id}/`);
-      console.log("Analytics data received:", res.data);
-      
-      // Map the analytics response to our expected data structure
-      const analyticsData = res.data.analytics || res.data;
-      setData({
-        event_id: analyticsData.event_info?.event_id || id,
-        event_name: analyticsData.event_info?.name || analyticsData.event_info?.event_name || "Unknown Event",
-        event_location: analyticsData.event_info?.location,
-        event_date: analyticsData.event_info?.date,
-        event_status: analyticsData.event_info?.status,
-        pricing_type: analyticsData.event_info?.pricing_type,
-        tickets: analyticsData.tickets_list || [],
-        count: analyticsData.tickets_list?.length || 0,
-        statistics: {
-          confirmed: analyticsData.statistics?.total_tickets_sold || 0,
-          pending: analyticsData.statistics?.pending_tickets || 0,
-          cancelled: analyticsData.statistics?.cancelled_tickets || 0,
-          used: analyticsData.statistics?.used_tickets || 0,
-          total_revenue: analyticsData.statistics?.total_revenue || 0,
-          available_spots: analyticsData.statistics?.available_spots ?? "∞"
-        }
-      });
-    } catch (err) {
-      console.error("Analytics endpoint error, falling back to tickets endpoint:", err);
-      // Fallback to tickets endpoint if analytics endpoint fails
+  const { data, isLoading: loading } = useQuery({
+    queryKey: queryKeys.organizer.analytics(id),
+    queryFn: async () => {
       try {
-        const fallbackRes = await api.get(`/tickets/organizer/${id}/tickets/`);
-        console.log("Fallback data received:", fallbackRes.data);
-        setData(fallbackRes.data);
-      } catch (fallbackErr) {
-        const msg = fallbackErr?.response?.data?.detail || fallbackErr?.response?.data?.message || "Failed to load analytics data";
-        toast.error(msg);
-        console.error("Analytics error:", fallbackErr);
-        // Set empty data so page still renders
-        setData({
-          event_id: id,
-          event_name: "Unknown Event",
-          tickets: [],
-          count: 0,
+        const res = await api.get(`/analytics/event/${id}/`);
+        const analyticsData = res.data.analytics || res.data;
+        return {
+          event_id: analyticsData.event_info?.event_id || id,
+          event_name: analyticsData.event_info?.name || analyticsData.event_info?.event_name || "Unknown Event",
+          event_location: analyticsData.event_info?.location,
+          event_date: analyticsData.event_info?.date,
+          event_status: analyticsData.event_info?.status,
+          pricing_type: analyticsData.event_info?.pricing_type,
+          tickets: analyticsData.tickets_list || [],
+          count: analyticsData.tickets_list?.length || 0,
           statistics: {
-            confirmed: 0,
-            pending: 0,
-            cancelled: 0,
-            used: 0,
-            total_revenue: 0,
-            available_spots: "∞"
+            confirmed: analyticsData.statistics?.total_tickets_sold || 0,
+            pending: analyticsData.statistics?.pending_tickets || 0,
+            cancelled: analyticsData.statistics?.cancelled_tickets || 0,
+            used: analyticsData.statistics?.used_tickets || 0,
+            total_revenue: analyticsData.statistics?.total_revenue || 0,
+            available_spots: analyticsData.statistics?.available_spots ?? "∞"
           }
-        });
+        };
+      } catch (err) {
+        const fallbackRes = await api.get(`/tickets/organizer/${id}/tickets/`);
+        return fallbackRes.data;
       }
-    } finally {
-      setLoading(false);
-    }
-  }, [id]);
-
-  useEffect(() => {
-    fetchAnalytics();
-  }, [fetchAnalytics]);
+    },
+    enabled: !!id,
+    refetchOnWindowFocus: true
+  });
 
   const filteredTickets = data?.tickets?.filter(t => {
     const searchLower = searchTerm.toLowerCase();

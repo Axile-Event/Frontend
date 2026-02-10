@@ -1,8 +1,10 @@
 "use client";
 
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useState, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "../../../../../../lib/axios";
+import { queryKeys } from "@/lib/query-keys";
 import { 
   Copy, 
   ChevronLeft, 
@@ -372,16 +374,59 @@ function BookForAttendeeModal({ isOpen, onClose, event, eventId, onSuccess, onMa
 export default function EventDetailsPage() {
   const router = useRouter();
   const params = useParams();
+  const queryClient = useQueryClient();
   const id = params?.["my-eventId"] ?? params?.id;
 
-  const [event, setEvent] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [coverBroken, setCoverBroken] = useState(false);
   const [showBookModal, setShowBookModal] = useState(false);
   const [showBulkBookModal, setShowBulkBookModal] = useState(false);
   const [manualConfirm, setManualConfirm] = useState({ open: false, bookingId: null, totalAmount: null });
-  const isMountedRef = useRef(true);
   const setBookingId = useTempBookingStore((s) => s.setBookingId);
+
+  const { data: event, isLoading: loading } = useQuery({
+    queryKey: queryKeys.organizer.eventDetail(id),
+    queryFn: async () => {
+      const orgRes = await api.get("/organizer/events/");
+      const list = Array.isArray(orgRes.data) ? orgRes.data : (orgRes.data?.events ?? []);
+      let eventData = list.find((e) => String(e.event_id ?? e.id) === String(id));
+      if (!eventData) {
+        const publicRes = await api.get(`/events/${id}/details/`);
+        eventData = publicRes?.data;
+      }
+      if (eventData) {
+        try {
+          const ticketsRes = await api.get(`/tickets/organizer/${id}/tickets/`);
+          const stats = ticketsRes.data?.statistics || {};
+          eventData = { ...eventData, ticket_stats: { confirmed_tickets: stats.confirmed || 0, pending_tickets: stats.pending || 0, total_revenue: stats.total_revenue || 0, available_spots: stats.available_spots ?? "∞" } };
+        } catch {
+          if (!eventData.ticket_stats) eventData = { ...eventData, ticket_stats: { confirmed_tickets: 0, pending_tickets: 0, total_revenue: 0, available_spots: "∞" } };
+        }
+        try {
+          const catRes = await api.get(`/tickets/categories/?event_id=${id}`);
+          const categoriesData = Array.isArray(catRes.data) ? catRes.data : (catRes.data?.categories || []);
+          eventData = { ...eventData, ticket_categories: categoriesData };
+        } catch {
+          try {
+            const detailsRes = await api.get(`/events/${id}/details/`);
+            eventData = { ...eventData, ticket_categories: detailsRes.data?.ticket_categories || [] };
+          } catch {
+            eventData = { ...eventData, ticket_categories: [] };
+          }
+        }
+      }
+      return eventData;
+    },
+    enabled: !!id,
+    refetchOnWindowFocus: true
+  });
+
+  const invalidateEventDetail = () => {
+    queryClient.invalidateQueries({ queryKey: queryKeys.organizer.eventDetail(id) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.organizer.events });
+    queryClient.invalidateQueries({ queryKey: queryKeys.organizer.dashboard });
+    queryClient.invalidateQueries({ queryKey: queryKeys.organizer.analytics(id) });
+    queryClient.invalidateQueries({ queryKey: queryKeys.organizer.eventTickets(id) });
+  };
 
   const formattedDate = (iso) => {
     if (!iso) return "TBD";
@@ -410,92 +455,6 @@ export default function EventDetailsPage() {
       toast.error("Failed to copy link");
     });
   };
-
-  const fetchEvent = useCallback(async () => {
-    if (!id) {
-      toast.error("Invalid event id");
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    try {
-      // First, try to get event from organizer endpoint
-      const orgRes = await api.get("/organizer/events/");
-      const list = Array.isArray(orgRes.data) ? orgRes.data : (orgRes.data?.events ?? []);
-      const found = list.find((e) => String(e.event_id ?? e.id) === String(id));
-      
-      let eventData = found;
-      
-      if (!found) {
-        // Not in organizer events, try public endpoint
-        const publicRes = await api.get(`/events/${id}/details/`);
-        eventData = publicRes?.data;
-      }
-      
-      // Always fetch fresh ticket statistics for this event
-      if (eventData) {
-        try {
-          const ticketsRes = await api.get(`/tickets/organizer/${id}/tickets/`);
-          const stats = ticketsRes.data?.statistics || {};
-          // Override with fresh statistics - map API fields correctly
-          eventData.ticket_stats = {
-            confirmed_tickets: stats.confirmed || 0,
-            pending_tickets: stats.pending || 0,
-            total_revenue: stats.total_revenue || 0,
-            available_spots: stats.available_spots ?? "∞"
-          };
-        } catch (ticketErr) {
-          console.warn("Could not fetch ticket stats:", ticketErr);
-          // Keep existing ticket_stats if available
-          if (!eventData.ticket_stats) {
-            eventData.ticket_stats = {
-              confirmed_tickets: 0,
-              pending_tickets: 0,
-              total_revenue: 0,
-              available_spots: "∞"
-            };
-          }
-        }
-        
-        // Fetch fresh ticket categories
-        try {
-          const catRes = await api.get(`/tickets/categories/?event_id=${id}`);
-          console.log("Categories fetched:", catRes.data);
-          // Handle both array and object response formats
-          const categoriesData = Array.isArray(catRes.data) 
-            ? catRes.data 
-            : (catRes.data.categories || []);
-          eventData.ticket_categories = categoriesData;
-        } catch (catErr) {
-          console.warn("Could not fetch ticket categories:", catErr);
-          // Try to get from event details endpoint as fallback
-          if (!eventData.ticket_categories) {
-            try {
-              const detailsRes = await api.get(`/events/${id}/details/`);
-              eventData.ticket_categories = detailsRes.data?.ticket_categories || [];
-            } catch {
-              eventData.ticket_categories = [];
-            }
-          }
-        }
-        
-        if (isMountedRef.current) setEvent(eventData);
-      }
-    } catch (err) {
-      console.error("Error fetching event:", err);
-      if (isMountedRef.current) {
-        toast.error("Failed to load event details");
-      }
-    } finally {
-      if (isMountedRef.current) setLoading(false);
-    }
-  }, [id]);
-
-  useEffect(() => {
-    isMountedRef.current = true;
-    fetchEvent();
-    return () => { isMountedRef.current = false; };
-  }, [fetchEvent]);
 
   // --- Cover image resolution (must be computed before early returns so hooks stay in order) ---
   const rawCoverImage =
@@ -945,7 +904,7 @@ export default function EventDetailsPage() {
         onClose={() => setShowBookModal(false)}
         event={event}
         eventId={event?.event_id || event?.id || id}
-        onSuccess={fetchEvent}
+        onSuccess={invalidateEventDetail}
         onManualPaymentRequired={(bookingId, totalAmount) => {
           setBookingId(bookingId);
           setManualConfirm({ open: true, bookingId, totalAmount });
@@ -959,7 +918,7 @@ export default function EventDetailsPage() {
         onClose={() => setShowBulkBookModal(false)}
         event={event}
         eventId={event?.event_id || event?.id || id}
-        onSuccess={fetchEvent}
+        onSuccess={invalidateEventDetail}
         onManualPaymentRequired={(bookingId, totalAmount) => {
           setBookingId(bookingId);
           setManualConfirm({ open: true, bookingId, totalAmount });

@@ -34,6 +34,14 @@ export const queryKeys = {
 	organizer: {
 		profile: ['organizer', 'profile'],
 		events: ['organizer', 'events'],
-		wallet: ['organizer', 'wallet']
+		wallet: ['organizer', 'wallet'],
+		dashboard: ['organizer', 'dashboard'],
+		eventDetail: (eventId) => ['organizer', 'event', eventId],
+		analytics: (eventId) => ['organizer', 'analytics', eventId],
+		eventTickets: (eventId) => ['organizer', 'event', eventId, 'tickets'],
+		eventCategories: (eventId) => ['organizer', 'event', eventId, 'categories'],
+		banks: ['organizer', 'banks'],
+		bankAccount: ['organizer', 'bank-account'],
+		config: ['organizer', 'config']
 	}
 }
