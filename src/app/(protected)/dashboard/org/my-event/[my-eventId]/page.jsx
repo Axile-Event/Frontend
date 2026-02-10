@@ -29,7 +29,7 @@ import {
   Plus
 } from "lucide-react";
 import toast from "react-hot-toast";
-import { getImageUrl } from "../../../../../../lib/utils";
+import { getImageUrl, getErrorMessage } from "../../../../../../lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
 import CustomDropdown from "@/components/ui/CustomDropdown";
 import BulkBookForAttendeeModal from "@/components/organizer/BulkBookForAttendeeModal";
@@ -383,7 +383,7 @@ export default function EventDetailsPage() {
   const [manualConfirm, setManualConfirm] = useState({ open: false, bookingId: null, totalAmount: null });
   const setBookingId = useTempBookingStore((s) => s.setBookingId);
 
-  const { data: event, isLoading: loading } = useQuery({
+  const { data: event, isLoading: loading, isError, error } = useQuery({
     queryKey: queryKeys.organizer.eventDetail(id),
     queryFn: async () => {
       const orgRes = await api.get("/organizer/events/");
@@ -581,8 +581,45 @@ export default function EventDetailsPage() {
     </div>
   );
 
+  if (!loading && !event && !isError) {
+    return (
+      <div className="min-h-screen p-4 md:p-10 max-w-7xl mx-auto text-white pb-32 flex flex-col items-center justify-center gap-6">
+        <FileText className="w-16 h-16 text-gray-600" />
+        <h2 className="text-xl font-bold text-gray-400">Event not found</h2>
+        <p className="text-sm text-gray-500 text-center max-w-md">
+          This event may have been removed or you don&apos;t have access to view it.
+        </p>
+        <button
+          onClick={() => router.push('/dashboard/org/my-event')}
+          className="flex items-center gap-2 px-4 py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm"
+        >
+          <ChevronLeft className="w-4 h-4" /> Back to My Events
+        </button>
+      </div>
+    )
+  }
+
+  if (isError) {
+    return (
+      <div className="min-h-screen p-4 md:p-10 max-w-7xl mx-auto text-white pb-32 flex flex-col items-center justify-center gap-6">
+        <FileText className="w-16 h-16 text-rose-500/80" />
+        <h2 className="text-xl font-bold text-gray-400">Failed to load event</h2>
+        <p className="text-sm text-gray-500 text-center max-w-md">
+          {error ? getErrorMessage(error) : "Something went wrong. Please try again."}
+        </p>
+        <button
+          onClick={() => router.push('/dashboard/org/my-event')}
+          className="flex items-center gap-2 px-4 py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm"
+        >
+          <ChevronLeft className="w-4 h-4" /> Back to My Events
+        </button>
+      </div>
+    )
+  }
+
   if (!event) return null;
 
+  const eventName = event?.name ?? "";
   const showCover = Boolean(coverSrc) && !coverBroken;
   const isPaidEvent = event.pricing_type === "paid";
   const categories = event?.ticket_categories || [];
@@ -611,9 +648,9 @@ export default function EventDetailsPage() {
             <div className="flex flex-wrap items-center gap-3">
               <h1 className="text-3xl md:text-5xl font-black tracking-tight">
                 {(() => {
-                  const words = event.name.split(' ');
-                  if (words.length === 1) {
-                    return event.name;
+                  const words = (eventName || "").trim().split(/\s+/).filter(Boolean);
+                  if (words.length <= 1) {
+                    return eventName || "Untitled Event";
                   }
                   // Determine which word to highlight based on word count
                   let highlightIndex;
@@ -728,7 +765,7 @@ export default function EventDetailsPage() {
               <img
                 key={coverSrc}
                 src={coverSrc}
-                alt={event.name}
+                alt={eventName || "Event cover"}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000"
                 onError={(e) => {
                   e.stopPropagation();
