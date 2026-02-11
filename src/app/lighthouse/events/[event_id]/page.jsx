@@ -216,20 +216,27 @@ export default function AdminEventDetailsPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {event.ticket_tiers.map((tier, index) => (
+                  {event.ticket_tiers.map((tier, index) => {
+                    const available = tier.available_tickets ?? tier.quantity ?? tier.max_tickets;
+                    const isUnlimited = available == null || tier.max_tickets == null;
+                    const availableLabel = isUnlimited
+                      ? "Unlimited"
+                      : (typeof available === "number" ? available.toLocaleString() : available);
+                    return (
                     <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/40">
                       <div className="flex items-center gap-3 min-w-0">
                         <Ticket className="w-4 h-4 text-muted-foreground shrink-0" />
                         <div className="min-w-0">
                           <p className="text-sm font-medium text-foreground truncate">{tier.name}</p>
-                          <p className="text-xs text-muted-foreground">{tier.quantity ?? tier.max_tickets ?? 0} available</p>
+                          <p className="text-xs text-muted-foreground">{availableLabel} available</p>
                         </div>
                       </div>
                       <p className="text-sm font-semibold text-foreground">
                         {tier.price == 0 ? "Free" : formatCurrency(tier.price)}
                       </p>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>
