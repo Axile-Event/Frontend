@@ -2,6 +2,7 @@
 
 import { Loader2 } from "lucide-react";
 import { useAuth } from "../../../hooks/useAuth";
+import FloatingWhatsApp from "@/components/FloatingWhatsApp";
 
 export default function ProtectedLayout({ children }) {
   const { loading, authenticated } = useAuth();
@@ -21,7 +22,8 @@ export default function ProtectedLayout({ children }) {
 
   return (
     <>
-    <div>{children}</div>
+      <div>{children}</div>
+      <FloatingWhatsApp />
     </>
   );
 }
