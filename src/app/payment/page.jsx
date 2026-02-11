@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import api from "@/lib/axios";
 import useAuthStore from "@/store/authStore";
 import toast from "react-hot-toast";
+import WhatsAppModal from "@/components/WhatsAppModal";
 
 function PaymentCallbackContent() {
   const router = useRouter();
@@ -18,6 +19,7 @@ function PaymentCallbackContent() {
   const [message, setMessage] = useState("Verifying your payment...");
   const [ticketData, setTicketData] = useState(null);
   const [organizerBooking, setOrganizerBooking] = useState(null);
+  const [showWhatsAppModal, setShowWhatsAppModal] = useState(false);
 
   // Read organizer booking context IMMEDIATELY on mount
   useEffect(() => {
@@ -89,6 +91,7 @@ function PaymentCallbackContent() {
         if (response.data.message && response.data.message.includes("verified successfully")) {
           setStatus("success");
           setMessage(response.data.message);
+          setShowWhatsAppModal(true); // Show WhatsApp modal on success
           if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("tickets-updated"));
           // Extract ticket data
           const tickets = response.data.tickets || [];
@@ -116,6 +119,7 @@ function PaymentCallbackContent() {
         if (errorMessage.includes("no pending tickets") || errorMessage.includes("already confirmed")) {
           setStatus("success");
           setMessage("Payment successful! Your tickets have been confirmed. Check your email or dashboard for details.");
+          setShowWhatsAppModal(true); // Show WhatsApp modal on success
           if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("tickets-updated"));
         } else {
           setStatus("failed");
@@ -196,14 +200,21 @@ function PaymentCallbackContent() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <div className="max-w-md w-full">
-        <div className="bg-card border border-border rounded-3xl p-8 shadow-2xl">
-          {/* ORGANIZER BOOKING SUCCESS - Special UI */}
-          {organizerBooking && status === "success" ? (
-            <>
-              {/* Success Icon with Email */}
-              <div className="flex justify-center mb-6">
+    <>
+      {/* WhatsApp Modal - Shows after successful payment */}
+      <WhatsAppModal 
+        show={showWhatsAppModal} 
+        onClose={() => setShowWhatsAppModal(false)} 
+      />
+      
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="max-w-md w-full">
+          <div className="bg-card border border-border rounded-3xl p-8 shadow-2xl">
+            {/* ORGANIZER BOOKING SUCCESS - Special UI */}
+            {organizerBooking && status === "success" ? (
+              <>
+                {/* Success Icon with Email */}
+                <div className="flex justify-center mb-6">
                 <div className="relative">
                   <div className="w-20 h-20 bg-emerald-500/10 rounded-full flex items-center justify-center animate-in zoom-in-95 duration-300">
                     <UserCheck className="w-10 h-10 text-emerald-500" />
@@ -441,18 +452,19 @@ function PaymentCallbackContent() {
               )}
             </>
           )}
-        </div>
-
-        {/* Help Text */}
-        {status === "failed" && (
-          <div className="mt-6 text-center">
-            <p className="text-xs text-muted-foreground">
-              Need help? Contact support with your payment reference.
-            </p>
           </div>
-        )}
+
+          {/* Help Text */}
+          {status === "failed" && (
+            <div className="mt-6 text-center">
+              <p className="text-xs text-muted-foreground">
+                Need help? Contact support with your payment reference.
+              </p>
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
