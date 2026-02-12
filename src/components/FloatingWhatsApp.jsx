@@ -80,7 +80,7 @@ const FloatingWhatsApp = () => {
   if (!mounted) return null;
 
   return (
-    <div className="fixed bottom-24 right-4 z-[999999] md:bottom-8 md:right-8">
+    <div className="fixed bottom-6 right-6 z-[999999] md:bottom-10 md:right-10">
       <AnimatePresence>
         {!collapsed && showCard && (
           <motion.div
@@ -136,7 +136,7 @@ const FloatingWhatsApp = () => {
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95 }}
             onClick={handleIconClick}
-            className="w-14 h-14 bg-[#25D366] hover:bg-[#20BD5A] rounded-full flex items-center justify-center shadow-lg transition-colors"
+            className="w-14 h-14 bg-[#25D366] hover:bg-[#20BD5A] rounded-full flex items-center justify-center shadow-[0_4px_20px_rgba(37,211,102,0.4)] hover:shadow-[0_6px_25px_rgba(37,211,102,0.5)] transition-all duration-200"
             aria-label="Join WhatsApp Community"
           >
             <svg viewBox="0 0 24 24" className="w-7 h-7 text-white fill-current">
