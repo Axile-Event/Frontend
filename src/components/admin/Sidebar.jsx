@@ -15,7 +15,8 @@ import {
   Settings,
   History,
   Banknote,
-  FileText
+  FileText,
+  QrCode
 } from "lucide-react";
 import useAuthStore from "../../store/authStore";
 import { adminService } from "@/lib/admin";
@@ -41,6 +42,11 @@ const sidebarItems = [
     title: "Tickets",
     href: "/lighthouse/tickets",
     icon: Ticket,
+  },
+  {
+    title: "Check-in",
+    href: "/lighthouse/check-in",
+    icon: QrCode,
   },
   {
     label: "Finance",
