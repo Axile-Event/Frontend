@@ -200,6 +200,11 @@ const ManualConfirmationModal = ({
               We've received your payment confirmation. Our team will verify and
               confirm your ticket shortly.
             </p>
+            <p className="text-sm text-muted-foreground bg-muted/50 rounded-xl p-4 text-left">
+              Confirmation may take <strong>30 minutes to 2 hours</strong>. Once
+              verified, your ticket will be sent to your email—please rest
+              assured your booking is secure.
+            </p>
             <Button onClick={onClose} className="mt-4">
               Close View
             </Button>

@@ -124,6 +124,16 @@ const ManualTransferTab = ({ summary, bookingId }) => {
         </div>
       </div>
 
+      {/* Confirmation timing reassurance */}
+      <div className="bg-primary/5 border border-primary/10 rounded-xl p-4 flex gap-3">
+        <Info className="text-primary shrink-0 mt-0.5" size={18} />
+        <div className="text-xs text-muted-foreground leading-relaxed space-y-1">
+          <p>
+            Payment confirmation may take <strong>30 minutes to 2 hours</strong> while we verify your transfer. Once confirmed, your ticket will be sent to your email—please rest assured your booking is secure.
+          </p>
+        </div>
+      </div>
+
       <Button 
         onClick={() => setIsModalOpen(true)}
         className="w-full h-11 md:h-14 text-sm md:text-base variant-outline border-primary/20 hover:bg-primary/5 transition-all"
