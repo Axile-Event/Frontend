@@ -10,7 +10,6 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 
 import { ThemeProvider } from "@/components/theme-provider";
 import { QueryProvider } from "@/components/query-provider";
-import FloatingWhatsApp from "@/components/FloatingWhatsApp";
 
 const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-plus-jakarta-sans",
@@ -129,7 +128,6 @@ export default function RootLayout({ children }) {
             <AdminAwareLayout>
               {children}
             </AdminAwareLayout>
-            <FloatingWhatsApp />
             <Analytics />
             <SpeedInsights />
           </ThemeProvider>
