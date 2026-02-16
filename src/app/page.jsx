@@ -20,12 +20,12 @@ const LandingPage = () => {
   const router = useRouter();
   const [events, setEvents] = useState([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
-  const [stats] = useState({
-    events: "500+",
-    tickets: "10K+",
-    organizers: "100+",
-    satisfaction: "98%"
+  const [stats, setStats] = useState({
+    events: "—",
+    tickets: "—",
+    organizers: "—"
   });
+  const [loadingStats, setLoadingStats] = useState(true);
 
   useEffect(() => {
     if (token) {
@@ -47,6 +47,35 @@ const LandingPage = () => {
       }
     };
     fetchEvents();
+  }, []);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const response = await api.get('/event/stats/');
+        const d = response.data;
+        const formatTickets = (n) => {
+          if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M+`;
+          if (n >= 1000) return `${(n / 1000).toFixed(0)}K+`;
+          return n.toLocaleString();
+        };
+        setStats({
+          events: (d.total_events ?? 0).toLocaleString(),
+          tickets: formatTickets(d.total_tickets_sold ?? 0),
+          organizers: (d.total_organizers ?? 0).toLocaleString()
+        });
+      } catch (error) {
+        console.error("Failed to fetch platform stats", error);
+        setStats({
+          events: "—",
+          tickets: "—",
+          organizers: "—"
+        });
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+    fetchStats();
   }, []);
 
   const fadeInScale = {
@@ -186,12 +215,11 @@ const LandingPage = () => {
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
-            className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-5xl mx-auto"
+            className="grid grid-cols-2 md:grid-cols-3 gap-8 max-w-5xl mx-auto"
           >
-            <StatCard icon={<Calendar className="h-6 w-6" />} value={stats.events} label="Events Hosted" />
-            <StatCard icon={<Users className="h-6 w-6" />} value={stats.tickets} label="Tickets Sold" />
-            <StatCard icon={<Award className="h-6 w-6" />} value={stats.organizers} label="Organizers" />
-            <StatCard icon={<Star className="h-6 w-6" />} value={stats.satisfaction} label="Satisfaction" />
+            <StatCard icon={<Calendar className="h-6 w-6" />} value={loadingStats ? "…" : stats.events} label="Events Hosted" />
+            <StatCard icon={<Users className="h-6 w-6" />} value={loadingStats ? "…" : stats.tickets} label="Tickets Sold" />
+            <StatCard icon={<Award className="h-6 w-6" />} value={loadingStats ? "…" : stats.organizers} label="Organizers" />
           </motion.div>
         </div>
       </section>
