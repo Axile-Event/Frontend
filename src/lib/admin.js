@@ -298,16 +298,20 @@ export const adminService = {
   // Hiring Applications
   getHiringApplications: async (params = {}) => {
     const queryString = new URLSearchParams(params).toString();
-    const response = await api.get(`/hiring/applications/?${queryString}`);
+    const response = await api.get(
+      `/api/admin/hiring-applications/?${queryString}`,
+    );
     return response.data;
   },
   getHiringApplicationDetail: async (applicationId) => {
-    const response = await api.get(`/hiring/applications/${applicationId}/`);
+    const response = await api.get(
+      `/api/admin/hiring-applications/${applicationId}/`,
+    );
     return response.data;
   },
   updateHiringApplicationStatus: async (applicationId, status) => {
     const response = await api.patch(
-      `/hiring/applications/${applicationId}/status/`,
+      `/api/admin/hiring-applications/${applicationId}/status/`,
       { status },
     );
     return response.data;

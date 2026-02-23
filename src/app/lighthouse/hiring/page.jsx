@@ -55,7 +55,7 @@ function TabButton({ active, children, onClick }) {
 function ApplicationStatusBadge({ status }) {
   const config = {
     new: { label: "New", className: "bg-blue-500/10 text-blue-600 border-blue-500/20", icon: Clock },
-    reviewing: { label: "Reviewing", className: "bg-amber-500/10 text-amber-600 border-amber-500/20", icon: Eye },
+    reviewed: { label: "Reviewed", className: "bg-amber-500/10 text-amber-600 border-amber-500/20", icon: Eye },
     shortlisted: { label: "Shortlisted", className: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20", icon: CheckCircle },
     rejected: { label: "Rejected", className: "bg-red-500/10 text-red-600 border-red-500/20", icon: XCircle },
     hired: { label: "Hired", className: "bg-violet-500/10 text-violet-600 border-violet-500/20", icon: CheckCircle },
@@ -93,8 +93,6 @@ function RoleTypeBadge({ roleType }) {
 // ── Detail modal ──
 function ApplicationDetailModal({ application, onClose }) {
   if (!application) return null;
-
-  const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://radar-ufvb.onrender.com/";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -146,9 +144,9 @@ function ApplicationDetailModal({ application, onClose }) {
           </div>
         )}
 
-        {application.resume && (
+        {application.resume_url && (
           <a
-            href={application.resume.startsWith("http") ? application.resume : `${BASE_URL.replace(/\/$/, "")}${application.resume}`}
+            href={application.resume_url}
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 px-4 py-3 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 transition-colors text-sm font-medium"
@@ -186,7 +184,7 @@ export default function AdminHiringPage() {
       const params = { page, page_size: PAGE_SIZE };
       if (status !== "all") params.status = status;
       const data = await adminService.getHiringApplications(params);
-      setApplications(data.applications || data.results || []);
+      setApplications(data.hiring_applications || []);
       if (data.pagination) {
         setPagination({
           current_page: data.pagination.current_page,
@@ -234,7 +232,7 @@ export default function AdminHiringPage() {
   const tabs = [
     { id: "all", label: "All" },
     { id: "new", label: "New" },
-    { id: "reviewing", label: "Reviewing" },
+    { id: "reviewed", label: "Reviewed" },
     { id: "shortlisted", label: "Shortlisted" },
     { id: "hired", label: "Hired" },
     { id: "rejected", label: "Rejected" },
@@ -250,7 +248,7 @@ export default function AdminHiringPage() {
     );
   });
 
-  const statusActions = ["new", "reviewing", "shortlisted", "hired", "rejected"];
+  const statusActions = ["new", "reviewed", "shortlisted", "hired", "rejected"];
 
   const columns = [
     {
@@ -301,11 +299,13 @@ export default function AdminHiringPage() {
       render: (_, app) => <ApplicationStatusBadge status={app.status} />,
     },
     {
-      key: "resume",
+      key: "resume_url",
       label: "Resume",
       render: (_, app) =>
-        app.resume ? (
-          <FileText className="h-4 w-4 text-primary" />
+        app.resume_url ? (
+          <a href={app.resume_url} target="_blank" rel="noopener noreferrer">
+            <FileText className="h-4 w-4 text-primary hover:text-primary/80" />
+          </a>
         ) : (
           <span className="text-xs text-muted-foreground">—</span>
         ),
@@ -419,7 +419,7 @@ export default function AdminHiringPage() {
 function ApplicationStatusIcon({ status }) {
   const icons = {
     new: <Clock className="mr-2 h-4 w-4 text-blue-500" />,
-    reviewing: <Eye className="mr-2 h-4 w-4 text-amber-500" />,
+    reviewed: <Eye className="mr-2 h-4 w-4 text-amber-500" />,
     shortlisted: <CheckCircle className="mr-2 h-4 w-4 text-emerald-500" />,
     hired: <CheckCircle className="mr-2 h-4 w-4 text-violet-500" />,
     rejected: <XCircle className="mr-2 h-4 w-4 text-red-500" />,
