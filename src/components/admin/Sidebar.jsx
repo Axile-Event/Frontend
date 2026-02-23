@@ -16,7 +16,8 @@ import {
   History,
   Banknote,
   FileText,
-  QrCode
+  QrCode,
+  Briefcase
 } from "lucide-react";
 import useAuthStore from "../../store/authStore";
 import { adminService } from "@/lib/admin";
@@ -73,6 +74,11 @@ const sidebarItems = [
         icon: BarChart3,
       },
     ]
+  },
+  {
+    title: "Hiring",
+    href: "/lighthouse/hiring",
+    icon: Briefcase,
   },
   {
     title: "Settings",

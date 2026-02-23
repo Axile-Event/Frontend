@@ -48,7 +48,10 @@ export const adminService = {
       if (e.response?.status === 404 || e.response?.status === 403) {
         // Fall back to public + admin list merge for non-admin or missing event
       } else {
-        console.warn("Admin event detail failed, falling back to public merge", e);
+        console.warn(
+          "Admin event detail failed, falling back to public merge",
+          e,
+        );
       }
     }
 
@@ -90,10 +93,14 @@ export const adminService = {
       revenue: publicData.total_revenue || 0,
     };
     // Optionally enrich with user details for organizer email/phone if not in admin list
-    if (merged.organizer && !merged.organiser_email && !merged.organizer_email) {
+    if (
+      merged.organizer &&
+      !merged.organiser_email &&
+      !merged.organizer_email
+    ) {
       try {
         const userRes = await api.get(
-          `/api/admin/users/${merged.organizer}/?role=organizer`
+          `/api/admin/users/${merged.organizer}/?role=organizer`,
         );
         const user = userRes.data?.user;
         if (user) {
@@ -275,13 +282,33 @@ export const adminService = {
 
   // Event Platform Fee
   getEventPlatformFee: async (eventId) => {
-    const response = await api.get(`/api/admin/events/${eventId}/platform-fee/`);
+    const response = await api.get(
+      `/api/admin/events/${eventId}/platform-fee/`,
+    );
     return response.data;
   },
   updateEventPlatformFee: async (eventId, feeData) => {
     const response = await api.patch(
       `/api/admin/events/${eventId}/platform-fee/`,
       feeData,
+    );
+    return response.data;
+  },
+
+  // Hiring Applications
+  getHiringApplications: async (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    const response = await api.get(`/hiring/applications/?${queryString}`);
+    return response.data;
+  },
+  getHiringApplicationDetail: async (applicationId) => {
+    const response = await api.get(`/hiring/applications/${applicationId}/`);
+    return response.data;
+  },
+  updateHiringApplicationStatus: async (applicationId, status) => {
+    const response = await api.patch(
+      `/hiring/applications/${applicationId}/status/`,
+      { status },
     );
     return response.data;
   },
