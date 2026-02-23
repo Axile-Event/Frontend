@@ -397,9 +397,9 @@ export default function EventDetailsPage() {
         try {
           const ticketsRes = await api.get(`/tickets/organizer/${id}/tickets/`);
           const stats = ticketsRes.data?.statistics || {};
-          eventData = { ...eventData, ticket_stats: { confirmed_tickets: stats.confirmed || 0, pending_tickets: stats.pending || 0, total_revenue: stats.total_revenue || 0, available_spots: stats.available_spots ?? "∞" } };
+          eventData = { ...eventData, ticket_stats: { confirmed_tickets: stats.confirmed || 0, tickets_sold: stats.sold ?? (stats.confirmed || 0) + (stats.used || 0), pending_tickets: stats.pending || 0, total_revenue: stats.total_revenue || 0, available_spots: stats.available_spots ?? "∞" } };
         } catch {
-          if (!eventData.ticket_stats) eventData = { ...eventData, ticket_stats: { confirmed_tickets: 0, pending_tickets: 0, total_revenue: 0, available_spots: "∞" } };
+          if (!eventData.ticket_stats) eventData = { ...eventData, ticket_stats: { confirmed_tickets: 0, tickets_sold: 0, pending_tickets: 0, total_revenue: 0, available_spots: "∞" } };
         }
         try {
           const catRes = await api.get(`/tickets/categories/?event_id=${id}`);
@@ -626,7 +626,7 @@ export default function EventDetailsPage() {
   const freeEventCategoryName = categories.length > 0 ? categories[0].name : "General Admission";
 
   const stats = [
-    { label: "Bookings", value: event.ticket_stats?.confirmed_tickets ?? 0, icon: <Ticket className="w-5 h-5 text-rose-500" />, color: "rose" },
+    { label: "Bookings", value: event.ticket_stats?.tickets_sold ?? event.ticket_stats?.confirmed_tickets ?? 0, icon: <Ticket className="w-5 h-5 text-rose-500" />, color: "rose" },
     { label: "Available", value: event.ticket_stats?.available_spots ?? "∞", icon: <Users className="w-5 h-5 text-emerald-500" />, color: "emerald" },
     // Only show revenue for paid events
     ...(isPaidEvent ? [{ label: "Revenue", value: `₦${(event.ticket_stats?.total_revenue ?? 0).toLocaleString()}`, icon: <CreditCard className="w-5 h-5 text-blue-500" />, color: "blue" }] : []),

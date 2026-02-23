@@ -39,6 +39,7 @@ const MyEvent = () => {
               ...event,
               ticket_stats: {
                 confirmed_tickets: stats.confirmed || 0,
+                tickets_sold: stats.sold ?? (stats.confirmed || 0) + (stats.used || 0),
                 pending_tickets: stats.pending || 0,
                 total_revenue: stats.total_revenue || 0,
                 available_spots: stats.available_spots ?? "∞"
@@ -50,6 +51,7 @@ const MyEvent = () => {
               ...event,
               ticket_stats: event.ticket_stats || {
                 confirmed_tickets: 0,
+                tickets_sold: 0,
                 pending_tickets: 0,
                 total_revenue: 0,
                 available_spots: "∞"
@@ -307,7 +309,7 @@ const MyEvent = () => {
                       <div>
                         <p className="text-[9px] text-gray-600 font-black uppercase tracking-widest mb-0.5">Bookings</p>
                         <p className="text-base font-bold text-white leading-none">
-                          {(ev.ticket_stats?.confirmed_tickets ?? 0).toLocaleString()}
+                          {(ev.ticket_stats?.tickets_sold ?? ev.ticket_stats?.confirmed_tickets ?? 0).toLocaleString()}
                           <span className="text-[9px] text-gray-500 font-medium ml-1">/ {typeof ev.ticket_stats?.available_spots === 'number' ? ev.ticket_stats.available_spots.toLocaleString() : (ev.ticket_stats?.available_spots ?? '∞')}</span>
                         </p>
                       </div>

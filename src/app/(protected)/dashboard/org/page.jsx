@@ -42,7 +42,7 @@ export default function Overview() {
       let eventsData = [];
       if (eventsRes.status === "fulfilled") {
         eventsData = eventsRes.value.data.events || [];
-        totalTicketsFromEvents = eventsData.reduce((t, e) => t + (e.ticket_stats?.confirmed_tickets || 0), 0);
+        totalTicketsFromEvents = eventsData.reduce((t, e) => t + (e.ticket_stats?.tickets_sold ?? e.ticket_stats?.confirmed_tickets ?? 0), 0);
       }
       const recentEvents = [...eventsData].sort((a, b) =>
         new Date(b.created_at || b.date) - new Date(a.created_at || a.date)
@@ -238,7 +238,7 @@ export default function Overview() {
         if (eventsRes.status === 'fulfilled') {
           eventsData = eventsRes.value.data.events || [];
           totalTicketsFromEvents = eventsData.reduce((total, event) => {
-            return total + (event.ticket_stats?.confirmed_tickets || 0);
+            return total + (event.ticket_stats?.tickets_sold ?? event.ticket_stats?.confirmed_tickets ?? 0);
           }, 0);
         }
 
@@ -555,7 +555,7 @@ export default function Overview() {
                           </div>
                         )}
                         <div>
-                           <p className="text-blue-500 font-bold text-sm">{event.ticket_stats?.confirmed_tickets || 0}</p>
+                           <p className="text-blue-500 font-bold text-sm">{event.ticket_stats?.tickets_sold ?? event.ticket_stats?.confirmed_tickets ?? 0}</p>
                            <p className="text-[10px] text-gray-500 font-bold">Sold</p>
                         </div>
                      </div>
