@@ -29,6 +29,7 @@ const Footer = () => {
   const supportLinks = [
     { label: 'Contact Us', href: '/contact' },
     { label: 'Help Center', href: '/help' },
+    { label: 'Careers', href: '/hiring' },
   ];
 
   const legalLinks = [

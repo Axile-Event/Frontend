@@ -38,7 +38,7 @@ function startTokenRefreshTimer() {
     try {
       const refreshUrl = `${api.defaults.baseURL?.replace(
         /\/$/,
-        ""
+        "",
       )}/token/refresh/`;
       const res = await axios.post(refreshUrl, { refresh: refreshToken });
       const newAccess = res?.data?.access;
@@ -152,18 +152,19 @@ api.interceptors.request.use(
     }
 
     const token = getToken();
-    // Do not attach token for auth endpoints
+    // Do not attach token for auth / public endpoints
     const isAuthEndpoint =
       config.url?.includes("/login/") ||
       config.url?.includes("/signup/") ||
-      config.url?.includes("/token/refresh/");
+      config.url?.includes("/token/refresh/") ||
+      config.url?.includes("/hiring/");
 
     if (token && !isAuthEndpoint) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => Promise.reject(error),
 );
 
 // --------------------
@@ -212,7 +213,7 @@ api.interceptors.response.use(
 
       const refreshUrl = `${api.defaults.baseURL?.replace(
         /\/$/,
-        ""
+        "",
       )}/token/refresh/`;
 
       return new Promise((resolve, reject) => {
@@ -258,6 +259,7 @@ api.interceptors.response.use(
                 "/login",
                 "/signup",
                 "/verify-otp",
+                "/hiring",
               ];
               const currentPath =
                 typeof window !== "undefined" ? window.location.pathname : "";
@@ -279,7 +281,7 @@ api.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 // Export functions to control token refresh timer

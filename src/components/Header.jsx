@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import api from "@/lib/axios";
-import { Menu, X, User, LogOut, LayoutDashboard, Home, Calendar, Ticket, Zap } from "lucide-react";
+import { Menu, X, User, LogOut, LayoutDashboard, Home, Calendar, Ticket, Zap, Briefcase } from "lucide-react";
 import Logo from "./Logo";
 import { Button } from "./ui/button";
 import useAuthStore from "@/store/authStore";
@@ -85,6 +85,9 @@ const Header = () => {
             </Link>
             <Link href="/features" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
               Features
+            </Link>
+            <Link href="/hiring" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+              Hiring
             </Link>
             {user ? (
               <>
@@ -291,6 +294,14 @@ const Header = () => {
                       >
                         <Calendar className="h-5 w-5" />
                         Discover Events
+                      </Link>
+                      <Link
+                        href="/hiring"
+                        onClick={closeMenu}
+                        className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white transition-colors w-full"
+                      >
+                        <Briefcase className="h-5 w-5" />
+                        Hiring
                       </Link>
                       <Link href="/login" onClick={closeMenu}>
                         <Button variant="outline" className="w-full border-gray-700 text-gray-300 h-12">
