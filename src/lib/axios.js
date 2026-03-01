@@ -265,7 +265,8 @@ api.interceptors.response.use(
                 typeof window !== "undefined" ? window.location.pathname : "";
               const isPublicPath =
                 publicPaths.includes(currentPath) ||
-                currentPath.startsWith("/events/");
+                currentPath.startsWith("/events/") ||
+                currentPath.startsWith("/hiring/");
 
               if (typeof window !== "undefined" && !isPublicPath) {
                 window.location.href = "/login";
