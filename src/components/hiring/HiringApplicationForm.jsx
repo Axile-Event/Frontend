@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/select-component";
 import { fetchRoleTypes, submitApplication } from "@/lib/hiringService";
 
-const HiringApplicationForm = () => {
+const HiringApplicationForm = ({ defaultPosition = "", defaultRoleType = "" }) => {
   // ── Role types from API ──
   const [roleTypes, setRoleTypes] = useState([]);
   const [roleTypesLoading, setRoleTypesLoading] = useState(true);
@@ -27,10 +27,13 @@ const HiringApplicationForm = () => {
     full_name: "",
     email: "",
     phone: "",
-    role_type: "",
-    position: "",
+    role_type: defaultRoleType,
+    position: defaultPosition,
     cover_message: "",
   });
+
+  const isPositionPrefilled = Boolean(defaultPosition);
+  const isRoleTypePrefilled = Boolean(defaultRoleType);
   const [resume, setResume] = useState(null);
   const fileInputRef = useRef(null);
 
@@ -125,7 +128,7 @@ const HiringApplicationForm = () => {
       const result = await submitApplication({ ...form, resume: resume || undefined });
       setSuccess(result.message || "Application submitted successfully!");
       // Clear form
-      setForm({ full_name: "", email: "", phone: "", role_type: "", position: "", cover_message: "" });
+      setForm({ full_name: "", email: "", phone: "", role_type: defaultRoleType, position: defaultPosition, cover_message: "" });
       removeFile();
     } catch (err) {
       const status = err?.response?.status;
@@ -245,37 +248,41 @@ const HiringApplicationForm = () => {
           )}
         </motion.div>
 
-        <motion.div custom={3} variants={fadeIn} initial="hidden" animate="visible" className="space-y-2">
-          <Label>
-            Role Type <span className="text-destructive">*</span>
-          </Label>
-          {roleTypesLoading ? (
-            <div className="h-12 rounded-xl bg-muted/50 border border-border flex items-center px-4">
-              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground mr-2" />
-              <span className="text-sm text-muted-foreground">Loading roles…</span>
-            </div>
-          ) : roleTypesError ? (
-            <div className="h-12 rounded-xl bg-destructive/5 border border-destructive/20 flex items-center px-4">
-              <span className="text-sm text-destructive">{roleTypesError}</span>
-            </div>
-          ) : (
-            <Select value={form.role_type} onValueChange={handleRoleTypeChange}>
-              <SelectTrigger className="bg-muted/50 border-border h-12 rounded-xl">
-                <SelectValue placeholder="Select role type" />
-              </SelectTrigger>
-              <SelectContent>
-                {roleTypes.map((rt) => (
-                  <SelectItem key={rt.value} value={rt.value}>
-                    {rt.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-          {fieldErrors.role_type && (
-            <p className="text-xs text-destructive mt-1">{fieldErrors.role_type[0]}</p>
-          )}
-        </motion.div>
+        {isRoleTypePrefilled ? (
+          <input type="hidden" name="role_type" value={form.role_type} />
+        ) : (
+          <motion.div custom={3} variants={fadeIn} initial="hidden" animate="visible" className="space-y-2">
+            <Label>
+              Role Type <span className="text-destructive">*</span>
+            </Label>
+            {roleTypesLoading ? (
+              <div className="h-12 rounded-xl bg-muted/50 border border-border flex items-center px-4">
+                <Loader2 className="h-4 w-4 animate-spin text-muted-foreground mr-2" />
+                <span className="text-sm text-muted-foreground">Loading roles…</span>
+              </div>
+            ) : roleTypesError ? (
+              <div className="h-12 rounded-xl bg-destructive/5 border border-destructive/20 flex items-center px-4">
+                <span className="text-sm text-destructive">{roleTypesError}</span>
+              </div>
+            ) : (
+              <Select value={form.role_type} onValueChange={handleRoleTypeChange}>
+                <SelectTrigger className="bg-muted/50 border-border h-12 rounded-xl">
+                  <SelectValue placeholder="Select role type" />
+                </SelectTrigger>
+                <SelectContent>
+                  {roleTypes.map((rt) => (
+                    <SelectItem key={rt.value} value={rt.value}>
+                      {rt.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            {fieldErrors.role_type && (
+              <p className="text-xs text-destructive mt-1">{fieldErrors.role_type[0]}</p>
+            )}
+          </motion.div>
+        )}
       </div>
 
       {/* Position */}
@@ -288,8 +295,9 @@ const HiringApplicationForm = () => {
           name="position"
           placeholder="e.g. Frontend Developer, Marketing Intern"
           value={form.position}
-          onChange={handleChange}
-          className="bg-muted/50 border-border h-12 rounded-xl"
+          onChange={isPositionPrefilled ? undefined : handleChange}
+          readOnly={isPositionPrefilled}
+          className={`bg-muted/50 border-border h-12 rounded-xl ${isPositionPrefilled ? "opacity-70 cursor-not-allowed" : ""}`}
         />
         {fieldErrors.position && (
           <p className="text-xs text-destructive mt-1">{fieldErrors.position[0]}</p>
