@@ -167,6 +167,9 @@ export default function JobDetailClient({ role }) {
                       </li>
                     ))}
                   </ul>
+                  <p className="mt-6 text-xs text-muted-foreground/70 italic leading-relaxed">
+                    PS – You don&apos;t have to meet all the requirements. As long as you&apos;re ready to learn, we&apos;re willing to make you a pro.
+                  </p>
                 </div>
               </motion.div>
 
@@ -209,7 +212,6 @@ export default function JobDetailClient({ role }) {
                 </h2>
                 <HiringApplicationForm
                   defaultPosition={role.title}
-                  defaultRoleType={role.roleType}
                 />
               </motion.div>
             </div>
