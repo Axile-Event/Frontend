@@ -14,12 +14,11 @@ const PaymentSummary = ({ summary, activeTab }) => {
     paystackFee = 0, // Paystack processing fee
     platformFee = 0, // Combined fees (fallback)
     totalPaystack = 0,
-    totalManual = 0 
   } = summary || {};
 
   // Determine which fees to show based on active tab
   const isPaystack = activeTab === "paystack";
-  const currentTotal = isPaystack ? totalPaystack : totalManual;
+  const currentTotal = isPaystack ? totalPaystack : 0;
 
   return (
     <Card className="border-border bg-card/50 backdrop-blur-sm">
@@ -110,12 +109,6 @@ const PaymentSummary = ({ summary, activeTab }) => {
             </div>
           )}
 
-          {/* Show note for manual transfer */}
-          {!isPaystack && (
-            <div className="mt-2 text-xs text-muted-foreground/70 italic">
-              No payment processing fee for bank transfer
-            </div>
-          )}
         </div>
 
         <Separator className="bg-border/50" />
@@ -130,11 +123,6 @@ const PaymentSummary = ({ summary, activeTab }) => {
             {isPaystack && paystackFee > 0 && (
               <p className="text-[10px] text-muted-foreground mt-0.5">
                 Includes ₦{(serviceFee + paystackFee).toLocaleString()} in fees
-              </p>
-            )}
-            {!isPaystack && serviceFee > 0 && (
-              <p className="text-[10px] text-muted-foreground mt-0.5">
-                Includes ₦{serviceFee.toLocaleString()} service fee
               </p>
             )}
           </div>

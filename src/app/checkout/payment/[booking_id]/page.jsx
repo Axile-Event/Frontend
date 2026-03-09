@@ -19,7 +19,6 @@ import toast from "react-hot-toast";
 import PaymentSummary from "@/components/payment/PaymentSummary";
 import PaymentTabs from "@/components/payment/PaymentTabs";
 import PaystackTab from "@/components/payment/PaystackTab";
-import ManualTransferTab from "@/components/payment/ManualTransferTab";
 
 // Platform service fee (charged to customer)
 const PLATFORM_FEE = 80;
@@ -106,7 +105,7 @@ export default function CheckoutPaymentPage() {
           const platformFee = serviceFee + paystackFee; // Combined: ₦80 + Paystack fee
           // const total = subtotal + platformFee;
           const totalPaystack = subtotal + platformFee;
-          const totalManual = subtotal + serviceFee;
+        
 
           setBookingData({
             booking_id: parsed.booking_id,
@@ -121,7 +120,6 @@ export default function CheckoutPaymentPage() {
             paystackFee: paystackFee, // Paystack processing fee
             platformFee: platformFee, // Combined fees (for backwards compatibility)
             totalPaystack,
-            totalManual,
             payment_url: parsed.payment_url,
             payment_reference: parsed.payment_reference,
           });
@@ -283,20 +281,12 @@ export default function CheckoutPaymentPage() {
             {/* Left: Payment Options (wider) */}
             <div className="lg:col-span-3 space-y-3 md:space-y-4">
               <PaymentTabs activeTab={activeTab} onChange={setActiveTab} />
-
               <div>
-                {activeTab === "paystack" ? (
                   <PaystackTab
                     summary={bookingData}
                     onPay={handlePayWithPaystack}
                     loading={paymentLoading}
                   />
-                ) : (
-                  <ManualTransferTab 
-                    summary={bookingData}
-                    bookingId={decodeURIComponent(booking_id)}
-                  />
-                )}
               </div>
             </div>
 
@@ -368,7 +358,7 @@ export default function CheckoutPaymentPage() {
           <div>
             <p className="text-[10px] text-muted-foreground">Total Amount</p>
             <p className="text-base font-bold">
-              ₦{activeTab === "paystack" ? bookingData?.totalPaystack?.toLocaleString() : bookingData?.totalManual?.toLocaleString()}
+              ₦{activeTab === "paystack" ? bookingData?.totalPaystack?.toLocaleString() : 0}
             </p>
           </div>
           {activeTab === "paystack" && (
