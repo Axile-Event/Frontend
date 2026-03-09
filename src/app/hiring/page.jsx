@@ -95,7 +95,7 @@ export default function HiringPage() {
               <p>
                 We&apos;re a young, ambitious team passionate about events,
                 technology, and building products that solve real problems. From
-                campus concerts to city-wide festivals, Axile is becoming the
+                intimate concerts to city-wide festivals, Axile is becoming the
                 go-to platform for events in Nigeria.
               </p>
               <p>
