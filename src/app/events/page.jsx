@@ -91,7 +91,7 @@ const PublicEventsPage = () => {
             </Link>
             <div>
                <h1 className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-2">Explore Events</h1>
-               <p className="text-gray-400 text-lg">Discover the latest events happening on campus.</p>
+               <p className="text-gray-400 text-lg">Discover the latest events happening near you.</p>
             </div>
           </div>
           

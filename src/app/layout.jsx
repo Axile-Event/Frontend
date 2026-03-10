@@ -72,6 +72,9 @@ export const metadata = {
     ],
   },
   manifest: "/site.webmanifest",
+  other: {
+    "color-scheme": "dark light",
+  },
 };
 
 export const viewport = {
@@ -85,6 +88,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <meta name="color-scheme" content="dark light" />
         <meta httpEquiv="Permissions-Policy" content="camera=(self), microphone=(self)" />
         <link rel="icon" href="/axile-logo-cropped.png?v=8" sizes="any" />
         <link rel="shortcut icon" href="/axile-logo-cropped.png?v=8" type="image/png" />

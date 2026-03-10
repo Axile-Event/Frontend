@@ -1,6 +1,6 @@
 # Axile - Modern Event Ticketing Platform
 
-Axile is a comprehensive event ticketing platform designed to streamline event management and ticket purchasing. Built with modern web technologies, it provides a seamless experience for event organizers, students, and administrators.
+Axile is a comprehensive event ticketing platform designed to streamline event management and ticket purchasing. Built with modern web technologies, it provides a seamless experience for event organizers, attendees, and administrators.
 
 The PIN module provides functionality for managing Personal Identification Numbers (PINs) for organizers in the Axile system. It handles PIN creation, storage, and recovery operations with secure password hashing.
 
@@ -184,7 +184,7 @@ src/
 - Payout management
 - Event analytics dashboard
 
-### For Students
+### For Attendees
 - Browse and discover events
 - Purchase tickets
 - Manage purchased tickets

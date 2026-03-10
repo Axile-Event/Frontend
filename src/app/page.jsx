@@ -144,7 +144,7 @@ const LandingPage = () => {
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-sm font-medium"
             >
               <Sparkles className="h-4 w-4 text-primary" />     
-              <span className="text-primary">Nigeria's #1 Campus Ticketing Platform</span>
+              <span className="text-primary">Nigeria's #1 Event Ticketing Platform</span>
             </motion.div>
             
             {/* Main Headline */}
@@ -169,7 +169,7 @@ const LandingPage = () => {
               variants={fadeInScale}
               className="text-lg md:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed"
             >
-              The all-in-one platform connecting <span className="text-foreground font-semibold">students</span> to unforgettable events and empowering <span className="text-foreground font-semibold">organizers</span> to sell out shows.
+              The all-in-one platform connecting <span className="text-foreground font-semibold">attendees</span> to unforgettable events and empowering <span className="text-foreground font-semibold">organizers</span> to sell out shows.
             </motion.p>
 
             {/* CTA Buttons */}
@@ -409,7 +409,7 @@ const LandingPage = () => {
             <FeatureCard 
               icon={<Users className="h-10 w-10" />}
               title="Community Hub"
-              description="Connect with fellow students, discover communities, and build lasting networks through shared experiences."
+              description="Connect with fellow attendees, discover communities, and build lasting networks through shared experiences."
               color="bg-blue-500/10 text-blue-500"
             />
             <FeatureCard 
@@ -437,7 +437,7 @@ const LandingPage = () => {
                 Trusted by the community
               </h2>
               <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-                Join thousands of students and organizers who've made Axile their go-to platform for the 2026 season.
+                Join thousands of attendees and organizers who've made Axile their go-to platform for the 2026 season.
               </p>
             </motion.div>
           </div>
@@ -457,7 +457,7 @@ const LandingPage = () => {
             <TestimonialCard 
               quote="I love how easy it is to discover events. The QR code ticketing is super convenient - no more paper tickets!"
               author="Chioma Okafor"
-              role="Final Year Student"
+              role="Event Enthusiast"
             />
             <TestimonialCard 
               quote="As an event organizer, having all my ticket sales and attendee data in one place has been a game-changer."
@@ -497,7 +497,7 @@ const LandingPage = () => {
               </span>
             </h2>
             <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              Join our community today and discover why Axile is the #1 choice for campus events in 2026.
+              Join our community today and discover why Axile is the #1 choice for memorable events in 2026.
             </p>
             <motion.div 
               whileHover={{ scale: 1.05 }}

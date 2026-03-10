@@ -21,14 +21,14 @@ const PRICING_PLANS = [
   {
     name: "Free Events",
     price: "₦0",
-    description: "Perfect for community gatherings and student meetups.",
+    description: "Perfect for community gatherings and small meetups.",
     features: [
       "No platform fees",
       "Unlimited tickets",
       "Digital QR scanning",
       "Event analytics",
       "Community messaging",
-      "24/7 Student support"
+      "24/7 Customer support"
     ],
     cta: "Start for Free",
     href: "/signup",
