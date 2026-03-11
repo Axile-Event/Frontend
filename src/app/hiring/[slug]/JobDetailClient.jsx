@@ -212,6 +212,7 @@ export default function JobDetailClient({ role }) {
                 </h2>
                 <HiringApplicationForm
                   defaultPosition={role.title}
+                  roleType={role.roleType}
                 />
               </motion.div>
             </div>

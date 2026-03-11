@@ -3,7 +3,7 @@
  * @property {string} slug
  * @property {string} title
  * @property {string} team
- * @property {"intern"} roleType
+ * @property {"intern" | "administrative"} roleType
  * @property {string} employmentType
  * @property {string} location
  * @property {string} duration
@@ -206,6 +206,40 @@ export const hiringRoles = [
       "Existing relationships with Nigerian media outlets or journalists",
       "Experience with PR tools (Muck Rack, Cision, or similar)",
       "Previous internship or work experience in a PR or communications role",
+    ],
+  },
+  {
+    slug: "administrative-officer",
+    title: "Administrative Officer",
+    team: "Administration",
+    roleType: "administrative",
+    employmentType: "Full-time",
+    location: "Hybrid (Nigeria)",
+    duration: "Indefinite",
+    description:
+      "As an Administrative Officer at Axile.ng, you will be the backbone of our operational excellence. You'll manage day-to-day administrative tasks, support human resources, coordinate team communications, and ensure the smooth running of our business operations. This role is ideal for organized, detail-oriented individuals looking to build a career in operations and business administration.",
+    responsibilities: [
+      "Manage daily administrative tasks and office operations (virtual or physical)",
+      "Coordinate team schedules, meetings, and internal communications",
+      "Support recruitment and onboarding processes for new team members",
+      "Draft official documents, reports, and internal policies",
+      "Handle basic bookkeeping and expense tracking",
+      "Assist with vendor management and procurement of services",
+      "Support the leadership team with administrative needs and special projects",
+    ],
+    requirements: [
+      "Proven experience as an administrative officer, office manager, or similar role",
+      "Strong organizational and multitasking abilities",
+      "Excellent written and verbal communication skills",
+      "Proficiency in office software (Google Workspace, Microsoft Office, Slack)",
+      "Attention to detail and problem-solving skills",
+      "Degree in Business Administration, Management, or a related field",
+      "Ability to handle confidential information with discretion",
+    ],
+    niceToHave: [
+      "Experience working in a tech startup environment",
+      "Basic understanding of HR practices and Nigerian labor laws",
+      "Experience with project management tools (Trello, Asana, etc.)",
     ],
   },
 ];
