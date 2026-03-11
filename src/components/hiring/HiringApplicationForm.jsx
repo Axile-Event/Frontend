@@ -46,7 +46,7 @@ const conditionalSlide = {
 };
 
 /** @param {{ defaultPosition: string }} props */
-const HiringApplicationForm = ({ defaultPosition = "" }) => {
+const HiringApplicationForm = ({ defaultPosition = "", roleType = "intern" }) => {
   const [form, setForm] = useState({
     ...INITIAL_FORM,
     position: defaultPosition,
@@ -134,7 +134,7 @@ const HiringApplicationForm = ({ defaultPosition = "" }) => {
         full_name: form.full_name,
         email: form.email,
         phone: form.phone,
-        role_type: "intern",
+        role_type: roleType,
         position: form.position,
         cover_message: form.motivation,
       });
