@@ -34,7 +34,7 @@ export async function submitApplication(data) {
     role_type: data.role_type,
     position: data.position,
     cover_message: data.cover_message,
-    are_you_student: isStudent,
+    is_student: isStudent,
     // Only include student fields if they are a student, otherwise set to null
     university: isStudent ? data.university : null,
     department: isStudent ? data.department : null,

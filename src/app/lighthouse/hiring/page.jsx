@@ -137,9 +137,9 @@ function ApplicationDetailModal({ application, onClose }) {
           </div>
           <div className="col-span-2">
             <p className="text-muted-foreground text-xs mb-1">Student</p>
-            <p className="font-medium">{application.is_student ? "Yes" : "No"}</p>
+            <p className="font-medium">{(application.is_student || application.are_you_student) ? "Yes" : "No"}</p>
           </div>
-          {application.is_student && (
+          {(application.is_student || application.are_you_student) && (
             <>
               <div>
                 <p className="text-muted-foreground text-xs mb-1">University</p>
@@ -332,7 +332,7 @@ export default function AdminHiringPage() {
       label: "Student",
       render: (_, app) => (
         <span className="text-xs font-medium text-muted-foreground">
-          {app.is_student ? "Yes" : "No"}
+          {(app.is_student || app.are_you_student) ? "Yes" : "No"}
         </span>
       ),
     },
