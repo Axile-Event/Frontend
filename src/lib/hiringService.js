@@ -25,6 +25,8 @@ export async function fetchRoleTypes() {
  * @returns {Promise<{message: string, application_id: number}>}
  */
 export async function submitApplication(data) {
+  const isStudent = data.are_you_student === "yes";
+  
   const payload = {
     full_name: data.full_name,
     email: data.email,
@@ -32,6 +34,11 @@ export async function submitApplication(data) {
     role_type: data.role_type,
     position: data.position,
     cover_message: data.cover_message,
+    are_you_student: isStudent,
+    // Only include student fields if they are a student, otherwise set to null
+    university: isStudent ? data.university : null,
+    department: isStudent ? data.department : null,
+    level: isStudent ? data.level : null,
   };
 
   return (await api.post("/hiring/apply/", payload)).data;
