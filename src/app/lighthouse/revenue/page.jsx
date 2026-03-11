@@ -122,10 +122,25 @@ export default function RevenuePage() {
   const [totalTransactions, setTotalTransactions] = useState(0);
   const [currentWithdrawalPage, setCurrentWithdrawalPage] = useState(1);
   const itemsPerPage = 20;
+  const [revenueStats, setRevenueStats] = useState([]);
+  const [revenuePeriod, setRevenuePeriod] = useState("monthly");
 
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const data = await adminService.getRevenueStats(revenuePeriod, 12);
+        setRevenueStats(data.revenue_stats || []);
+      } catch (e) {
+        console.error("Failed to fetch revenue stats", e);
+        setRevenueStats([]);
+      }
+    };
+    fetchStats();
+  }, [revenuePeriod]);
 
   useEffect(() => {
     if (activeTab === 'transactions' && !transactionsError) {
@@ -138,7 +153,6 @@ export default function RevenuePage() {
     
     const results = await Promise.allSettled([
       adminService.getAnalytics(),
-      adminService.getPlatformRevenueBreakdown(),
       adminService.getAllWithdrawals({ page: 1, page_size: 100 }),
       adminService.getPaymentTransactions({ limit: itemsPerPage, offset: 0 })
     ]);
@@ -150,21 +164,17 @@ export default function RevenuePage() {
     }
 
     if (results[1].status === 'fulfilled') {
-      setPlatformRevenueBreakdown(results[1].value);
-    }
-    
-    if (results[2].status === 'fulfilled') {
-      setWithdrawals(results[2].value?.withdrawals || []);
+      setWithdrawals(results[1].value?.withdrawals || []);
     } else {
-      console.error("Failed to fetch withdrawals:", results[2].reason);
+      console.error("Failed to fetch withdrawals:", results[1].reason);
     }
 
-    if (results[3].status === 'fulfilled') {
-      setTransactions(results[3].value?.transactions || []);
-      setTotalTransactions(results[3].value?.total_count || 0);
+    if (results[2].status === 'fulfilled') {
+      setTransactions(results[2].value?.transactions || []);
+      setTotalTransactions(results[2].value?.total_count || 0);
       setTransactionsError(false);
     } else {
-      console.error("Failed to fetch transactions:", results[3].reason);
+      console.error("Failed to fetch transactions:", results[2].reason);
       setTransactionsError(true);
     }
     
@@ -224,7 +234,7 @@ export default function RevenuePage() {
         <StatCard
           title="Platform Revenue"
           value={formatCurrency(totalRevenue)}
-          subtitle="Fees from completed ticket sales only (not organizer earnings)"
+          subtitle="Fees from ticket sales"
           icon={DollarSign}
         />
         <StatCard 
@@ -247,6 +257,68 @@ export default function RevenuePage() {
         />
       </div>
 
+      {/* Revenue by period (weekly / monthly) */}
+      <Card className="border-border/40 bg-card/50 backdrop-blur-sm">
+        <CardHeader className="pb-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <CardTitle className="text-sm font-medium">Revenue by period</CardTitle>
+            <div className="flex gap-1 p-1 bg-muted/30 rounded-xl border border-border/40">
+              <TabButton
+                active={revenuePeriod === "monthly"}
+                onClick={() => setRevenuePeriod("monthly")}
+              >
+                Monthly
+              </TabButton>
+              <TabButton
+                active={revenuePeriod === "weekly"}
+                onClick={() => setRevenuePeriod("weekly")}
+              >
+                Weekly
+              </TabButton>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-0">
+          {revenueStats.length === 0 ? (
+            <div className="py-12 text-center">
+              <TrendingUp className="w-8 h-8 mx-auto text-muted-foreground/40 mb-2" />
+              <p className="text-sm text-muted-foreground">No revenue data for this period</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-end gap-1 sm:gap-2 h-48">
+                {revenueStats.map((item) => {
+                  const maxVal = Math.max(...revenueStats.map((r) => r.total_revenue), 1);
+                  const pct = maxVal > 0 ? (item.total_revenue / maxVal) * 100 : 0;
+                  return (
+                    <div
+                      key={item.period}
+                      className="flex-1 min-w-0 flex flex-col items-center gap-1 group"
+                      title={`${item.period}: ${formatCurrency(item.total_revenue)}`}
+                    >
+                      <div
+                        className="w-full rounded-t bg-primary/70 hover:bg-primary transition-colors min-h-[4px]"
+                        style={{ height: `${Math.max(pct, 2)}%` }}
+                      />
+                      <span className="text-[10px] text-muted-foreground truncate max-w-full" title={item.period}>
+                        {item.period}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground border-t border-border/40 pt-3">
+                {revenueStats.map((item) => (
+                  <span key={item.period}>
+                    <strong className="text-foreground">{item.period}</strong>: {formatCurrency(item.total_revenue)}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Revenue Breakdown Cards */}
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="border-border/40 bg-card/50 backdrop-blur-sm">
@@ -257,7 +329,7 @@ export default function RevenuePage() {
             <div className="flex items-center justify-between py-3 border-b border-border/40">
               <div>
                 <p className="text-sm font-medium text-foreground">Total Platform Revenue</p>
-                <p className="text-xs text-muted-foreground">Sum of platform_fee from completed ticket sales only (Axile revenue, not organizer)</p>
+                <p className="text-xs text-muted-foreground">All-time</p>
               </div>
               <p className="text-lg font-semibold text-foreground">{formatCurrency(totalRevenue)}</p>
             </div>
@@ -270,26 +342,15 @@ export default function RevenuePage() {
                 {formatCurrency(avgRevenuePerEvent, false)}
               </p>
             </div>
-            <div className="flex items-center justify-between py-3 border-b border-border/40">
+            <div className="flex items-center justify-between py-3">
               <div>
                 <p className="text-sm font-medium text-foreground">Average per Organizer</p>
-                <p className="text-xs text-muted-foreground">Platform revenue per organizer (not their earnings)</p>
+                <p className="text-xs text-muted-foreground">Revenue per organizer</p>
               </div>
               <p className="text-lg font-semibold text-foreground">
                 {formatCurrency(avgRevenuePerOrganizer, false)}
               </p>
             </div>
-            {platformRevenueBreakdown && (
-              <div className="flex items-center justify-between py-3">
-                <div>
-                  <p className="text-sm font-medium text-foreground">Verification</p>
-                  <p className="text-xs text-muted-foreground">{platformRevenueBreakdown.note}</p>
-                  <p className="text-[10px] text-muted-foreground mt-1">
-                    {platformRevenueBreakdown.transaction_count} completed ticket sale(s)
-                  </p>
-                </div>
-              </div>
-            )}
           </CardContent>
         </Card>
 

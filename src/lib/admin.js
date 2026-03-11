@@ -25,6 +25,12 @@ export const adminService = {
     const response = await api.get("/api/admin/dashboard/platform-revenue/");
     return response.data;
   },
+  getRevenueStats: async (period = "monthly", limit = 12) => {
+    const response = await api.get(
+      `/api/admin/dashboard/revenue-stats/?period=${period}&limit=${limit}`
+    );
+    return response.data;
+  },
   getRecentEvents: async (limit = 10) => {
     const response = await api.get(
       `/api/admin/dashboard/recent-events/?limit=${limit}`,

@@ -125,7 +125,7 @@ export default function AdminDashboardPage() {
           title="Platform Revenue"
           value={formatCurrency(stats?.total_revenue || 0)}
           icon={DollarSign}
-          description="Fees from completed ticket sales only (not organizer earnings)"
+          description="Fees from ticket sales"
         />
         <MetricCard 
           title="Organizers" 
