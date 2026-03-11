@@ -39,16 +39,6 @@ const PublicEventsPage = () => {
         // Past: closed status
         const closed = eventsData.filter(event => event.status === 'closed');
         
-        // MOCK for verification
-        if (closed.length === 0 && eventsData.length > 0) {
-          closed.push({
-            ...eventsData[0],
-            event_id: 'mock-closed',
-            event_name: 'Past Tech Conference 2025',
-            status: 'closed'
-          });
-        }
-        
         setEvents(shuffleArray([...active]));
         setPastEvents(shuffleArray([...closed]));
       } catch (error) {
