@@ -12,6 +12,7 @@ import {
 	XCircle,
 	Trash2,
 	Eye,
+	Star,
 } from "lucide-react";
 import { adminService } from "../../../lib/admin";
 import { toast } from "react-hot-toast";
@@ -90,6 +91,17 @@ export default function EventsPage() {
     } catch (error) {
       console.error(error);
       toast.error("Failed to update event status");
+    }
+  };
+
+  const handleToggleFeatured = async (eventId, isFeatured) => {
+    try {
+      await adminService.toggleEventFeatured(eventId, !isFeatured);
+      toast.success(isFeatured ? "Event removed from featured" : "Event marked as featured");
+      queryClient.invalidateQueries({ queryKey: queryKeys.events.adminAll });
+    } catch (error) {
+      console.error(error);
+      toast.error("Failed to update featured status");
     }
   };
 
@@ -285,6 +297,18 @@ export default function EventsPage() {
               <CheckCircle className="w-4 h-4" />
             </Button>
           )}
+          <Button
+            size="sm"
+            variant="ghost"
+            className={cn(
+              "h-8 w-8 p-0",
+              event.is_featured ? "text-amber-500 hover:text-amber-600 hover:bg-amber-500/10" : "text-muted-foreground hover:text-amber-500"
+            )}
+            onClick={() => handleToggleFeatured(event.event_id, event.is_featured)}
+            title={event.is_featured ? "Unfeature" : "Feature"}
+          >
+            <Star className={cn("w-4 h-4", event.is_featured && "fill-current")} />
+          </Button>
           <Button
             size="sm"
             variant="ghost"
