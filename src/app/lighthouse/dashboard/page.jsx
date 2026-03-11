@@ -109,23 +109,23 @@ export default function AdminDashboardPage() {
       </div>
 
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-5">
-        <MetricCard 
-          title="Total Users" 
-          value={(stats?.total_students || 0) + (stats?.total_organisers || 0)} 
+        <MetricCard
+          title="Total Users"
+          value={(stats?.total_students || 0) + (stats?.total_organisers || 0)}
           icon={Users}
-          subtitle={`${stats?.total_students || 0} students · ${stats?.total_organisers || 0} organizers`}
+          description={`${stats?.total_students || 0} students · ${stats?.total_organisers || 0} organizers`}
         />
-        <MetricCard 
-          title="Total Events" 
-          value={stats?.total_events || 0} 
+        <MetricCard
+          title="Total Events"
+          value={stats?.total_events || 0}
           icon={Calendar}
-          subtitle="Events on platform"
+          description="Events on platform"
         />
-        <MetricCard 
-          title="Total Revenue" 
-          value={formatCurrency(stats?.total_revenue || 0)} 
+        <MetricCard
+          title="Platform Revenue"
+          value={formatCurrency(stats?.total_revenue || 0)}
           icon={DollarSign}
-          subtitle="Platform earnings"
+          description="Fees from completed ticket sales only (not organizer earnings)"
         />
         <MetricCard 
           title="Organizers" 

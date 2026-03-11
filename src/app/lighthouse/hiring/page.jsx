@@ -135,6 +135,30 @@ function ApplicationDetailModal({ application, onClose }) {
                 : "—"}
             </p>
           </div>
+          <div className="col-span-2">
+            <p className="text-muted-foreground text-xs mb-1">Student</p>
+            <p className="font-medium">{application.is_student ? "Yes" : "No"}</p>
+          </div>
+          {application.is_student && (
+            <>
+              <div>
+                <p className="text-muted-foreground text-xs mb-1">University</p>
+                <p className="font-medium">{application.university || "—"}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground text-xs mb-1">Faculty</p>
+                <p className="font-medium">{application.faculty || "—"}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground text-xs mb-1">Department</p>
+                <p className="font-medium">{application.department || "—"}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground text-xs mb-1">Level</p>
+                <p className="font-medium">{application.level || "—"}</p>
+              </div>
+            </>
+          )}
         </div>
 
         {application.cover_message && (
@@ -142,18 +166,6 @@ function ApplicationDetailModal({ application, onClose }) {
             <p className="text-muted-foreground text-xs mb-1">Cover Message</p>
             <p className="text-sm bg-muted/50 rounded-xl p-4 leading-relaxed">{application.cover_message}</p>
           </div>
-        )}
-
-        {application.resume_url && (
-          <a
-            href={application.resume_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 px-4 py-3 rounded-xl bg-primary/10 text-primary hover:bg-primary/20 transition-colors text-sm font-medium"
-          >
-            <Download className="h-4 w-4" />
-            Download Resume
-          </a>
         )}
       </div>
     </div>
@@ -173,16 +185,19 @@ export default function AdminHiringPage() {
     has_previous: false,
   });
   const [filterStatus, setFilterStatus] = useState("all");
+  const [filterStudent, setFilterStudent] = useState("all"); // 'all' | 'student' | 'non-student'
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedApp, setSelectedApp] = useState(null);
   const { confirm } = useConfirmModal();
 
-  const fetchApplications = async (page = 1, status = filterStatus) => {
+  const fetchApplications = async (page = 1, status = filterStatus, isStudent = filterStudent) => {
     setLoading(true);
     try {
       const params = { page, page_size: PAGE_SIZE };
       if (status !== "all") params.status = status;
+      if (isStudent === "student") params.is_student = "true";
+      if (isStudent === "non-student") params.is_student = "false";
       const data = await adminService.getHiringApplications(params);
       setApplications(data.hiring_applications || []);
       if (data.pagination) {
@@ -205,12 +220,12 @@ export default function AdminHiringPage() {
   };
 
   useEffect(() => {
-    fetchApplications(currentPage, filterStatus);
-  }, [currentPage, filterStatus]);
+    fetchApplications(currentPage, filterStatus, filterStudent);
+  }, [currentPage, filterStatus, filterStudent]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterStatus]);
+  }, [filterStatus, filterStudent]);
 
   const handleStatusChange = async (application, newStatus) => {
     const confirmed = await confirm({
@@ -229,7 +244,7 @@ export default function AdminHiringPage() {
     }
   };
 
-  const tabs = [
+  const statusTabs = [
     { id: "all", label: "All" },
     { id: "new", label: "New" },
     { id: "reviewed", label: "Reviewed" },
@@ -238,13 +253,21 @@ export default function AdminHiringPage() {
     { id: "rejected", label: "Rejected" },
   ];
 
+  const studentTabs = [
+    { id: "all", label: "All" },
+    { id: "student", label: "Students" },
+    { id: "non-student", label: "Non-students" },
+  ];
+
   const filteredApplications = applications.filter((a) => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     return (
       (a.full_name && a.full_name.toLowerCase().includes(q)) ||
       (a.email && a.email.toLowerCase().includes(q)) ||
-      (a.position && a.position.toLowerCase().includes(q))
+      (a.position && a.position.toLowerCase().includes(q)) ||
+      (a.university && a.university.toLowerCase().includes(q)) ||
+      (a.department && a.department.toLowerCase().includes(q))
     );
   });
 
@@ -299,16 +322,13 @@ export default function AdminHiringPage() {
       render: (_, app) => <ApplicationStatusBadge status={app.status} />,
     },
     {
-      key: "resume_url",
-      label: "Resume",
-      render: (_, app) =>
-        app.resume_url ? (
-          <a href={app.resume_url} target="_blank" rel="noopener noreferrer">
-            <FileText className="h-4 w-4 text-primary hover:text-primary/80" />
-          </a>
-        ) : (
-          <span className="text-xs text-muted-foreground">—</span>
-        ),
+      key: "is_student",
+      label: "Student",
+      render: (_, app) => (
+        <span className="text-xs font-medium text-muted-foreground">
+          {app.is_student ? "Yes" : "No"}
+        </span>
+      ),
     },
     {
       key: "created_at",
@@ -367,26 +387,43 @@ export default function AdminHiringPage() {
   return (
     <>
       <div className="space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex gap-1 p-1 bg-muted/30 rounded-xl border border-border/40 overflow-x-auto">
-            {tabs.map((tab) => (
-              <TabButton
-                key={tab.id}
-                active={filterStatus === tab.id}
-                onClick={() => setFilterStatus(tab.id)}
-              >
-                {tab.label}
-              </TabButton>
-            ))}
-          </div>
-          <div className="relative w-full sm:w-72">
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Status</span>
+              <div className="flex gap-1 p-1 bg-muted/30 rounded-xl border border-border/40 overflow-x-auto">
+                {statusTabs.map((tab) => (
+                  <TabButton
+                    key={tab.id}
+                    active={filterStatus === tab.id}
+                    onClick={() => setFilterStatus(tab.id)}
+                  >
+                    {tab.label}
+                  </TabButton>
+                ))}
+              </div>
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide sm:ml-4">Type</span>
+              <div className="flex gap-1 p-1 bg-muted/30 rounded-xl border border-border/40">
+                {studentTabs.map((tab) => (
+                  <TabButton
+                    key={tab.id}
+                    active={filterStudent === tab.id}
+                    onClick={() => setFilterStudent(tab.id)}
+                  >
+                    {tab.label}
+                  </TabButton>
+                ))}
+              </div>
+            </div>
+            <div className="relative w-full sm:w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by name, email, position..."
+              placeholder="Search by name, email, position, university..."
               className="pl-9 h-10 bg-card/50 border-border/40"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
+            </div>
           </div>
         </div>
 

@@ -21,6 +21,10 @@ export const adminService = {
     const response = await api.get("/api/admin/dashboard/analytics/");
     return response.data.analytics;
   },
+  getPlatformRevenueBreakdown: async () => {
+    const response = await api.get("/api/admin/dashboard/platform-revenue/");
+    return response.data;
+  },
   getRecentEvents: async (limit = 10) => {
     const response = await api.get(
       `/api/admin/dashboard/recent-events/?limit=${limit}`,

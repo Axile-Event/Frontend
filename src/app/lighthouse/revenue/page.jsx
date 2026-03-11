@@ -136,34 +136,35 @@ export default function RevenuePage() {
   const fetchData = async () => {
     setLoading(true);
     
-    // Use Promise.allSettled to handle partial failures gracefully
     const results = await Promise.allSettled([
       adminService.getAnalytics(),
-      adminService.getAllWithdrawals({ page: 1, page_size: 100 }), // Fetch more to allow client-side pagination or initial view
+      adminService.getPlatformRevenueBreakdown(),
+      adminService.getAllWithdrawals({ page: 1, page_size: 100 }),
       adminService.getPaymentTransactions({ limit: itemsPerPage, offset: 0 })
     ]);
-    
-    // Handle analytics result
+
     if (results[0].status === 'fulfilled') {
       setStats(results[0].value);
     } else {
       console.error("Failed to fetch analytics:", results[0].reason);
     }
-    
-    // Handle withdrawals result
+
     if (results[1].status === 'fulfilled') {
-      setWithdrawals(results[1].value?.withdrawals || []);
-    } else {
-      console.error("Failed to fetch withdrawals:", results[1].reason);
+      setPlatformRevenueBreakdown(results[1].value);
     }
     
-    // Handle transactions result
     if (results[2].status === 'fulfilled') {
-      setTransactions(results[2].value?.transactions || []);
-      setTotalTransactions(results[2].value?.total_count || 0);
+      setWithdrawals(results[2].value?.withdrawals || []);
+    } else {
+      console.error("Failed to fetch withdrawals:", results[2].reason);
+    }
+
+    if (results[3].status === 'fulfilled') {
+      setTransactions(results[3].value?.transactions || []);
+      setTotalTransactions(results[3].value?.total_count || 0);
       setTransactionsError(false);
     } else {
-      console.error("Failed to fetch transactions:", results[2].reason);
+      console.error("Failed to fetch transactions:", results[3].reason);
       setTransactionsError(true);
     }
     
@@ -220,10 +221,10 @@ export default function RevenuePage() {
     <div className="space-y-6">
       {/* Stats Overview */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard 
-          title="Total Revenue" 
-          value={formatCurrency(totalRevenue)} 
-          subtitle="Platform fees collected"
+        <StatCard
+          title="Platform Revenue"
+          value={formatCurrency(totalRevenue)}
+          subtitle="Fees from completed ticket sales only (not organizer earnings)"
           icon={DollarSign}
         />
         <StatCard 
@@ -256,7 +257,7 @@ export default function RevenuePage() {
             <div className="flex items-center justify-between py-3 border-b border-border/40">
               <div>
                 <p className="text-sm font-medium text-foreground">Total Platform Revenue</p>
-                <p className="text-xs text-muted-foreground">All-time earnings</p>
+                <p className="text-xs text-muted-foreground">Sum of platform_fee from completed ticket sales only (Axile revenue, not organizer)</p>
               </div>
               <p className="text-lg font-semibold text-foreground">{formatCurrency(totalRevenue)}</p>
             </div>
@@ -269,15 +270,26 @@ export default function RevenuePage() {
                 {formatCurrency(avgRevenuePerEvent, false)}
               </p>
             </div>
-            <div className="flex items-center justify-between py-3">
+            <div className="flex items-center justify-between py-3 border-b border-border/40">
               <div>
                 <p className="text-sm font-medium text-foreground">Average per Organizer</p>
-                <p className="text-xs text-muted-foreground">Revenue per organizer</p>
+                <p className="text-xs text-muted-foreground">Platform revenue per organizer (not their earnings)</p>
               </div>
               <p className="text-lg font-semibold text-foreground">
                 {formatCurrency(avgRevenuePerOrganizer, false)}
               </p>
             </div>
+            {platformRevenueBreakdown && (
+              <div className="flex items-center justify-between py-3">
+                <div>
+                  <p className="text-sm font-medium text-foreground">Verification</p>
+                  <p className="text-xs text-muted-foreground">{platformRevenueBreakdown.note}</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    {platformRevenueBreakdown.transaction_count} completed ticket sale(s)
+                  </p>
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
