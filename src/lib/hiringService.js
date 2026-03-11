@@ -32,6 +32,10 @@ export async function submitApplication(data) {
     role_type: data.role_type,
     position: data.position,
     cover_message: data.cover_message,
+    are_you_student: data.are_you_student,
+    university: data.university,
+    department: data.department,
+    level: data.level,
   };
 
   return (await api.post("/hiring/apply/", payload)).data;

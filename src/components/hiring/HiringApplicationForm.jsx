@@ -193,6 +193,10 @@ const HiringApplicationForm = ({ defaultPosition = "", roleType = "intern" }) =>
         role_type: roleType,
         position: form.position,
         cover_message: form.motivation,
+        are_you_student: form.are_you_student,
+        university: form.university,
+        department: form.department,
+        level: form.level,
       });
 
       setSuccess(result.message || "Application submitted successfully!");
