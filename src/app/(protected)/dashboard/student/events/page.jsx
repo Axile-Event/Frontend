@@ -11,6 +11,7 @@ import { EventsGridSkeleton } from "@/components/skeletons";
 
 const EventsPage = () => {
   const [events, setEvents] = useState([]);
+  const [pastEvents, setPastEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState("all");
@@ -31,9 +32,14 @@ const EventsPage = () => {
       try {
         const response = await api.get("/event/");
         const eventsData = Array.isArray(response.data) ? response.data : (response.data.events || []);
-        // Only show verified events to students
-        const verifiedEvents = eventsData.filter(event => !event.status || event.status === 'verified'); 
-        setEvents(shuffleArray([...verifiedEvents]));
+        
+        // Active: verified or no status
+        const active = eventsData.filter(event => !event.status || event.status === 'verified');
+        // Past: closed status
+        const closed = eventsData.filter(event => event.status === 'closed');
+        
+        setEvents(shuffleArray([...active]));
+        setPastEvents(shuffleArray([...closed]));
       } catch (error) {
         console.error("Error fetching events:", error);
       } finally {
@@ -57,9 +63,6 @@ const EventsPage = () => {
     }
 
     if (filter === 'latest') {
-       // Sort by creation date (newest created first)
-       // If created_at is available, use it. Otherwise, use event_id as a proxy for creation order (descending)
-       // or fallback to event_date.
        return filtered.sort((a, b) => {
           const dateA = new Date(a.created_at || a.event_date);
           const dateB = new Date(b.created_at || b.event_date);
@@ -73,6 +76,9 @@ const EventsPage = () => {
   };
 
   const filteredEvents = getFilteredAndSortedEvents();
+  const filteredPastEvents = pastEvents.filter((event) =>
+    event.event_name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   if (loading) {
     return <EventsGridSkeleton />;
@@ -119,113 +125,140 @@ const EventsPage = () => {
       </div>
 
       {/* Content */}
-      {events.length === 0 ? (
-        // Empty State
-        <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-3 md:space-y-4">
-          <CalendarIcon className="h-16 w-16 md:h-24 md:w-24 text-muted-foreground/50" />
-          <h2 className="text-xl md:text-2xl font-bold text-foreground">No Events Yet</h2>
-        </div>
-      ) : (
-        // Events Grid
-        <div className="space-y-4 md:space-y-6">
-          <h2 className="text-lg md:text-xl font-semibold">Upcoming Events</h2>
-          
-          {filteredEvents.length === 0 ? (
-             <div className="text-center py-8 md:py-10">
-                <p className="text-sm md:text-base text-muted-foreground">No events match your search.</p>
-             </div>
-          ) : (
-            <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredEvents.map((event, index) => (
-                <motion.div
-                  key={event.event_id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: index * 0.05 }}
-                >
-                  <Link href={`/dashboard/student/events/${event.event_slug || event.event_id}`}>
-                    <div className="group relative aspect-4/3 overflow-hidden rounded-xl md:rounded-2xl bg-muted cursor-pointer">
-                      {/* Background Image */}
-                      {event.event_image ? (
-                        <img
-                          src={getImageUrl(event.event_image)}
-                          alt={event.event_name}
-                          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-                        />
-                      ) : (
-                        <div className="h-full w-full bg-gray-800 flex items-center justify-center">
-                           <CalendarIcon className="h-10 w-10 md:h-12 md:w-12 text-gray-600" />
-                        </div>
-                      )}
-
-                      {/* Gradient Overlay */}
-                      <div className="absolute inset-0 bg-linear-to-t from-black/90 via-black/40 to-transparent" />
-
-                      {/* Badges */}
-                      <div className="absolute top-3 left-3 flex flex-col gap-2">
-                        <div className="px-2 py-1 rounded-lg bg-primary/90 text-white text-[10px] font-bold uppercase tracking-wider shadow-lg shadow-primary/20 w-fit">
-                          {event.event_type}
-                        </div>
-                      </div>
-
-                      <div className="absolute top-3 right-3">
-                         <div className="px-2 py-1 rounded-lg bg-black/60 backdrop-blur-md text-[10px] font-semibold border border-gray-600/70 text-white">
-                           {event.pricing_type === 'free' ? 'Free' : `₦${event.event_price}`}
-                         </div>
-                      </div>
-
-                      {/* Content Overlay */}
-                      <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
-                        <h3 className="text-lg font-bold leading-tight mb-2">
-                          {event.event_name}
-                        </h3>
-                        
-                        <div className="flex flex-wrap gap-y-1 gap-x-3 text-xs text-gray-300 mb-2">
-                          <div className="flex items-center gap-1">
-                            <MapPin className="h-3 w-3" />
-                            <span className="line-clamp-1 max-w-[120px]">{event.event_location}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <CalendarIcon className="h-3 w-3" />
-                            <span>
-                              {new Date(event.event_date).toLocaleDateString('en-US', {
-                                weekday: 'short',
-                                month: 'short',
-                                day: 'numeric'
-                              })}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center justify-between mt-1">
-                          <div className="flex items-center gap-1 text-xs text-gray-300">
-                            <Clock className="h-3 w-3" />
-                            <span>
-                              {new Date(event.event_date).toLocaleTimeString('en-US', {
-                                hour: 'numeric',
-                                minute: '2-digit',
-                                hour12: true
-                              })}
-                            </span>
-                          </div>
-                          
-                          <span className={`font-bold text-sm ${
-                            event.pricing_type === 'free' ? 'text-green-400' : 'text-yellow-400'
-                          }`}>
-                            {event.pricing_type === 'free' ? 'Free' : `₦${event.event_price}`}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-                </motion.div>
-              ))}
+      <div className="space-y-10">
+        {events.length === 0 && pastEvents.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-[60vh] text-center space-y-3 md:space-y-4">
+            <CalendarIcon className="h-16 w-16 md:h-24 md:w-24 text-muted-foreground/50" />
+            <h2 className="text-xl md:text-2xl font-bold text-foreground">No Events Yet</h2>
+          </div>
+        ) : (
+          <>
+            {/* Upcoming Events */}
+            <div className="space-y-4 md:space-y-6">
+              <h2 className="text-lg md:text-xl font-semibold">Upcoming Events</h2>
+              {filteredEvents.length === 0 && events.length > 0 ? (
+                 <div className="text-center py-8 md:py-10">
+                    <p className="text-sm md:text-base text-muted-foreground">No active events match your search.</p>
+                 </div>
+              ) : (
+                <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                  {filteredEvents.map((event, index) => (
+                    <EventCard key={event.event_id} event={event} index={index} />
+                  ))}
+                </div>
+              )}
             </div>
-          )}
-        </div>
-      )}
+
+            {/* Past Events */}
+            {filteredPastEvents.length > 0 && (
+              <div className="space-y-4 md:space-y-6 pt-6 border-t border-border">
+                <h2 className="text-lg md:text-xl font-semibold">Past Events</h2>
+                <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                  {filteredPastEvents.map((event, index) => (
+                    <EventCard key={event.event_id} event={event} index={index} isPast />
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {filteredEvents.length === 0 && filteredPastEvents.length === 0 && (searchQuery) && (
+           <div className="text-center py-10">
+              <p className="text-sm md:text-base text-muted-foreground">No events match "{searchQuery}"</p>
+           </div>
+        )}
+      </div>
     </div>
   );
 };
+
+const EventCard = ({ event, index, isPast = false }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.3, delay: index * 0.05 }}
+  >
+    <Link href={`/dashboard/student/events/${event.event_slug || event.event_id}`}>
+      <div className={`group relative aspect-4/3 overflow-hidden rounded-xl md:rounded-2xl bg-muted cursor-pointer transition-all duration-300 ${isPast ? 'grayscale opacity-80 hover:grayscale-0 hover:opacity-100' : ''}`}>
+        {/* Background Image */}
+        {event.event_image ? (
+          <img
+            src={getImageUrl(event.event_image)}
+            alt={event.event_name}
+            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          />
+        ) : (
+          <div className="h-full w-full bg-gray-800 flex items-center justify-center">
+             <CalendarIcon className="h-10 w-10 md:h-12 md:w-12 text-gray-600" />
+          </div>
+        )}
+
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 bg-linear-to-t from-black/90 via-black/40 to-transparent" />
+
+        {/* Badges */}
+        <div className="absolute top-3 left-3 flex flex-col gap-2">
+          {!isPast && (
+            <div className="px-2 py-1 rounded-lg bg-primary/90 text-white text-[10px] font-bold uppercase tracking-wider shadow-lg shadow-primary/20 w-fit">
+              {event.event_type}
+            </div>
+          )}
+        </div>
+
+        <div className="absolute top-3 right-3">
+           <div className="px-2 py-1 rounded-lg bg-black/60 backdrop-blur-md text-[10px] font-semibold border border-gray-600/70 text-white">
+             {isPast ? 'Closed' : (event.pricing_type === 'free' ? 'Free' : `₦${event.event_price}`)}
+           </div>
+        </div>
+
+        {/* Content Overlay */}
+        <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
+          <h3 className="text-lg font-bold leading-tight mb-2">
+            {event.event_name}
+          </h3>
+          
+          <div className="flex flex-wrap gap-y-1 gap-x-3 text-xs text-gray-300 mb-2">
+            <div className="flex items-center gap-1">
+              <MapPin className="h-3 w-3" />
+              <span className="line-clamp-1 max-w-[120px]">{event.event_location}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <CalendarIcon className="h-3 w-3" />
+              <span>
+                {new Date(event.event_date).toLocaleDateString('en-US', {
+                  weekday: 'short',
+                  month: 'short',
+                  day: 'numeric'
+                })}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between mt-1">
+             <div className="flex items-center gap-1 text-xs text-gray-300">
+               <Clock className="h-3 w-3" />
+               <span>
+                 {new Date(event.event_date).toLocaleTimeString('en-US', {
+                   hour: 'numeric',
+                   minute: '2-digit',
+                   hour12: true
+                 })}
+               </span>
+             </div>
+             
+             {!isPast && (
+               <span className={`font-bold text-sm ${
+                 event.pricing_type === 'free' ? 'text-green-400' : 'text-yellow-400'
+               }`}>
+                 {event.pricing_type === 'free' ? 'Free' : `₦${event.event_price}`}
+               </span>
+             )}
+          </div>
+        </div>
+      </div>
+    </Link>
+  </motion.div>
+);
 
 export default EventsPage;

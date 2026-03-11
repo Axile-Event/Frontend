@@ -12,6 +12,7 @@ import { EventsGridSkeleton } from "@/components/skeletons";
 
 const PublicEventsPage = () => {
   const [events, setEvents] = useState([]);
+  const [pastEvents, setPastEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState("all"); 
@@ -32,10 +33,14 @@ const PublicEventsPage = () => {
       try {
         const response = await api.get("/event/");
         const eventsData = Array.isArray(response.data) ? response.data : (response.data.events || []);
-        // Only show verified events to public
-        const verifiedEvents = eventsData.filter(event => !event.status || event.status === 'verified');
-        // Randomize initial load
-        setEvents(shuffleArray([...verifiedEvents]));
+        
+        // Active: verified or no status
+        const active = eventsData.filter(event => !event.status || event.status === 'verified');
+        // Past: closed status
+        const closed = eventsData.filter(event => event.status === 'closed');
+        
+        setEvents(shuffleArray([...active]));
+        setPastEvents(shuffleArray([...closed]));
       } catch (error) {
         console.error("Error fetching events:", error);
       } finally {
@@ -61,21 +66,16 @@ const PublicEventsPage = () => {
     if (filter === 'latest') {
        return filtered.sort((a, b) => new Date(b.event_date) - new Date(a.event_date));
     } else if (filter === 'popular') {
-       // Placeholder: In a real app, sort by ticket_sales or views. 
-       // For now, we'll just return the current list (which is likely randomized or in default order) 
-       // or we could re-shuffle if we wanted a different "random" look for popular.
-       // Let's just keep it as is, or maybe sort by price descending as a proxy? No, random is better for discovery.
        return filtered; 
     } else {
-       // 'all' - just return the list (which was randomized on load).
-       // Note: If we want 'all' to ALWAYS be random, we might need to re-shuffle here, 
-       // but that causes re-renders on every keystroke. 
-       // Best to stick with the initial random order for stability.
        return filtered;
     }
   };
 
   const filteredEvents = getFilteredAndSortedEvents();
+  const filteredPastEvents = pastEvents.filter((event) =>
+    event.event_name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   return (
     <div className="min-h-screen bg-[#0A0A14] bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.15),rgba(255,255,255,0))]">
@@ -132,18 +132,51 @@ const PublicEventsPage = () => {
         {/* Content */}
         {loading ? (
           <EventsGridSkeleton showBackButton />
-        )
- : events.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 rounded-3xl bg-white/5 border border-white/10">
-            <div className="h-20 w-20 rounded-full bg-black/40 flex items-center justify-center">
-                <CalendarIcon className="h-10 w-10 text-gray-500" />
-            </div>
-            <h2 className="text-2xl font-bold text-white">No Events Found</h2>
-            <p className="text-gray-400 max-w-md">We couldn't find any events at the moment. Please check again later.</p>
-          </div>
         ) : (
-          <div className="space-y-6">
-            {filteredEvents.length === 0 ? (
+          <div className="space-y-16">
+            {events.length === 0 && pastEvents.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 text-center space-y-4 rounded-3xl bg-white/5 border border-white/10">
+                <div className="h-20 w-20 rounded-full bg-black/40 flex items-center justify-center">
+                    <CalendarIcon className="h-10 w-10 text-gray-500" />
+                </div>
+                <h2 className="text-2xl font-bold text-white">No Events Found</h2>
+                <p className="text-gray-400 max-w-md">We couldn't find any events at the moment. Please check again later.</p>
+              </div>
+            ) : (
+              <>
+                {/* Active Events */}
+                <div className="space-y-6">
+                  {filteredEvents.length === 0 && events.length > 0 ? (
+                    <div className="text-center py-10">
+                      <p className="text-xl text-gray-400">No active events match "{searchQuery}"</p>
+                    </div>
+                  ) : (
+                    <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                      {filteredEvents.map((event, index) => (
+                        <EventCard key={event.event_id} event={event} index={index} />
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Past Events */}
+                {filteredPastEvents.length > 0 && (
+                  <div className="space-y-8 pt-8 border-t border-white/5">
+                    <div>
+                      <h2 className="text-2xl md:text-3xl font-bold text-white mb-2">Past Events</h2>
+                      <p className="text-gray-400">Relive the moments from our recently concluded events.</p>
+                    </div>
+                    <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                      {filteredPastEvents.map((event, index) => (
+                        <EventCard key={event.event_id} event={event} index={index} isPast />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {filteredEvents.length === 0 && filteredPastEvents.length === 0 && (searchQuery) && (
                <div className="text-center py-20">
                   <p className="text-xl text-gray-400">No events match "{searchQuery}"</p>
                   <Button 
@@ -154,78 +187,6 @@ const PublicEventsPage = () => {
                     Clear Search
                   </Button>
                </div>
-            ) : (
-              <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-                {filteredEvents.map((event, index) => (
-                  <motion.div
-                    key={event.event_id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: index * 0.05 }}
-                  >
-                    <Link href={`/events/${event.event_slug || event.event_id}`}>
-                      <div className="group relative aspect-[4/3] overflow-hidden rounded-2xl bg-[#0F0F16] border border-white/10 cursor-pointer hover:border-primary/50 transition-all duration-300 shadow-xl">
-                        {/* Background Image */}
-                        {event.event_image ? (
-                          <img
-                            src={getImageUrl(event.event_image)}
-                            alt={event.event_name}
-                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
-                          />
-                        ) : (
-                          <div className="h-full w-full bg-[#1A1A24] flex items-center justify-center">
-                             <CalendarIcon className="h-16 w-16 text-gray-700 opacity-50" />
-                          </div>
-                        )}
-
-                        {/* Gradient Overlay */}
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
-
-                        {/* Badges */}
-                        <div className="absolute top-4 right-4 flex gap-2">
-                           <div className="px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md text-xs font-semibold border border-white/10 text-white">
-                             {event.pricing_type === 'free' ? 'Free' : `₦${event.event_price}`}
-                           </div>
-                        </div>
-                        
-                         <div className="absolute top-4 left-4 px-3 py-1.5 rounded-full bg-primary/90 text-white text-[10px] font-bold uppercase tracking-wider shadow-lg shadow-primary/20">
-                            {event.event_type}
-                         </div>
-
-                        {/* Content Overlay */}
-                        <div className="absolute bottom-0 left-0 right-0 p-5 text-white transform transition-transform duration-300">
-                          <h3 className="text-xl font-bold leading-tight mb-3 line-clamp-1 group-hover:text-primary transition-colors">
-                            {event.event_name}
-                          </h3>
-                          
-                          <div className="flex flex-col gap-2.5 text-sm text-gray-300">
-                            <div className="flex items-center gap-2.5">
-                              <MapPin className="h-4 w-4 text-gray-500" />
-                              <span className="line-clamp-1 opacity-90">{event.event_location}</span>
-                            </div>
-                            <div className="flex items-center gap-2.5">
-                                  <CalendarIcon className="h-4 w-4 text-gray-500" />
-                                  <span className="opacity-90">
-                                    {new Date(event.event_date).toLocaleDateString('en-US', {
-                                      month: 'short',
-                                      day: 'numeric',
-                                      weekday: 'short'
-                                    })}
-                                    {' • '}
-                                    {new Date(event.event_date).toLocaleTimeString('en-US', {
-                                      hour: 'numeric',
-                                      minute: '2-digit',
-                                      hour12: true
-                                    })}
-                                  </span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </Link>
-                  </motion.div>
-                ))}
-              </div>
             )}
           </div>
         )}
@@ -233,5 +194,70 @@ const PublicEventsPage = () => {
     </div>
   );
 };
+
+const EventCard = ({ event, index, isPast = false }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.3, delay: index * 0.05 }}
+  >
+    <Link href={`/events/${event.event_slug || event.event_id}`}>
+      <div className={`group relative aspect-[4/3] overflow-hidden rounded-2xl bg-[#0F0F16] border border-white/10 cursor-pointer transition-all duration-300 shadow-xl ${isPast ? 'grayscale opacity-80 hover:grayscale-0 hover:opacity-100' : 'hover:border-primary/50'}`}>
+        {/* Background Image */}
+        {event.event_image ? (
+          <img
+            src={getImageUrl(event.event_image)}
+            alt={event.event_name}
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+          />
+        ) : (
+          <div className="h-full w-full bg-[#1A1A24] flex items-center justify-center">
+             <CalendarIcon className="h-16 w-16 text-gray-700 opacity-50" />
+          </div>
+        )}
+
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
+
+        {/* Badges */}
+        <div className="absolute top-4 right-4 flex gap-2">
+           <div className={`px-3 py-1.5 rounded-full bg-black/60 backdrop-blur-md text-xs font-semibold border border-white/10 text-white ${isPast ? 'bg-black/80' : ''}`}>
+             {isPast ? 'Closed' : (event.pricing_type === 'free' ? 'Free' : `₦${event.event_price}`)}
+           </div>
+        </div>
+        
+         {!isPast && (
+           <div className="absolute top-4 left-4 px-3 py-1.5 rounded-full bg-primary/90 text-white text-[10px] font-bold uppercase tracking-wider shadow-lg shadow-primary/20">
+              {event.event_type}
+           </div>
+         )}
+
+        {/* Content Overlay */}
+        <div className="absolute bottom-0 left-0 right-0 p-5 text-white transform transition-transform duration-300">
+          <h3 className={`text-xl font-bold leading-tight mb-3 line-clamp-1 transition-colors ${isPast ? '' : 'group-hover:text-primary'}`}>
+            {event.event_name}
+          </h3>
+          
+          <div className="flex flex-col gap-2.5 text-sm text-gray-300">
+            <div className="flex items-center gap-2.5">
+              <MapPin className="h-4 w-4 text-gray-500" />
+              <span className="line-clamp-1 opacity-90">{event.event_location}</span>
+            </div>
+            <div className="flex items-center gap-2.5">
+                  <CalendarIcon className="h-4 w-4 text-gray-500" />
+                  <span className="opacity-90">
+                    {new Date(event.event_date).toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      weekday: 'short'
+                    })}
+                  </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Link>
+  </motion.div>
+);
 
 export default PublicEventsPage;
