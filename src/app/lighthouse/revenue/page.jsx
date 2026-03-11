@@ -264,6 +264,12 @@ export default function RevenuePage() {
             <CardTitle className="text-sm font-medium">Revenue by period</CardTitle>
             <div className="flex gap-1 p-1 bg-muted/30 rounded-xl border border-border/40">
               <TabButton
+                active={revenuePeriod === "yearly"}
+                onClick={() => setRevenuePeriod("yearly")}
+              >
+                Yearly
+              </TabButton>
+              <TabButton
                 active={revenuePeriod === "monthly"}
                 onClick={() => setRevenuePeriod("monthly")}
               >
@@ -285,29 +291,34 @@ export default function RevenuePage() {
               <p className="text-sm text-muted-foreground">No revenue data for this period</p>
             </div>
           ) : (
-            <div className="space-y-4">
-              <div className="flex items-end gap-1 sm:gap-2 h-48">
-                {revenueStats.map((item) => {
+            <div className="space-y-5">
+              <div className="flex items-end gap-2 sm:gap-3 h-52 px-1">
+                {revenueStats.map((item, index) => {
                   const maxVal = Math.max(...revenueStats.map((r) => r.total_revenue), 1);
                   const pct = maxVal > 0 ? (item.total_revenue / maxVal) * 100 : 0;
+                  const heightPct = Math.max(pct, 4);
                   return (
                     <div
-                      key={item.period}
-                      className="flex-1 min-w-0 flex flex-col items-center gap-1 group"
-                      title={`${item.period}: ${formatCurrency(item.total_revenue)}`}
+                      key={`${item.period}-${index}`}
+                      className="flex-1 min-w-0 flex flex-col items-center gap-2 group relative"
                     >
                       <div
-                        className="w-full rounded-t bg-primary/70 hover:bg-primary transition-colors min-h-[4px]"
-                        style={{ height: `${Math.max(pct, 2)}%` }}
-                      />
-                      <span className="text-[10px] text-muted-foreground truncate max-w-full" title={item.period}>
+                        className="w-full rounded-t-md bg-primary/80 hover:bg-primary transition-all duration-200 min-h-[8px] relative"
+                        style={{ height: `${heightPct}%` }}
+                        title={`${item.period}: ${formatCurrency(item.total_revenue)}`}
+                      >
+                        <span className="absolute -top-7 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-popover border border-border text-xs px-2 py-1 rounded shadow-md whitespace-nowrap z-10">
+                          {formatCurrency(item.total_revenue)}
+                        </span>
+                      </div>
+                      <span className="text-[11px] font-medium text-muted-foreground truncate max-w-full text-center" title={item.period}>
                         {item.period}
                       </span>
                     </div>
                   );
                 })}
               </div>
-              <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground border-t border-border/40 pt-3">
+              <div className="flex flex-wrap gap-x-6 gap-y-2 text-xs text-muted-foreground border-t border-border/40 pt-4">
                 {revenueStats.map((item) => (
                   <span key={item.period}>
                     <strong className="text-foreground">{item.period}</strong>: {formatCurrency(item.total_revenue)}

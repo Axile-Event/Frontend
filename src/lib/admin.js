@@ -39,9 +39,15 @@ export const adminService = {
   },
 
   // Events
-  getAllEvents: async () => {
-    const response = await api.get("/api/admin/events/");
-    return response.data.events;
+  getAllEvents: async (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    const url = queryString ? `/api/admin/events/?${queryString}` : "/api/admin/events/";
+    const response = await api.get(url);
+    return {
+      events: response.data.events || [],
+      pagination: response.data.pagination,
+      filters: response.data.filters,
+    };
   },
   getEventDetails: async (eventId) => {
     // Prefer admin event detail endpoint (one call, includes organizer name/email/phone)

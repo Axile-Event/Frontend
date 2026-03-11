@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState, useRef, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { queryKeys } from "@/lib/query-keys";
 import {
@@ -54,22 +54,69 @@ function StatusBadge({ status }) {
   );
 }
 
+const PAGE_SIZE = 20;
+
 export default function EventsPage() {
-  const queryClient = useQueryClient();
+  const [events, setEvents] = useState([]);
+  const [pagination, setPagination] = useState({
+    total_count: 0,
+    total_pages: 1,
+    page_size: PAGE_SIZE,
+    current_page: 1,
+    has_next: false,
+    has_previous: false,
+  });
+  const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 20;
+  const searchDebounceRef = useRef(null);
   const { confirm } = useConfirmModal();
 
-  const { data: events = [], isLoading: loading } = useQuery({
-    queryKey: queryKeys.events.adminAll,
-    queryFn: async () => {
-      const data = await adminService.getAllEvents();
-      return data;
-    },
-    refetchOnWindowFocus: true
-  });
+  const fetchEvents = useCallback(async (page, status, search) => {
+    setLoading(true);
+    try {
+      const params = { page, page_size: PAGE_SIZE };
+      if (status && status !== "all") params.status = status;
+      if (search && search.trim()) params.search = search.trim();
+      const data = await adminService.getAllEvents(params);
+      setEvents(data.events || []);
+      if (data.pagination) {
+        setPagination({
+          current_page: data.pagination.current_page,
+          total_pages: data.pagination.total_pages,
+          total_count: data.pagination.total_count,
+          page_size: data.pagination.page_size,
+          has_next: data.pagination.has_next,
+          has_previous: data.pagination.has_previous,
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to fetch events");
+      setEvents([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchEvents(currentPage, filter, debouncedSearch);
+  }, [currentPage, filter, debouncedSearch, fetchEvents]);
+
+  useEffect(() => {
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setCurrentPage(1);
+    }, 400);
+    return () => { if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current); };
+  }, [searchQuery]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filter]);
 
   const handleStatusUpdate = async (eventId, newStatus) => {
     const isApproving = newStatus === 'verified';
@@ -86,7 +133,7 @@ export default function EventsPage() {
     try {
       await adminService.updateEventStatus(eventId, newStatus);
       toast.success(`Event marked as ${newStatus}`);
-      queryClient.invalidateQueries({ queryKey: queryKeys.events.adminAll });
+      fetchEvents(currentPage, filter, debouncedSearch);
     } catch (error) {
       console.error(error);
       toast.error("Failed to update event status");
@@ -105,65 +152,22 @@ export default function EventsPage() {
     try {
       await adminService.deleteEvent(eventId);
       toast.success("Event deleted successfully");
-      queryClient.invalidateQueries({ queryKey: queryKeys.events.adminAll });
+      fetchEvents(currentPage, filter, debouncedSearch);
     } catch (error) {
       console.error(error);
       toast.error("Failed to delete event");
     }
   };
 
-  const filteredEvents = events.filter((event) => {
-    const matchesStatus = filter === "all" ? true : event.status === filter;
-    const lowerQuery = searchQuery.toLowerCase();
-    const matchesSearch =
-      (event.event_name &&
-        event.event_name.toLowerCase().includes(lowerQuery)) ||
-      (event.organisation_name &&
-        event.organisation_name.toLowerCase().includes(lowerQuery)) ||
-      (event.location && event.location.toLowerCase().includes(lowerQuery));
-    return matchesStatus && matchesSearch;
-  });
-
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredEvents.slice(indexOfFirstItem, indexOfLastItem);
-  const totalPages = Math.ceil(
-    filteredEvents.length / itemsPerPage
-  ) || 1;
-  const eventsPagination = {
-    current_page: currentPage,
-    total_pages: totalPages,
-    total_count: filteredEvents.length,
-    page_size: itemsPerPage,
-    has_next: currentPage < totalPages,
-    has_previous: currentPage > 1,
-  };
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [filter, searchQuery]);
-
-  if (loading) {
+  if (loading && events.length === 0) {
     return <AdminTableSkeleton columns={5} rows={8} />;
   }
 
   const tabs = [
-    { id: "all", label: "All", count: events.length },
-    {
-      id: "pending",
-      label: "Pending",
-      count: events.filter((e) => e.status === "pending").length,
-    },
-    {
-      id: "verified",
-      label: "Verified",
-      count: events.filter((e) => e.status === "verified").length,
-    },
-    {
-      id: "denied",
-      label: "Denied",
-      count: events.filter((e) => e.status === "denied").length,
-    },
+    { id: "all", label: "All" },
+    { id: "pending", label: "Pending" },
+    { id: "verified", label: "Verified" },
+    { id: "denied", label: "Denied" },
   ];
 
   const eventColumns = [
@@ -303,13 +307,13 @@ export default function EventsPage() {
     <div className="space-y-5">
       <AdminDataTable
         columns={eventColumns}
-        data={currentItems}
-        pagination={eventsPagination}
-        loading={false}
+        data={events}
+        pagination={pagination}
+        loading={loading}
         onPageChange={setCurrentPage}
-        emptyMessage="No events found"
+        emptyMessage={debouncedSearch.trim() ? "No events match your search" : "No events found"}
         emptyIcon={Calendar}
-        searchPlaceholder="Search events..."
+        searchPlaceholder="Search by name, organizer, location..."
         searchValue={searchQuery}
         onSearchChange={setSearchQuery}
         extraToolbar={
@@ -321,18 +325,6 @@ export default function EventsPage() {
                 onClick={() => setFilter(tab.id)}
               >
                 {tab.label}
-                {tab.count > 0 && (
-                  <span
-                    className={cn(
-                      "ml-1.5 px-1.5 py-0.5 text-[10px] rounded",
-                      filter === tab.id
-                        ? "bg-background/20 text-background"
-                        : "bg-muted text-muted-foreground"
-                    )}
-                  >
-                    {tab.count}
-                  </span>
-                )}
               </TabButton>
             ))}
           </div>

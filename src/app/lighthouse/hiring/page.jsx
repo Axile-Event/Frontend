@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   Briefcase,
   MoreVertical,
@@ -187,41 +187,59 @@ export default function AdminHiringPage() {
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterStudent, setFilterStudent] = useState("all"); // 'all' | 'student' | 'non-student'
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedApp, setSelectedApp] = useState(null);
   const { confirm } = useConfirmModal();
 
-  const fetchApplications = async (page = 1, status = filterStatus, isStudent = filterStudent) => {
-    setLoading(true);
-    try {
-      const params = { page, page_size: PAGE_SIZE };
-      if (status !== "all") params.status = status;
-      if (isStudent === "student") params.is_student = "true";
-      if (isStudent === "non-student") params.is_student = "false";
-      const data = await adminService.getHiringApplications(params);
-      setApplications(data.hiring_applications || []);
-      if (data.pagination) {
-        setPagination({
-          current_page: data.pagination.current_page,
-          total_pages: data.pagination.total_pages,
-          total_count: data.pagination.total_count,
-          page_size: data.pagination.page_size,
-          has_next: data.pagination.has_next,
-          has_previous: data.pagination.has_previous,
-        });
+  // Debounce server-side search (reset to page 1 when it changes)
+  const searchDebounceRef = useRef(null);
+  useEffect(() => {
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setCurrentPage(1);
+    }, 400);
+    return () => {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    };
+  }, [searchQuery]);
+
+  const fetchApplications = useCallback(
+    async (page, status, isStudent, search) => {
+      setLoading(true);
+      try {
+        const params = { page, page_size: PAGE_SIZE };
+        if (status !== "all") params.status = status;
+        if (isStudent === "student") params.is_student = "true";
+        if (isStudent === "non-student") params.is_student = "false";
+        if (search && search.trim()) params.search = search.trim();
+        const data = await adminService.getHiringApplications(params);
+        setApplications(data.hiring_applications || []);
+        if (data.pagination) {
+          setPagination({
+            current_page: data.pagination.current_page,
+            total_pages: data.pagination.total_pages,
+            total_count: data.pagination.total_count,
+            page_size: data.pagination.page_size,
+            has_next: data.pagination.has_next,
+            has_previous: data.pagination.has_previous,
+          });
+        }
+      } catch (error) {
+        console.error(error);
+        toast.error("Failed to fetch applications");
+        setApplications([]);
+      } finally {
+        setLoading(false);
       }
-    } catch (error) {
-      console.error(error);
-      toast.error("Failed to fetch applications");
-      setApplications([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+    },
+    []
+  );
 
   useEffect(() => {
-    fetchApplications(currentPage, filterStatus, filterStudent);
-  }, [currentPage, filterStatus, filterStudent]);
+    fetchApplications(currentPage, filterStatus, filterStudent, debouncedSearch);
+  }, [currentPage, filterStatus, filterStudent, debouncedSearch, fetchApplications]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -238,7 +256,7 @@ export default function AdminHiringPage() {
     try {
       await adminService.updateHiringApplicationStatus(application.id || application.application_id, newStatus);
       toast.success(`Application marked as ${newStatus}`);
-      fetchApplications(currentPage, filterStatus);
+      fetchApplications(currentPage, filterStatus, filterStudent, debouncedSearch);
     } catch (error) {
       toast.error("Failed to update status");
     }
@@ -258,18 +276,6 @@ export default function AdminHiringPage() {
     { id: "student", label: "Students" },
     { id: "non-student", label: "Non-students" },
   ];
-
-  const filteredApplications = applications.filter((a) => {
-    if (!searchQuery.trim()) return true;
-    const q = searchQuery.toLowerCase();
-    return (
-      (a.full_name && a.full_name.toLowerCase().includes(q)) ||
-      (a.email && a.email.toLowerCase().includes(q)) ||
-      (a.position && a.position.toLowerCase().includes(q)) ||
-      (a.university && a.university.toLowerCase().includes(q)) ||
-      (a.department && a.department.toLowerCase().includes(q))
-    );
-  });
 
   const statusActions = ["new", "reviewed", "shortlisted", "hired", "rejected"];
 
@@ -429,12 +435,12 @@ export default function AdminHiringPage() {
 
         <AdminDataTable
           columns={columns}
-          data={filteredApplications}
+          data={applications}
           pagination={pagination}
           loading={loading}
           onPageChange={setCurrentPage}
           emptyMessage={
-            searchQuery.trim()
+            debouncedSearch.trim()
               ? "No applications match your search"
               : "No applications found"
           }

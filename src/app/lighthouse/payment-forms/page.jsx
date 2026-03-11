@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/query-keys";
 import {
@@ -127,6 +127,8 @@ export default function PaymentFormsPage() {
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const searchDebounceRef = useRef(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [processing, setProcessing] = useState(null);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
@@ -135,11 +137,21 @@ export default function PaymentFormsPage() {
   const [adminNotes, setAdminNotes] = useState("");
   const itemsPerPage = 20;
 
+  useEffect(() => {
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+      setCurrentPage(1);
+    }, 400);
+    return () => { if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current); };
+  }, [searchQuery]);
+
   const { data, isLoading: loading } = useQuery({
-    queryKey: queryKeys.admin.paymentForms({ statusFilter, currentPage }),
+    queryKey: queryKeys.admin.paymentForms({ statusFilter, currentPage, search: debouncedSearch }),
     queryFn: async () => {
       const params = { page: currentPage, page_size: itemsPerPage };
       if (statusFilter !== "all") params.status = statusFilter;
+      if (debouncedSearch && debouncedSearch.trim()) params.search = debouncedSearch.trim();
       try {
         return await adminService.getPaymentForms(params);
       } catch (err) {
@@ -411,13 +423,13 @@ export default function PaymentFormsPage() {
 
       <AdminDataTable
         columns={paymentFormColumns}
-        data={filteredForms}
+        data={forms}
         pagination={pagination || { current_page: 1, total_pages: 1, total_count: 0, page_size: itemsPerPage, has_next: false, has_previous: false }}
         loading={loading}
         onPageChange={setCurrentPage}
-        emptyMessage="No payment forms found"
+        emptyMessage={debouncedSearch.trim() ? "No payment forms match your search" : "No payment forms found"}
         emptyIcon={CreditCard}
-        searchPlaceholder="Search by name, amount, ID..."
+        searchPlaceholder="Search by account name, number, bank..."
         searchValue={searchQuery}
         onSearchChange={setSearchQuery}
         extraToolbar={

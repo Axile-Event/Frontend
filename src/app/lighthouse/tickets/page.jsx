@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Ticket } from "lucide-react";
 import { adminService } from "@/lib/admin";
@@ -59,13 +59,25 @@ const defaultPagination = {
 export default function TicketsPage() {
 	const [statusFilter, setStatusFilter] = useState("all");
 	const [currentPage, setCurrentPage] = useState(1);
-	const [search, setSearch] = useState("");
+	const [searchQuery, setSearchQuery] = useState("");
+	const [debouncedSearch, setDebouncedSearch] = useState("");
+	const searchDebounceRef = useRef(null);
+
+	useEffect(() => {
+		if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+		searchDebounceRef.current = setTimeout(() => {
+			setDebouncedSearch(searchQuery);
+			setCurrentPage(1);
+		}, 400);
+		return () => { if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current); };
+	}, [searchQuery]);
 
 	const { data, isLoading: loading } = useQuery({
-		queryKey: [...queryKeys.tickets.adminAll({ statusFilter }), currentPage],
+		queryKey: [...queryKeys.tickets.adminAll({ statusFilter }), currentPage, debouncedSearch],
 		queryFn: async () => {
 			const params = { page: currentPage, page_size: ITEMS_PER_PAGE };
 			if (statusFilter !== "all") params.status = statusFilter;
+			if (debouncedSearch && debouncedSearch.trim()) params.search = debouncedSearch.trim();
 			return adminService.getAllTickets(params);
 		},
 		refetchOnWindowFocus: true
@@ -94,23 +106,6 @@ export default function TicketsPage() {
 		{ id: "checked_in", label: "Checked In" },
 		{ id: "cancelled", label: "Cancelled" },
 	];
-
-	const filteredTickets = tickets.filter((ticket) => {
-		if (!search.trim()) return true;
-		const q = search.toLowerCase();
-		const ref =
-			ticket.referral ||
-			ticket.referral_source ||
-			ticket.referral_payload ||
-			"";
-		return (
-			ticket.student_name?.toLowerCase().includes(q) ||
-			ticket.student_email?.toLowerCase().includes(q) ||
-			ticket.ticket_id?.toLowerCase().includes(q) ||
-			ticket.event_name?.toLowerCase().includes(q) ||
-			ref.toLowerCase().includes(q)
-		);
-	});
 
 	const columns = [
 		{
@@ -226,9 +221,9 @@ export default function TicketsPage() {
 					<Ticket className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
 					<input
 						type="text"
-						placeholder="Search tickets..."
-						value={search}
-						onChange={(e) => setSearch(e.target.value)}
+						placeholder="Search by ticket ID, name, email, event..."
+						value={searchQuery}
+						onChange={(e) => setSearchQuery(e.target.value)}
 						className="w-full h-10 pl-10 pr-4 bg-card border border-border/40 rounded-xl text-sm focus:outline-none focus:border-primary transition-colors"
 					/>
 				</div>
@@ -236,13 +231,13 @@ export default function TicketsPage() {
 
 			<AdminDataTable
 				columns={columns}
-				data={filteredTickets}
+				data={tickets}
 				pagination={pagination}
 				loading={loading}
 				onPageChange={setCurrentPage}
 				emptyMessage={
-					search.trim()
-						? "No tickets on this page match your search"
+					debouncedSearch.trim()
+						? "No tickets match your search"
 						: "No tickets found"
 				}
 				emptyIcon={Ticket}

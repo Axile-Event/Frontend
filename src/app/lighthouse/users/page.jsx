@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import {
 	User,
 	MoreVertical,
@@ -90,14 +90,17 @@ export default function UsersPage() {
 	});
 	const [filterRole, setFilterRole] = useState("all");
 	const [searchQuery, setSearchQuery] = useState("");
+	const [debouncedSearch, setDebouncedSearch] = useState("");
 	const [currentPage, setCurrentPage] = useState(1);
+	const searchDebounceRef = useRef(null);
 	const { confirm } = useConfirmModal();
 
-	const fetchUsers = async (page = 1, role = filterRole) => {
+	const fetchUsers = useCallback(async (page, role, search) => {
 		setLoading(true);
 		try {
 			const params = { page, page_size: PAGE_SIZE };
 			if (role !== "all") params.role = role;
+			if (search && search.trim()) params.search = search.trim();
 			const data = await adminService.getAllUsers(params);
 			setUsers(data.users || []);
 			if (data.pagination) {
@@ -117,11 +120,20 @@ export default function UsersPage() {
 		} finally {
 			setLoading(false);
 		}
-	};
+	}, []);
 
 	useEffect(() => {
-		fetchUsers(currentPage, filterRole);
-	}, [currentPage, filterRole]);
+		fetchUsers(currentPage, filterRole, debouncedSearch);
+	}, [currentPage, filterRole, debouncedSearch, fetchUsers]);
+
+	useEffect(() => {
+		if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+		searchDebounceRef.current = setTimeout(() => {
+			setDebouncedSearch(searchQuery);
+			setCurrentPage(1);
+		}, 400);
+		return () => { if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current); };
+	}, [searchQuery]);
 
 	useEffect(() => {
 		setCurrentPage(1);
@@ -143,7 +155,7 @@ export default function UsersPage() {
 				!user.is_active
 			);
 			toast.success(`User ${user.is_active ? "disabled" : "enabled"}`);
-			fetchUsers(currentPage, filterRole);
+			fetchUsers(currentPage, filterRole, debouncedSearch);
 		} catch (error) {
 			toast.error("Failed to update status");
 		}
@@ -162,7 +174,7 @@ export default function UsersPage() {
 		try {
 			await adminService.verifyOrganizer(user.id, !user.is_verified);
 			toast.success(`Organizer ${user.is_verified ? "unverified" : "verified"}`);
-			fetchUsers(currentPage, filterRole);
+			fetchUsers(currentPage, filterRole, debouncedSearch);
 		} catch (error) {
 			toast.error("Failed to update verification");
 		}
@@ -180,7 +192,7 @@ export default function UsersPage() {
 		try {
 			await adminService.deleteUser(user.id, user.role || "student");
 			toast.success("User deleted successfully");
-			fetchUsers(currentPage, filterRole);
+			fetchUsers(currentPage, filterRole, debouncedSearch);
 		} catch (error) {
 			toast.error("Failed to delete user");
 		}
@@ -333,13 +345,13 @@ export default function UsersPage() {
 
 			<AdminDataTable
 				columns={columns}
-				data={filteredUsers}
+				data={users}
 				pagination={pagination}
 				loading={loading}
 				onPageChange={setCurrentPage}
 				emptyMessage={
-					searchQuery.trim()
-						? "No users on this page match your search"
+					debouncedSearch.trim()
+						? "No users match your search"
 						: "No users found"
 				}
 				emptyIcon={User}
