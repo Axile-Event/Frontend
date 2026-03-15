@@ -3,7 +3,7 @@
  * @property {string} slug
  * @property {string} title
  * @property {string} team
- * @property {"intern" | "administrative"} roleType
+ * @property {"intern" | "full_time" | "part_time" | "contract"} roleType
  * @property {string} employmentType
  * @property {string} location
  * @property {string} duration
@@ -212,7 +212,7 @@ export const hiringRoles = [
     slug: "administrative-officer",
     title: "Administrative Officer",
     team: "Administration",
-    roleType: "administrative",
+    roleType: "full_time",
     employmentType: "Full-time",
     location: "Hybrid (Nigeria)",
     duration: "Indefinite",

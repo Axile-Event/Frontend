@@ -231,7 +231,7 @@ const RoleCard = memo(({ role }) => {
             {role.team}
           </span>
           <span className="text-xs font-medium text-muted-foreground bg-muted px-3 py-1 rounded-full capitalize">
-            {role.roleType}
+            {role.roleType.replace('_', '-')}
           </span>
         </div>
 

@@ -110,7 +110,7 @@ export default function JobDetailClient({ role }) {
                     {role.team}
                   </span>
                   <span className="text-xs font-medium text-muted-foreground bg-muted px-3 py-1 rounded-full capitalize">
-                    {role.roleType}
+                    {role.roleType.replace('_', '-')}
                   </span>
                 </div>
 
@@ -226,7 +226,7 @@ export default function JobDetailClient({ role }) {
                       { label: "Location", value: role.location },
                       { label: "Type", value: role.employmentType },
                       { label: "Duration", value: role.duration },
-                      { label: "Role Type", value: role.roleType, capitalize: true },
+                      { label: "Role Type", value: role.roleType.replace('_', '-'), capitalize: true },
                     ].map((item, i) => (
                       <div key={i}>
                         <p className="text-muted-foreground mb-1">{item.label}</p>
