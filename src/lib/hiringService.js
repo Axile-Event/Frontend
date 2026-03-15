@@ -35,11 +35,14 @@ export async function submitApplication(data) {
     position: data.position,
     cover_message: data.cover_message,
     is_student: isStudent,
-    // Only include student fields if they are a student, otherwise set to null
-    university: isStudent ? data.university : null,
-    department: isStudent ? data.department : null,
-    level: isStudent ? data.level : null,
   };
+
+  // Only include student fields if they are a student
+  if (isStudent) {
+    payload.university = data.university;
+    payload.department = data.department;
+    payload.level = data.level;
+  }
 
   return (await api.post("/hiring/apply/", payload)).data;
 }
