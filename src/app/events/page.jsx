@@ -31,21 +31,47 @@ const PublicEventsPage = () => {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        // Fetch active/verified events from public endpoint
+        // Fetch events from public endpoint
         const publicResponse = await api.get("/event/");
-        const active = Array.isArray(publicResponse.data) ? publicResponse.data : (publicResponse.data.events || []);
+        const allEvents = Array.isArray(publicResponse.data) ? publicResponse.data : (publicResponse.data.events || []);
+        
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+
+        const activeList = allEvents.filter(event => {
+          if (event.status === 'closed') return false;
+          if (!event.event_date) return true;
+          const eventDate = new Date(event.event_date);
+          eventDate.setHours(0, 0, 0, 0);
+          return eventDate >= now;
+        });
+
+        const pastList = allEvents.filter(event => {
+          if (event.status === 'closed') return true;
+          if (!event.event_date) return false;
+          const eventDate = new Date(event.event_date);
+          eventDate.setHours(0, 0, 0, 0);
+          return eventDate < now;
+        });
         
         // Attempt to fetch closed events from admin endpoint
-        let closed = [];
+        let closedAdmin = [];
         try {
           const adminResponse = await api.get("/api/admin/events/?status=closed");
-          closed = adminResponse.data.events || [];
+          closedAdmin = adminResponse.data.events || [];
         } catch (adminError) {
           console.warn("Could not fetch closed events via admin endpoint:", adminError.message);
         }
         
-        setEvents(shuffleArray([...active]));
-        setPastEvents(shuffleArray([...closed]));
+        const allPast = [...pastList];
+        closedAdmin.forEach(c => {
+          if (!allPast.find(p => p.event_id === c.event_id)) {
+            allPast.push(c);
+          }
+        });
+        
+        setEvents(shuffleArray([...activeList]));
+        setPastEvents(shuffleArray([...allPast]));
       } catch (error) {
         console.error("Error fetching events:", error);
       } finally {
