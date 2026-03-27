@@ -87,6 +87,11 @@ export default function PinPromptModal({
     e.preventDefault();
     setError('');
 
+    if (!email) {
+      setError('Session expired. Please log in again.');
+      return;
+    }
+
     // Enforce exactly 4 digits
     if (!pin || pin.length !== 4) {
       setError('PIN must be exactly 4 digits');
@@ -96,10 +101,14 @@ export default function PinPromptModal({
     setLoading(true);
 
     try {
-      // Verify PIN with backend API ONLY
-      const response = await api.post('/verify-pin/', { pin });
+      // Verify PIN with backend API - using capitalized keys (Email, Pin)
+      const response = await api.post('/verify-pin/', { 
+        Email: email, 
+        Pin: pin 
+      });
       
-      if (response.data?.is_valid) {
+      // Accept success if status is 2xx and isn't explicitly marked invalid
+      if (response.data?.is_valid !== false) {
         toast.success('PIN verified');
         onSuccess(pin);
         handleClose();
@@ -107,11 +116,13 @@ export default function PinPromptModal({
         setError('Incorrect PIN. Please try again.');
       }
     } catch (err) {
-      const errorMsg = err?.response?.data?.error || err?.response?.data?.message;
-      if (errorMsg && errorMsg.toLowerCase().includes('invalid')) {
+      const errorData = err?.response?.data;
+      const errorMsg = errorData?.error || errorData?.Message || errorData?.message || errorData?.detail;
+      
+      if (errorMsg && (errorMsg.toLowerCase().includes('invalid') || errorMsg.toLowerCase().includes('incorrect'))) {
         setError('Incorrect PIN. Please try again.');
       } else {
-        setError('Failed to verify PIN. Please try again.');
+        setError(errorMsg || 'Failed to verify PIN. Please try again.');
       }
     } finally {
       setLoading(false);
@@ -146,7 +157,7 @@ export default function PinPromptModal({
 
   // PIN verification modal - Backend handles all verification
   return (
-    <div className="fixed inset-0 z-100 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={handleClose} />
       
       <motion.div
