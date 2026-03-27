@@ -6,13 +6,16 @@ import { useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axios";
 import { queryKeys } from "@/lib/query-keys";
 import toast from "react-hot-toast";
-import { ChevronLeft, Save, Loader2, X, Plus, Edit2, Trash2, Camera, MapPin, Eye, ImageIcon, Zap, Ticket, Calendar } from "lucide-react";
+import { ChevronLeft, Save, Loader2, X, Plus, Edit2, Trash2, Camera, MapPin, Eye, ImageIcon, Zap, Ticket, Calendar, Megaphone } from "lucide-react";
 import Loading from "@/components/ui/Loading";
 import { Skeleton } from "@/components/ui/skeleton";
 import DateTimePicker from "@/components/ui/DateTimePicker";
 import CustomDropdown from "@/components/ui/CustomDropdown";
 import PinPromptModal from "@/components/PinPromptModal";
-import { motion } from "framer-motion";
+import ReferralToggle from "@/components/organizer/ReferralToggle";
+import ReferralConfigFields from "@/components/organizer/ReferralConfigFields";
+import { appendReferralFields, validateReferralConfig } from "@/lib/referral";
+import { motion, AnimatePresence } from "framer-motion";
 
 const FALLBACK_EVENT_TYPES = [
   { value: "conference", label: "Conference" },
@@ -49,6 +52,12 @@ export default function EditEventPage() {
     max_quantity_per_booking: "",
   });
   const [categories, setCategories] = useState([]);
+  const [referralConfig, setReferralConfig] = useState({
+    use_referral: false,
+    referral_reward_type: "",
+    referral_reward_amount: "",
+    referral_reward_percentage: "",
+  });
   const [imageFile, setImageFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [errors, setErrors] = useState({});
@@ -120,6 +129,14 @@ export default function EditEventPage() {
           if (eventData.pricing_type === "paid" && eventData.ticket_categories) {
             setCategories(eventData.ticket_categories || []);
           }
+
+          // Pre-fill referral config from event data
+          setReferralConfig({
+            use_referral: eventData.use_referral || false,
+            referral_reward_type: eventData.referral_reward_type || "",
+            referral_reward_amount: eventData.referral_reward_amount ?? "",
+            referral_reward_percentage: eventData.referral_reward_percentage ?? "",
+          });
 
           if (eventData.image) {
             setPreview(eventData.image);
@@ -248,6 +265,10 @@ export default function EditEventPage() {
       }
     }
 
+    // Referral validation
+    const referralErrors = validateReferralConfig(referralConfig, form.pricing_type, categories);
+    Object.assign(e, referralErrors);
+
     // length checks per docs
     if (form.name && form.name.length > 200)
       e.name = "Name must be ≤ 200 characters";
@@ -293,6 +314,9 @@ export default function EditEventPage() {
       if (form.max_quantity_per_booking) {
         formData.append("max_quantity_per_booking", form.max_quantity_per_booking);
       }
+
+      // Append referral config
+      appendReferralFields(formData, referralConfig);
 
       const response = await api.patch(`/events/${eventId}/update/`, formData);
 
@@ -509,7 +533,15 @@ export default function EditEventPage() {
                           ...prev,
                           pricing_type: undefined,
                           categories: undefined,
+                          referral: undefined,
                         }));
+                        // Disable referral for free events
+                        if (p.value === "free") {
+                          setReferralConfig((prev) => ({
+                            ...prev,
+                            use_referral: false,
+                          }));
+                        }
                       }}
                       className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${form.pricing_type === p.value ? "bg-rose-600 text-white shadow-lg" : "text-gray-400 hover:text-white"}`}
                     >
@@ -755,6 +787,73 @@ export default function EditEventPage() {
                   )}
                 </div>
               )}
+
+              {/* Referral Rewards Section */}
+              <div className="space-y-4 pt-4 border-t border-white/5">
+                <div className="flex items-center gap-2 mb-2">
+                  <Megaphone className="w-4 h-4 text-rose-500" />
+                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">
+                    Referral Rewards
+                  </h3>
+                </div>
+
+                <ReferralToggle
+                  enabled={referralConfig.use_referral}
+                  onChange={(enabled) => {
+                    setReferralConfig((prev) => ({
+                      ...prev,
+                      use_referral: enabled,
+                      ...(enabled ? {} : {
+                        referral_reward_type: "",
+                        referral_reward_amount: "",
+                        referral_reward_percentage: "",
+                      }),
+                    }));
+                    setErrors((prev) => ({
+                      ...prev,
+                      referral: undefined,
+                      referral_reward_type: undefined,
+                      referral_reward_amount: undefined,
+                      referral_reward_percentage: undefined,
+                    }));
+                  }}
+                  isFreeEvent={form.pricing_type === "free"}
+                  error={errors.referral}
+                />
+
+                <AnimatePresence>
+                  {referralConfig.use_referral && form.pricing_type !== "free" && (
+                    <ReferralConfigFields
+                      rewardType={referralConfig.referral_reward_type}
+                      rewardAmount={referralConfig.referral_reward_amount}
+                      rewardPercentage={referralConfig.referral_reward_percentage}
+                      onTypeChange={(type) => {
+                        setReferralConfig((prev) => ({
+                          ...prev,
+                          referral_reward_type: type,
+                          referral_reward_amount: "",
+                          referral_reward_percentage: "",
+                        }));
+                        setErrors((prev) => ({
+                          ...prev,
+                          referral_reward_type: undefined,
+                          referral_reward_amount: undefined,
+                          referral_reward_percentage: undefined,
+                        }));
+                      }}
+                      onAmountChange={(val) => {
+                        setReferralConfig((prev) => ({ ...prev, referral_reward_amount: val }));
+                        setErrors((prev) => ({ ...prev, referral_reward_amount: undefined }));
+                      }}
+                      onPercentageChange={(val) => {
+                        setReferralConfig((prev) => ({ ...prev, referral_reward_percentage: val }));
+                        setErrors((prev) => ({ ...prev, referral_reward_percentage: undefined }));
+                      }}
+                      errors={errors}
+                    />
+                  )}
+                </AnimatePresence>
+              </div>
 
               <input
                 type="file"

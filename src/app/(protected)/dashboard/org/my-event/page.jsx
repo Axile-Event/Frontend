@@ -4,12 +4,13 @@ import React, { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import api from "../../../../../lib/axios";
-import { Loader2, Copy, Check, ExternalLink, Plus, Clock, Search } from "lucide-react";
+import { Loader2, Copy, Check, ExternalLink, Plus, Clock, Search, Megaphone } from "lucide-react";
 import toast from "react-hot-toast";
 import { getImageUrl } from "../../../../../lib/utils";
 import { Input } from "@/components/ui/input";
 import { OrganizerEventsPageSkeleton } from "@/components/skeletons";
 import { queryKeys } from "@/lib/query-keys";
+import ReferralBadge from "@/components/organizer/ReferralBadge";
 
 const MyEvent = () => {
   const router = useRouter();
@@ -297,6 +298,15 @@ const MyEvent = () => {
                     <div className="flex items-center gap-2.5 text-gray-400">
                       <ExternalLink className="w-3.5 h-3.5 text-gray-500" />
                       <span className="text-[11px] font-semibold line-clamp-1">{ev.location || "Venue TBD"}</span>
+                    </div>
+                    {/* Referral Badge */}
+                    <div className="mt-1">
+                      <ReferralBadge
+                        useReferral={ev.use_referral}
+                        rewardType={ev.referral_reward_type}
+                        rewardAmount={ev.referral_reward_amount}
+                        rewardPercentage={ev.referral_reward_percentage}
+                      />
                     </div>
                   </div>
 
