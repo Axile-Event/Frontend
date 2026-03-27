@@ -1,0 +1,861 @@
+
+
+# Referral (Referee) & Event Referral Rewards — Frontend Guide
+
+This document covers **referee authentication**, **referee-only event APIs**, and **organizer event fields** for referral rewards. All paths are relative to your API base URL.
+
+---
+
+## 1. Two user types (do not mix tokens)
+
+| App | User | Auth |
+|-----|------|------|
+| **Referee app** | `SignUp` (referree) | JWT from `login/` or Google referee flow |
+| **Organizer app** | Organizer + Django `User` | JWT from organizer auth |
+
+Referee JWT uses Django `User.username` = referee **email**. Use the correct token per screen.
+
+---
+
+## 2. Referee authentication
+
+### 2.1 Email/password signup
+
+1. **POST** `/signup/` — `Username`, `Firstname`, `Lastname`, `Phone` (optional), `Email`, `Password`
+2. **POST** `/verify-otp/` — `Email`, `otp` → **201**: `user`, `referree_id`
+
+### 2.2 Login
+
+**POST** `/login/` — `{ "email", "password" }` → `access`, `refresh`
+
+```http
+Authorization: Bearer <access_token>
+```
+
+### 2.3 Google (referee)
+
+**POST** `/referee/google-signup/` — `{ "token": "<google_access_token>" }` or `access_token`
+
+### 2.4 Other
+
+- **POST** `/logout/` — `{ "refresh" }`
+- **GET/PATCH** `/referee/profile/` — profile
+- Password reset: `/password/reset/`, etc.
+- Referee password change (authenticated): **POST** `/password/change/`
+- Referee PIN:
+  - **POST** `/referee/pin/`
+  - **POST** `/referee/verify-pin/`
+  - **POST** `/referee/forgot-pin/`
+  - **POST** `/referee/change-pin/`
+
+---
+
+## 3. Referee events (`use_referral: true`)
+
+Active referee JWT required (`SignUp` match + `is_active`).
+
+| Method | Path |
+|--------|------|
+| **GET** | `/referee/events/` |
+| **GET** | `/referee/events/<identifier>/` (`event_id` or `event_slug`) |
+
+### Reward fields (API uses **0–100** for percentage)
+
+| Field | Meaning |
+|-------|---------|
+| `use_referral` | Event offers referral rewards |
+| `referral_reward_type` | `"flat"` or `"percentage"` |
+| `referral_reward_amount` | Flat payout (currency) when type is `flat` |
+| `referral_reward_percentage` | **0–100** when type is `percentage` |
+
+### List example
+
+```json
+{
+  "events": [{
+    "event_id": "event:AB-12345",
+    "event_slug": "summer-fest",
+    "name": "Summer Fest",
+    "event_type": "music",
+    "pricing_type": "paid",
+    "location": "Lagos",
+    "date": "2025-06-01T18:00:00Z",
+    "image": "https://...",
+    "use_referral": true,
+    "referral_reward_type": "percentage",
+    "referral_reward_amount": null,
+    "referral_reward_percentage": 7.5
+  }],
+  "count": 1
+}
+```
+
+Detail adds `description`, `max_quantity_per_booking`, `ticket_categories`.
+
+---
+
+## 4. Organizer: referral rewards on events
+
+**POST** `/event/` · **PATCH** `/events/<event_id>/update/`
+
+| Field | Rules |
+|-------|--------|
+| `use_referral` | Boolean |
+| `referral_reward_type` | If `use_referral`: `"flat"` \| `"percentage"` |
+| `referral_reward_amount` | Required for `flat` (positive) |
+| `referral_reward_percentage` | Required for `percentage`: **0–100** |
+
+If `use_referral` is false, reward fields are cleared.
+
+**GET** `/organizer/events/` — includes reward block above.
+
+**GET** `/config/` — `referral_reward_types` for dropdowns:
+
+```json
+"referral_reward_types": [
+  { "value": "flat", "label": "Flat amount" },
+  { "value": "percentage", "label": "Percentage" }
+]
+```
+
+---
+
+## 5. Public vs referee
+
+| Endpoint | Referral reward fields |
+|----------|------------------------|
+| **GET** `/events/<id>/details/` | **Hidden** |
+| **GET** `/event/` (list) | **Hidden** |
+| **GET** `/referee/events/` … | **Shown** |
+
+---
+
+## 6. Organizer referral stats endpoint
+
+Organizer JWT required.
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| **POST** | `/organiser/<event_id>/referral-stats/` | Bulk stats for referral IDs passed in body |
+
+### Response fields
+
+| Field | Meaning |
+|-------|---------|
+| `referral_name` | Referee display name (Firstname + Lastname fallback to Username) |
+| `tickets_sold` | Count of tickets sold by this referee for this event |
+| `referral_revenue` | Sum of `total_price` for those sold tickets |
+
+### How backend computes stats
+
+Request body format:
+
+```json
+{
+  "referrals": [
+    { "referee_id": "organiser:abc123" },
+    { "referee_id": "organiser:def456" }
+  ]
+}
+```
+
+Tickets are filtered by all of these:
+
+- `Ticket.event = <event_id>`
+- `Ticket.referral = <referee_id>` (for each requested body item)
+- `Ticket.status in ('confirmed', 'used')`
+
+Then:
+
+- `tickets_sold` = count of filtered tickets
+- `referral_revenue` = sum of filtered `total_price`
+
+---
+
+## 7. Referee self stats endpoint
+
+Referee JWT required (active referee only).
+
+| Method | Path | Purpose |
+|--------|------|---------|
+| **GET** | `/referee/<event_id>/stats/` | Referee sees all sold tickets for own referral id in event |
+
+Returns:
+
+- `referral_name`
+- `referral_revenue` (organizer revenue basis from tickets sold via this referee id)
+- `tickets_sold`
+- `tickets` (full ticket list via `TicketSerializer`, includes category/ticket type fields like `category_name`, `category_price`, buyer details, status, etc.)
+
+---
+
+## 8. Unique referral registration flow
+
+When referral is used during ticket booking:
+
+1. Referral id is saved on each ticket as `Ticket.referral`.
+2. On confirmation (free immediately, paid via webhook/verify-payment), backend registers that id into `Event.referral_referee_ids`.
+3. `Event.referral_referee_ids` behaves like a set:
+   - same `referee_id` is stored once per event
+   - repeated sales do not duplicate it
+
+This field is internal and not exposed in normal public event payloads.
+
+---
+
+## 9. Backend reference
+
+| Piece | Location |
+|-------|----------|
+| `referral_reward_fields_for_api()` | `radar/event/models.py` |
+| Organizer serializer | `radar/event/serializers.py` |
+| Referee event serializers | `radar/referral_app/serializers.py` |
+| Referee-event stats view | `radar/referral_app/views.py` |
+| Event referral set field | `radar/event/models.py` (`referral_referee_ids`) |
+
+Run migrations after deploy: `referral_commission_*` columns renamed to `referral_reward_*`.
+
+
+
+# Axile Referral System API Documentation
+
+Base URL: `/api`
+
+---
+
+## Overview
+
+This API supports the referral system for Axile where users (referees) earn rewards when tickets purchased through their referral links are **successfully checked-in**.
+
+There are **two distinct user systems**:
+- Referee (referral users)
+- Organizer (event creators)
+
+⚠️ Do NOT mix tokens between them.
+
+---
+
+## Authentication
+
+### Referee Auth
+
+#### Signup
+POST `/signup/`
+
+```json
+{
+  "username": "string",
+  "firstname": "string",
+  "lastname": "string",
+  "email": "string",
+  "password": "string",
+  "phone": "string (optional)"
+}
+Verify OTP
+
+POST /verify-otp/
+
+{
+  "email": "string",
+  "otp": "string"
+}
+
+Response:
+
+{
+  "user": {},
+  "referree_id": "string"
+}
+Login
+
+POST /login/
+
+{
+  "email": "string",
+  "password": "string"
+}
+
+Response:
+
+{
+  "access": "jwt_token",
+  "refresh": "jwt_token"
+}
+Google Signup
+
+POST /referee/google-signup/
+
+{
+  "token": "google_access_token"
+}
+Logout
+
+POST /logout/
+
+{
+  "refresh": "token"
+}
+Profile
+
+GET /referee/profile/
+PATCH /referee/profile/
+
+Referee Events (Referral Enabled Only)
+
+Requires:
+
+Authorization: Bearer <access_token>
+Get All Referral Events
+
+GET /referee/events/
+
+Response:
+
+{
+  "events": [
+    {
+      "event_id": "event:AB-12345",
+      "event_slug": "summer-fest",
+      "name": "Summer Fest",
+      "event_type": "music",
+      "pricing_type": "paid",
+      "location": "Lagos",
+      "date": "2025-06-01T18:00:00Z",
+      "image": "https://...",
+      "use_referral": true,
+      "referral_reward_type": "percentage",
+      "referral_reward_amount": null,
+      "referral_reward_percentage": 7.5
+    }
+  ],
+  "count": 1
+}
+Get Single Event
+
+GET /referee/events/<identifier>/
+
+identifier = event_id OR event_slug
+
+Referral Reward Fields
+Field	Description
+use_referral	Boolean (event has referral enabled)
+referral_reward_type	"flat" or "percentage"
+referral_reward_amount	Used if type = flat
+referral_reward_percentage	0–100 if type = percentage
+Organizer Event APIs (Referral Config)
+Create Event
+
+POST /event/
+
+Update Event
+
+PATCH /events/<event_id>/update/
+
+Referral Fields
+{
+  "use_referral": true,
+  "referral_reward_type": "percentage",
+  "referral_reward_percentage": 30
+}
+Rules
+
+If use_referral = true:
+
+referral_reward_type is required
+
+If flat → referral_reward_amount required
+
+If percentage → referral_reward_percentage required (0–100)
+
+If use_referral = false:
+
+All referral fields are cleared
+
+Get Organizer Events
+
+GET /organizer/events/
+
+Includes referral config.
+
+Config (Dropdown Support)
+
+GET /config/
+
+Response:
+
+{
+  "referral_reward_types": [
+    { "value": "flat", "label": "Flat amount" },
+    { "value": "percentage", "label": "Percentage" }
+  ]
+}
+Public vs Referee Access
+Endpoint	Referral Fields
+GET /events/<id>/details/	❌ Hidden
+GET /event/	❌ Hidden
+GET /referee/events/	✅ Visible
+Referral Flow (Frontend Responsibility)
+
+User clicks referral link:
+
+referral.axile.ng/ref/{code}/event/{eventId}
+
+Frontend:
+
+Store ref_code in cookie/localStorage
+
+On ticket purchase:
+
+Attach ref_code
+
+Backend:
+
+Tracks referral
+
+Rewards AFTER ticket check-in
+
+Reward Logic (Important)
+
+Rewards are NOT given on signup
+
+Rewards are NOT given on payment
+
+Rewards are ONLY given after:
+
+Ticket is checked-in
+
+Event is valid
+
+Notes for Frontend Devs
+
+Always use referee endpoints for referral UI
+
+Do NOT expose referral reward fields on public pages
+
+Cache referral code for at least 7 days
+
+Handle states:
+
+pending (not checked-in)
+
+credited (earned)
+
+
+🔹 PRD — Referral System (referral.axile.ng)
+Product
+
+Referral earning system for Axile tied to event ticket sales
+
+🎯 Goal
+
+Increase ticket sales via users
+
+Only reward real revenue
+
+Let event organizers control referral incentives
+
+👤 Actors
+1. Referrer (User)
+
+Shares event referral link
+
+Earns AP after ticket is used (checked-in)
+
+2. Buyer
+
+Purchases ticket via referral link
+
+3. Organizer
+
+Enables referral when creating event
+
+Defines reward model
+
+⚙️ Core Features
+1. Referral-enabled Events
+
+Organizer config during event creation:
+
+referral_enabled: boolean
+
+reward_type: fixed | percentage
+
+reward_value: number
+
+Tooltip:
+
+Referral lets users promote your event and earn when tickets are successfully used
+
+2. Reward Logic
+
+Trigger: ticket check-in
+
+Not at payment → prevents abuse
+
+Calculation:
+
+Fixed:
+
+e.g. 10 AP per ticket
+
+Percentage:
+
+e.g. 30% of ticket price
+
+Convert:
+
+10 AP = ₦100
+
+3. Referral Flow
+
+Referrer gets:
+
+referral.axile.ng/ref/{code}/event/{eventId}
+
+Buyer clicks → redirected to event page
+
+Referral stored (cookie/session)
+
+Buyer purchases ticket
+
+Ticket checked-in → reward credited
+
+4. Wallet
+
+points_balance
+
+naira_equivalent
+
+5. Withdrawal
+
+Min: 50 AP
+
+Status:
+
+pending
+
+approved
+
+paid
+
+🔁 Lifecycle
+
+Referral link clicked
+
+Ticket purchased
+
+Ticket checked-in
+
+Points credited
+
+User withdraws
+
+🔹 FRONTEND TASKS (will be assigned to team)
+🧱 1. Event Creation (HIGH PRIORITY)
+
+Add toggle: Enable Referral
+
+If ON:
+
+Select:
+
+Fixed / Percentage
+
+Input value
+
+Tooltip UI
+
+📊 2. Referral Dashboard
+
+Total AP earned
+
+Pending AP (not yet checked-in)
+
+Withdrawable AP
+
+List:
+
+Event
+
+Buyer (masked)
+
+Status:
+
+pending
+
+credited
+
+🔗 3. Referral Link UI
+
+Copy button
+
+Per event link generation
+
+🎟 4. Event Page Update
+
+Detect referral (cookie)
+
+Attach silently to purchase
+
+💰 5. Wallet Page
+
+Balance
+
+Withdraw button
+
+History list
+
+🚫 6. Edge Cases UI
+
+“Reward pending until event check-in”
+
+Empty states
+
+Failed withdrawal
+
+🔹 BACKEND API (Python)
+
+Keep it REST. Clean. No noise.
+
+🔐 Auth
+POST /auth/signup
+POST /auth/login
+GET  /auth/me
+🎟 Events
+POST /events
+GET  /events/{id}
+GET  /events?referral_enabled=true
+Payload (Create Event)
+{
+  "title": "Event",
+  "price": 5000,
+  "referral_enabled": true,
+  "reward_type": "percentage",
+  "reward_value": 30
+}
+🔗 Referral
+GET /ref/{refCode}/event/{eventId}
+Logic:
+
+Validate ref
+
+Set cookie:
+
+response.set_cookie("ref_code", refCode, max_age=7*24*60*60)
+
+Redirect → /events/{eventId}
+
+🎫 Ticket Purchase Hook
+
+(Internal, after payment confirm)
+
+POST /internal/referral/track
+{
+  "buyer_id": "...",
+  "event_id": "...",
+  "ticket_id": "...",
+  "ref_code": "..."
+}
+
+Status:
+
+pending_checkin
+
+✅ Check-in Hook (CRITICAL)
+POST /internal/tickets/checkin
+Logic:
+if referral_exists:
+    if reward_type == "fixed":
+        points = reward_value
+    else:
+        points = (ticket_price * reward_value / 100) / 10  # convert to AP
+
+    credit_user(referrer_id, points)
+
+Status → credited
+
+💰 Wallet
+GET /wallet
+GET /wallet/history
+💸 Withdrawal
+POST /withdrawals
+GET  /withdrawals
+Rule:
+if points < 50:
+    reject()
+🧠 Data Models (Simplified)
+referrals
+{
+  "id": "",
+  "referrer_id": "",
+  "buyer_id": "",
+  "event_id": "",
+  "ticket_id": "",
+  "points": 0,
+  "status": "pending | credited"
+}
+
+
+🔹 Frontend Structure (Next.js App Router)
+📁 Root
+app/
+ ├── (auth)/
+ ├── (dashboard)/
+ ├── (public)/
+ ├── api/ (only if needed)
+ ├── components/
+ ├── lib/
+ ├── hooks/
+ ├── store/
+ └── types/
+🔹 Route Groups
+🔐 (auth)
+(auth)/
+ ├── login/page.tsx
+ ├── signup/page.tsx
+🌍 (public)
+(public)/
+ ├── events/page.tsx
+ ├── event/[id]/page.tsx
+ ├── ref/[code]/event/[id]/page.tsx   ← referral entry
+
+👉 This route:
+
+calls backend /ref/{code}/event/{id}
+
+sets cookie
+
+redirects
+
+📊 (dashboard)
+(dashboard)/
+ ├── layout.tsx
+ ├── page.tsx
+
+ ├── referrals/
+ │    ├── page.tsx
+ │    └── components/
+
+ ├── wallet/
+ │    ├── page.tsx
+ │    └── components/
+
+ ├── events/
+ │    ├── create/page.tsx
+ │    └── components/
+🔹 Key Pages Breakdown
+1. Event Creation
+events/create/page.tsx
+Components:
+
+ReferralToggle.tsx
+
+RewardTypeSelect.tsx
+
+RewardValueInput.tsx
+
+TooltipInfo.tsx
+
+2. Referral Dashboard
+referrals/page.tsx
+Show:
+
+Total AP
+
+Pending AP
+
+Withdrawable AP
+
+Referral list
+
+Components:
+
+ReferralStats.tsx
+
+ReferralTable.tsx
+
+ReferralLinkCard.tsx
+
+3. Wallet
+wallet/page.tsx
+Components:
+
+BalanceCard.tsx
+
+WithdrawButton.tsx
+
+TransactionList.tsx
+
+4. Event Page (CRITICAL)
+(public)/event/[id]/page.tsx
+
+On load:
+
+check cookie → ref_code
+
+attach to purchase request
+
+🔹 Global Components
+components/
+ ├── ui/ (shadcn stuff)
+ ├── referral/
+ │    ├── CopyLink.tsx
+ │    ├── StatusBadge.tsx
+ │    └── RewardBadge.tsx
+ ├── wallet/
+ └── layout/
+🔹 State Management
+
+Keep it simple. Don’t over-engineer.
+
+Use:
+
+React Query (TanStack) → server state
+
+Zustand → small client state
+
+Example Store
+// store/referral.ts
+import { create } from "zustand";
+
+export const useReferralStore = create((set) => ({
+  refCode: null,
+  setRefCode: (code) => set({ refCode: code }),
+}));
+🔹 API Layer
+lib/api/
+ ├── auth.ts
+ ├── events.ts
+ ├── referrals.ts
+ ├── wallet.ts
+Example
+// lib/api/referrals.ts
+export const getReferrals = async () => {
+  return fetch("/api/referrals").then(res => res.json());
+};
+🔹 Hooks
+hooks/
+ ├── useAuth.ts
+ ├── useReferrals.ts
+ ├── useWallet.ts
+🔹 Types
+types/
+ ├── user.ts
+ ├── event.ts
+ ├── referral.ts
+ ├── wallet.ts
+🔹 Critical Logic (Don’t Miss This)
+Referral Capture
+// in /ref/[code]/event/[id]
+useEffect(() => {
+  document.cookie = `ref_code=${code}; path=/; max-age=604800`;
+  router.push(`/event/${id}`);
+}, []);
+Attach on Purchase
+const refCode = getCookie("ref_code");
+
+await purchaseTicket({
+  eventId,
+  refCode,
+});
+

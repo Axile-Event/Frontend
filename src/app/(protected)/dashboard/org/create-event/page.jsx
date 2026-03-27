@@ -71,9 +71,12 @@ export default function CreateEvent() {
   const [showPinPrompt, setShowPinPrompt] = useState(false);
   const [pendingSubmit, setPendingSubmit] = useState(false);
   const DRAFT_KEY = "axile_event_creation_draft";
+  const [hasLoadedDraft, setHasLoadedDraft] = useState(false);
 
   // Load draft on mount
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    
     const savedDraft = localStorage.getItem(DRAFT_KEY);
     if (savedDraft) {
       try {
@@ -85,6 +88,7 @@ export default function CreateEvent() {
           setCategories(savedCategories);
         }
         toast.success("Draft restored. You can continue editing.", {
+          id: "draft-restored-toast",
           icon: '📝',
           duration: 3000
         });
@@ -92,13 +96,16 @@ export default function CreateEvent() {
         console.error("Error loading draft:", err);
       }
     }
+    setHasLoadedDraft(true);
   }, []);
 
-  // Save draft on form changes
+  // Save draft on form changes - Only after initial load is complete
   useEffect(() => {
+    if (!hasLoadedDraft || typeof window === "undefined") return;
+    
     const draft = { form, categories };
     localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-  }, [form, categories]);
+  }, [form, categories, hasLoadedDraft]);
 
   // Fetch config (GET /config/) and populate eventTypes/pricingTypes.
   useEffect(() => {
