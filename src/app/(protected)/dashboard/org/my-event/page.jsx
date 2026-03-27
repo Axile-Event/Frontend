@@ -30,6 +30,17 @@ const MyEvent = () => {
       else if (Array.isArray(payload?.data)) list = payload.data;
       else list = [];
 
+      // Debug: log first event to see if referral fields exist
+      if (list.length > 0) {
+        console.log("[MyEvents] Sample event keys:", Object.keys(list[0]));
+        console.log("[MyEvents] First event referral fields:", {
+          use_referral: list[0].use_referral,
+          referral_reward_type: list[0].referral_reward_type,
+          referral_reward_amount: list[0].referral_reward_amount,
+          referral_reward_percentage: list[0].referral_reward_percentage,
+        });
+      }
+
       const eventsWithStats = await Promise.all(
         list.map(async (event) => {
           const eventId = event.event_id ?? event.id;

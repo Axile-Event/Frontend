@@ -415,12 +415,19 @@ export default function CreateEvent() {
       // Append referral config to FormData
       appendReferralFields(formData, referralConfig);
 
+      // Debug: log what we're sending
+      console.log("[CreateEvent] Referral config:", referralConfig);
+      console.log("[CreateEvent] FormData entries:", [...formData.entries()]);
+
       // IMPORTANT: don't set Content-Type for FormData; the browser will add the correct boundary.
       const res = await api.post("/event/", formData);
 
 
       if (res && res.status >= 200 && res.status < 300) {
         const newId = res.data.event_id || res.data.id;
+
+        // Debug: log the response to see if referral fields are returned
+        console.log("[CreateEvent] API response:", res.data);
 
         // If backend hasn't propagated the image URL yet, keep the selected image
         // so the organizer can still see the correct cover immediately in My Events.

@@ -31,6 +31,7 @@ export default function EditEventPage() {
   const params = useParams();
   const eventId = params?.["my-eventId"];
   const isMountedRef = useRef(true);
+  const queryClient = useQueryClient();
 
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -317,6 +318,10 @@ export default function EditEventPage() {
 
       // Append referral config
       appendReferralFields(formData, referralConfig);
+
+      // Debug: log referral fields being sent
+      console.log("[EditEvent] Referral config:", referralConfig);
+      console.log("[EditEvent] FormData entries:", [...formData.entries()]);
 
       const response = await api.patch(`/events/${eventId}/update/`, formData);
 
