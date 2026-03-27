@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import api from "../../../../../lib/axios";
 import { queryKeys } from "@/lib/query-keys";
 import toast from "react-hot-toast";
@@ -10,6 +10,9 @@ import useOrganizerStore from "../../../../../store/orgStore";
 import CustomDropdown from "@/components/ui/CustomDropdown";
 import Loading from "@/components/ui/Loading";
 import PinPromptModal from "@/components/PinPromptModal";
+import ReferralToggle from "@/components/organizer/ReferralToggle";
+import ReferralConfigFields from "@/components/organizer/ReferralConfigFields";
+import { appendReferralFields, validateReferralConfig } from "@/lib/referral";
 import {
   MapPin,
   Calendar,
@@ -25,6 +28,7 @@ import {
   Plus,
   Edit2,
   Zap,
+  Megaphone,
 } from "lucide-react";
 import DateTimePicker from "@/components/ui/DateTimePicker";
 
@@ -62,6 +66,14 @@ export default function CreateEvent() {
 
   const [categories, setCategories] = useState([]);
 
+  // Referral config state
+  const [referralConfig, setReferralConfig] = useState({
+    use_referral: false,
+    referral_reward_type: "",
+    referral_reward_amount: "",
+    referral_reward_percentage: "",
+  });
+
   const [imageFile, setImageFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [errors, setErrors] = useState({});
@@ -80,12 +92,15 @@ export default function CreateEvent() {
     const savedDraft = localStorage.getItem(DRAFT_KEY);
     if (savedDraft) {
       try {
-        const { form: savedForm, categories: savedCategories } = JSON.parse(savedDraft);
+        const { form: savedForm, categories: savedCategories, referralConfig: savedReferral } = JSON.parse(savedDraft);
         if (savedForm) {
           setForm(prev => ({ ...prev, ...savedForm }));
         }
         if (savedCategories && Array.isArray(savedCategories)) {
           setCategories(savedCategories);
+        }
+        if (savedReferral) {
+          setReferralConfig(prev => ({ ...prev, ...savedReferral }));
         }
         toast.success("Draft restored. You can continue editing.", {
           id: "draft-restored-toast",
@@ -103,9 +118,9 @@ export default function CreateEvent() {
   useEffect(() => {
     if (!hasLoadedDraft || typeof window === "undefined") return;
     
-    const draft = { form, categories };
+    const draft = { form, categories, referralConfig };
     localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-  }, [form, categories, hasLoadedDraft]);
+  }, [form, categories, referralConfig, hasLoadedDraft]);
 
   // Fetch config (GET /config/) and populate eventTypes/pricingTypes.
   useEffect(() => {
@@ -278,12 +293,11 @@ export default function CreateEvent() {
       updateCategory(index, "price", numericValue);
     }
   };
-
   const validate = () => {
     const e = {};
     if (!form.name.trim()) e.name = "Name is required";
     if (!form.description.trim()) e.description = "Description is required";
-    if (!["paid", "free"].includes(form.pricing_type))
+    if (["paid", "free"].includes(form.pricing_type) === false)
       e.pricing_type = "Invalid pricing type";
     if (!form.event_type) e.event_type = "Event type is required";
     if (!form.location.trim()) e.location = "Location is required";
@@ -315,6 +329,10 @@ export default function CreateEvent() {
       }
     }
 
+    // Referral validation
+    const referralErrors = validateReferralConfig(referralConfig, form.pricing_type, categories);
+    Object.assign(e, referralErrors);
+
     // length checks per docs
     if (form.name && form.name.length > 200)
       e.name = "Name must be ≤ 200 characters";
@@ -335,6 +353,12 @@ export default function CreateEvent() {
       date: "",
       capacity: "",
       max_quantity_per_booking: "",
+    });
+    setReferralConfig({
+      use_referral: false,
+      referral_reward_type: "",
+      referral_reward_amount: "",
+      referral_reward_percentage: "",
     });
     setImageFile(null);
     setPreview(null);
@@ -387,6 +411,9 @@ export default function CreateEvent() {
       if (form.max_quantity_per_booking) {
         formData.append("max_quantity_per_booking", form.max_quantity_per_booking);
       }
+
+      // Append referral config to FormData
+      appendReferralFields(formData, referralConfig);
 
       // IMPORTANT: don't set Content-Type for FormData; the browser will add the correct boundary.
       const res = await api.post("/event/", formData);
@@ -657,10 +684,16 @@ export default function CreateEvent() {
                             pricing_type: undefined,
                             capacity: undefined,
                             categories: undefined,
+                            referral: undefined,
                           }));
                           if (p.value === "free") {
                             // Simplify free event flow: capacity-driven single category
                             setCategories([]);
+                            // Disable referral for free events
+                            setReferralConfig((prev) => ({
+                              ...prev,
+                              use_referral: false,
+                            }));
                           }
                         }
                       }
@@ -934,6 +967,74 @@ export default function CreateEvent() {
                 )}
               </div>
               )}
+
+              {/* Referral Rewards Section */}
+              <div className="space-y-4 pt-4 border-t border-white/5">
+                <div className="flex items-center gap-2 mb-2">
+                  <Megaphone className="w-4 h-4 text-rose-500" />
+                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">
+                    Referral Rewards
+                  </h3>
+                </div>
+
+                <ReferralToggle
+                  enabled={referralConfig.use_referral}
+                  onChange={(enabled) => {
+                    setReferralConfig((prev) => ({
+                      ...prev,
+                      use_referral: enabled,
+                      // Clear values when disabling
+                      ...(enabled ? {} : {
+                        referral_reward_type: "",
+                        referral_reward_amount: "",
+                        referral_reward_percentage: "",
+                      }),
+                    }));
+                    setErrors((prev) => ({
+                      ...prev,
+                      referral: undefined,
+                      referral_reward_type: undefined,
+                      referral_reward_amount: undefined,
+                      referral_reward_percentage: undefined,
+                    }));
+                  }}
+                  isFreeEvent={form.pricing_type === "free"}
+                  error={errors.referral}
+                />
+
+                <AnimatePresence>
+                  {referralConfig.use_referral && form.pricing_type !== "free" && (
+                    <ReferralConfigFields
+                      rewardType={referralConfig.referral_reward_type}
+                      rewardAmount={referralConfig.referral_reward_amount}
+                      rewardPercentage={referralConfig.referral_reward_percentage}
+                      onTypeChange={(type) => {
+                        setReferralConfig((prev) => ({
+                          ...prev,
+                          referral_reward_type: type,
+                          referral_reward_amount: "",
+                          referral_reward_percentage: "",
+                        }));
+                        setErrors((prev) => ({
+                          ...prev,
+                          referral_reward_type: undefined,
+                          referral_reward_amount: undefined,
+                          referral_reward_percentage: undefined,
+                        }));
+                      }}
+                      onAmountChange={(val) => {
+                        setReferralConfig((prev) => ({ ...prev, referral_reward_amount: val }));
+                        setErrors((prev) => ({ ...prev, referral_reward_amount: undefined }));
+                      }}
+                      onPercentageChange={(val) => {
+                        setReferralConfig((prev) => ({ ...prev, referral_reward_percentage: val }));
+                        setErrors((prev) => ({ ...prev, referral_reward_percentage: undefined }));
+                      }}
+                      errors={errors}
+                    />
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
 
             <button
@@ -1068,6 +1169,27 @@ export default function CreateEvent() {
                           </div>
                         )
                     )}
+                  </div>
+                </div>
+              )}
+
+              {/* Referral Preview */}
+              {referralConfig.use_referral && form.pricing_type !== "free" && (
+                <div className="pt-4 border-t border-white/5">
+                  <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-2">
+                    Referral Reward
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <div className="px-3 py-1.5 bg-rose-500/10 border border-rose-500/20 rounded-lg">
+                      <span className="text-[10px] font-bold text-rose-400 flex items-center gap-1.5">
+                        <Megaphone className="w-3 h-3" />
+                        {referralConfig.referral_reward_type === "flat"
+                          ? `₦${Number(referralConfig.referral_reward_amount || 0).toLocaleString()} per ticket`
+                          : referralConfig.referral_reward_type === "percentage"
+                          ? `${referralConfig.referral_reward_percentage || 0}% per ticket`
+                          : "Referral enabled"}
+                      </span>
+                    </div>
                   </div>
                 </div>
               )}
