@@ -26,7 +26,8 @@ import {
   Mail,
   User,
   Minus,
-  Plus
+  Plus,
+  Megaphone
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { getImageUrl, getErrorMessage } from "../../../../../../lib/utils";
@@ -34,6 +35,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import CustomDropdown from "@/components/ui/CustomDropdown";
 import BulkBookForAttendeeModal from "@/components/organizer/BulkBookForAttendeeModal";
 import ManualConfirmationModal from "@/components/payment/ManualConfirmationModal";
+import ReferralBadge from "@/components/organizer/ReferralBadge";
 import useTempBookingStore from "@/store/tempBookingStore";
 
 // Book for Attendee Modal Component
@@ -912,6 +914,16 @@ export default function EventDetailsPage() {
               >
                 Detailed Analytics <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </button>
+
+              {/* Referral Analytics Button */}
+              {event.use_referral && (
+                <button
+                  onClick={() => router.push(`/dashboard/org/my-event/${event.event_id ?? event.id}/referral-analytics`)}
+                  className="w-full py-3 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 hover:border-rose-500/40 text-rose-400 font-bold text-sm transition-all active:scale-95 flex items-center justify-center gap-2"
+                >
+                  <Megaphone className="w-4 h-4" /> Referral Analytics
+                </button>
+              )}
               
               {isPaidEvent ? (
                 <button 
@@ -927,6 +939,29 @@ export default function EventDetailsPage() {
               )}
             </div>
           </div>
+
+          {/* Referral Config Info */}
+          {event.use_referral && (
+            <div className="bg-[#0A0A0A] border border-rose-500/10 rounded-3xl p-6 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Megaphone className="w-4 h-4 text-rose-500" />
+                  <h4 className="text-sm font-bold text-white">Referral Rewards</h4>
+                </div>
+                <ReferralBadge
+                  useReferral={event.use_referral}
+                  rewardType={event.referral_reward_type}
+                  rewardAmount={event.referral_reward_amount}
+                  rewardPercentage={event.referral_reward_percentage}
+                />
+              </div>
+              <p className="text-[10px] text-gray-500 font-medium leading-relaxed">
+                {event.referral_reward_type === "flat"
+                  ? `Referees earn ₦${Number(event.referral_reward_amount || 0).toLocaleString()} for each ticket sold through their link.`
+                  : `Referees earn ${event.referral_reward_percentage || 0}% of each ticket price sold through their link.`}
+              </p>
+            </div>
+          )}
 
           <div className="bg-linear-to-br from-rose-500/10 to-transparent border border-white/5 rounded-3xl p-6 text-center">
             <p className="text-xs text-gray-400 font-medium">Need help managing your event?</p>
