@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { DollarSign, Percent, ChevronDown, Check } from "lucide-react";
 import { fetchReferralRewardTypes } from "@/lib/referral";
@@ -8,15 +8,6 @@ import { fetchReferralRewardTypes } from "@/lib/referral";
 /**
  * Referral config fields: reward type select + value input.
  * Only renders when referral is enabled.
- *
- * @param {Object} props
- * @param {string} props.rewardType - "flat" | "percentage"
- * @param {string|number} props.rewardAmount - flat amount value
- * @param {string|number} props.rewardPercentage - percentage value
- * @param {Function} props.onTypeChange - (type: string) => void
- * @param {Function} props.onAmountChange - (value: string) => void
- * @param {Function} props.onPercentageChange - (value: string) => void
- * @param {Object} props.errors - { referral_reward_type, referral_reward_amount, referral_reward_percentage }
  */
 export default function ReferralConfigFields({
   rewardType = "",
@@ -32,6 +23,7 @@ export default function ReferralConfigFields({
     { value: "percentage", label: "Percentage" },
   ]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
 
   useEffect(() => {
     let mounted = true;
@@ -43,6 +35,19 @@ export default function ReferralConfigFields({
     return () => { mounted = false; };
   }, []);
 
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setDropdownOpen(false);
+      }
+    };
+    if (dropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [dropdownOpen]);
+
   const selectedType = rewardTypes.find((t) => t.value === rewardType);
 
   return (
@@ -51,11 +56,12 @@ export default function ReferralConfigFields({
       animate={{ opacity: 1, height: "auto" }}
       exit={{ opacity: 0, height: 0 }}
       transition={{ duration: 0.3, ease: "easeInOut" }}
-      className="space-y-4 overflow-hidden"
+      className="space-y-4"
+      style={{ overflow: "visible" }}
     >
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {/* Reward Type Select */}
-        <div className="space-y-1.5 relative">
+        <div className="space-y-1.5 relative" ref={dropdownRef}>
           <label className="text-[10px] font-bold text-gray-500 uppercase tracking-wider">
             Reward Type <span className="text-rose-500">*</span>
           </label>
@@ -98,7 +104,8 @@ export default function ReferralConfigFields({
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 8, scale: 0.98 }}
                 transition={{ duration: 0.15 }}
-                className="absolute z-50 w-full mt-1 bg-[#0C0C0C]/95 border border-white/5 rounded-xl shadow-2xl backdrop-blur-xl overflow-hidden"
+                className="absolute z-[100] w-full mt-1 bg-[#0C0C0C] border border-white/10 rounded-xl shadow-2xl shadow-black/80 backdrop-blur-xl"
+                style={{ top: "100%" }}
               >
                 <div className="p-1.5">
                   {rewardTypes.map((type) => (
