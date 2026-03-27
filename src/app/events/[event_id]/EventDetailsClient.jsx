@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import api from "@/lib/axios";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +14,7 @@ import useAuthStore from "@/store/authStore";
 import { getImageUrl } from "@/lib/utils";
 import { EventDetailsSkeleton } from "@/components/skeletons";
 import useTempBookingStore from "@/store/tempBookingStore";
+import { useReferral, getValidReferral } from "@/hooks/useReferral";
 
 // Platform fee constants
 const PLATFORM_FEE = 80;
@@ -28,6 +29,7 @@ const calculatePaystackFee = (amount) => {
 
 const EventDetailsClient = ({ event_id, initialEvent }) => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const eventId = event_id;
   const { token, hydrated } = useAuthStore();
 
@@ -51,6 +53,19 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
   // Temporary referral source state for event:TO-56363
   const [referralSource, setReferralSource] = useState("");
   const [otherReferral, setOtherReferral] = useState("");
+
+  // Referral tracking
+  const { referralCode, setReferral, clearReferral } = useReferral();
+
+  // Capture referral from URL query param (?ref=abc123)
+  useEffect(() => {
+    const ref = searchParams.get("ref");
+    if (ref) {
+      // Use the backend event_id if available, fallback to URL param
+      const resolvedEventId = event?.event_id || eventId;
+      setReferral(ref, resolvedEventId);
+    }
+  }, [searchParams, event?.event_id, eventId, setReferral]);
 
   // Restore ticket selections from localStorage after login redirect
   useEffect(() => {
@@ -254,9 +269,14 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
         quantity: item.quantity,
       }));
       
+      // Get valid referral for this specific event
+      const validReferral = getValidReferral(eventIdToUse);
+
       const payload = {
         event_id: eventIdToUse,
         items: items,
+        // Attach referral code only if valid and matches this event
+        ...(validReferral && { referral_code: validReferral }),
         // Scoped referral source for event:TO-56363
         ...(eventIdToUse === "event:TO-56363" && {
           referral_source: referralSource === "Other" ? `Other: ${otherReferral}` : referralSource,
@@ -288,6 +308,11 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
           created_at: new Date().toISOString()
         };
         localStorage.setItem(`booking_${bookingId}`, JSON.stringify(bookingDataForCheckout));
+
+        // Clear referral after successful booking
+        if (validReferral) {
+          clearReferral();
+        }
         
         toast.success("Booking created! Redirecting to payment...", { id: toastId });
         router.push(`/checkout/payment/${bookingId}`);
@@ -392,6 +417,16 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
               {/* Event Title & Info */}
               <div>
                 <h1 className="text-2xl md:text-4xl font-bold mb-3">{event.name}</h1>
+
+                {/* Subtle referral indicator */}
+                {referralCode && (
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 mb-3 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-medium">
+                    <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    You were referred
+                  </div>
+                )}
                 <div className="flex flex-wrap gap-4 text-muted-foreground text-sm md:text-base">
                   <div className="flex items-center gap-2 bg-muted/30 px-3 py-1.5 rounded-full">
                     <Calendar className="h-4 w-4 text-rose-500" />
