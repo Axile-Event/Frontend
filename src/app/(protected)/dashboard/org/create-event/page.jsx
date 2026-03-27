@@ -70,6 +70,35 @@ export default function CreateEvent() {
   const [createdEventId, setCreatedEventId] = useState(null);
   const [showPinPrompt, setShowPinPrompt] = useState(false);
   const [pendingSubmit, setPendingSubmit] = useState(false);
+  const DRAFT_KEY = "axile_event_creation_draft";
+
+  // Load draft on mount
+  useEffect(() => {
+    const savedDraft = localStorage.getItem(DRAFT_KEY);
+    if (savedDraft) {
+      try {
+        const { form: savedForm, categories: savedCategories } = JSON.parse(savedDraft);
+        if (savedForm) {
+          setForm(prev => ({ ...prev, ...savedForm }));
+        }
+        if (savedCategories && Array.isArray(savedCategories)) {
+          setCategories(savedCategories);
+        }
+        toast.success("Draft restored. You can continue editing.", {
+          icon: '📝',
+          duration: 3000
+        });
+      } catch (err) {
+        console.error("Error loading draft:", err);
+      }
+    }
+  }, []);
+
+  // Save draft on form changes
+  useEffect(() => {
+    const draft = { form, categories };
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+  }, [form, categories]);
 
   // Fetch config (GET /config/) and populate eventTypes/pricingTypes.
   useEffect(() => {
@@ -304,6 +333,7 @@ export default function CreateEvent() {
     setPreview(null);
     setErrors({});
     setCategories([]);
+    localStorage.removeItem(DRAFT_KEY);
   };
 
 
@@ -421,7 +451,7 @@ export default function CreateEvent() {
         setShowSuccessModal(true);
         queryClient.invalidateQueries({ queryKey: queryKeys.organizer.events });
         queryClient.invalidateQueries({ queryKey: queryKeys.organizer.dashboard });
-        // resetForm();
+        localStorage.removeItem(DRAFT_KEY);
       } else {
         toast.error(`Unexpected server response: ${res?.status}`);
       }
