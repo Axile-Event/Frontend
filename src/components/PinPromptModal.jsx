@@ -106,7 +106,7 @@ export default function PinPromptModal({
     setLoading(true);
 
     try {
-      // First, absolute fallback: check if pin matches locally (from PinGate setup)
+      // First, absolute fallback, check if pin matches locally (from PinGate setup)
       const locallyOk = await verifyPinLocally(pin);
       if (locallyOk) {
         toast.success('PIN verified (Local)');
