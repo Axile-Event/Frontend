@@ -38,17 +38,15 @@ export function appendReferralFields(formData, referralConfig) {
 
   if (!use_referral) return;
 
-  if (referral_reward_type) {
-    formData.append("referral_reward_type", referral_reward_type);
-  }
+  // Always append these fields if use_referral is true to satisfy backend 'required' rules
+  formData.append("referral_reward_type", referral_reward_type || "flat");
+  
+  // Send the appropriate value or 0 if not the active type
+  const amount = (referral_reward_type === "flat" && referral_reward_amount) ? referral_reward_amount : "0";
+  const percentage = (referral_reward_type === "percentage" && referral_reward_percentage) ? referral_reward_percentage : "0";
 
-  if (referral_reward_type === "flat" && referral_reward_amount !== "" && referral_reward_amount != null) {
-    formData.append("referral_reward_amount", String(referral_reward_amount));
-  }
-
-  if (referral_reward_type === "percentage" && referral_reward_percentage !== "" && referral_reward_percentage != null) {
-    formData.append("referral_reward_percentage", String(referral_reward_percentage));
-  }
+  formData.append("referral_reward_amount", String(amount));
+  formData.append("referral_reward_percentage", String(percentage));
 }
 
 /**

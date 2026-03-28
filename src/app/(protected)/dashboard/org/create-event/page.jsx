@@ -509,13 +509,37 @@ export default function CreateEvent() {
         console.error("[CreateEvent] Error setting up request:", err.message);
       }
 
-      const msg =
-        err?.response?.data?.detail ||
+      let msg =
         err?.response?.data?.message ||
         err?.response?.data?.error ||
-        (err?.response?.data ? JSON.stringify(err.response.data) : null) ||
-        err?.message ||
-        "Failed to create event";
+        err?.response?.data?.detail;
+
+      // Handle the case where 'detail' is an object containing field-specific errors
+      if (typeof msg === "object" && msg !== null) {
+        try {
+          // Drill into the first validation error found in the object
+          const firstKey = Object.keys(msg)[0];
+          const firstVal = msg[firstKey];
+          const displayVal = Array.isArray(firstVal) ? firstVal[0] : (typeof firstVal === 'object' ? JSON.stringify(firstVal) : String(firstVal));
+          msg = `${firstKey}: ${displayVal}`;
+        } catch (e) {
+          msg = JSON.stringify(msg);
+        }
+      }
+      
+      // Final fallback to generic error parsing
+      if (!msg && err?.response?.data && typeof err.response.data === "object") {
+        try {
+          const firstKey = Object.keys(err.response.data)[0];
+          const firstVal = err.response.data[firstKey];
+          const displayVal = Array.isArray(firstVal) ? firstVal[0] : (typeof firstVal === 'object' ? JSON.stringify(firstVal) : String(firstVal));
+          msg = `${firstKey}: ${displayVal}`;
+        } catch (e) {
+          msg = JSON.stringify(err.response.data);
+        }
+      }
+      
+      msg = (typeof msg === 'string' ? msg : null) || err?.message || "Failed to create event";
         
       toast.error(msg);
       window.scrollTo({ top: 0, behavior: "smooth" });
