@@ -497,14 +497,27 @@ export default function CreateEvent() {
         toast.error(`Unexpected server response: ${res?.status}`);
       }
     } catch (err) {
+      console.error("[CreateEvent] Full Error Object:", err);
+      
+      if (err.response) {
+        console.error("[CreateEvent] Response Data:", err.response.data);
+        console.error("[CreateEvent] Response Status:", err.response.status);
+        console.error("[CreateEvent] Response Headers:", err.response.headers);
+      } else if (err.request) {
+        console.error("[CreateEvent] No response received. Request details:", err.request);
+      } else {
+        console.error("[CreateEvent] Error setting up request:", err.message);
+      }
+
       const msg =
         err?.response?.data?.detail ||
         err?.response?.data?.message ||
+        err?.response?.data?.error ||
         (err?.response?.data ? JSON.stringify(err.response.data) : null) ||
         err?.message ||
         "Failed to create event";
+        
       toast.error(msg);
-      console.error("Create event error:", err?.response || err);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } finally {
       setLoading(false);
