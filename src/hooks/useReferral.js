@@ -4,6 +4,14 @@ import { useEffect } from "react";
 import useReferralStore from "@/store/referralStore";
 
 /**
+ * Utility to clean event IDs by removing 'event:' prefix if present.
+ */
+export const cleanEventId = (id) => {
+  if (!id) return "";
+  return String(id).replace("event:", "");
+};
+
+/**
  * Hook to manage referral state.
  * Handles hydration, expiry validation, and Zustand sync.
  */
@@ -46,8 +54,8 @@ export function getValidReferral(currentEventId) {
     const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
     if (Date.now() - state.timestamp > SEVEN_DAYS_MS) return null;
 
-    // Check event match
-    if (state.eventId && state.eventId !== currentEventId) return null;
+    // Check event match - compare cleaned IDs
+    if (state.eventId && cleanEventId(state.eventId) !== cleanEventId(currentEventId)) return null;
 
     return state.referralCode;
   } catch {

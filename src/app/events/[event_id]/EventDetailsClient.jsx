@@ -14,7 +14,7 @@ import useAuthStore from "@/store/authStore";
 import { getImageUrl } from "@/lib/utils";
 import { EventDetailsSkeleton } from "@/components/skeletons";
 import useTempBookingStore from "@/store/tempBookingStore";
-import { useReferral, getValidReferral } from "@/hooks/useReferral";
+import { useReferral, getValidReferral, cleanEventId } from "@/hooks/useReferral";
 
 // Platform fee constants
 const PLATFORM_FEE = 80;
@@ -60,10 +60,11 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
   // Capture referral from URL query param (?ref=abc123)
   useEffect(() => {
     const ref = searchParams.get("ref");
-    if (ref) {
-      // Use the backend event_id if available, fallback to URL param
-      const resolvedEventId = event?.event_id || eventId;
-      setReferral(ref, resolvedEventId);
+    const id = event?.event_id || eventId;
+    const cleaned = cleanEventId(id);
+
+    if (ref && cleaned) {
+      setReferral(ref, cleaned);
     }
   }, [searchParams, event?.event_id, eventId, setReferral]);
 
@@ -420,12 +421,18 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
 
                 {/* Subtle referral indicator */}
                 {referralCode && (
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 mb-3 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-medium">
-                    <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
+                  <motion.div 
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.5, ease: "easeOut" }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 mb-4 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[11px] font-semibold tracking-wide uppercase"
+                  >
+                    <div className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </div>
                     You were referred
-                  </div>
+                  </motion.div>
                 )}
                 <div className="flex flex-wrap gap-4 text-muted-foreground text-sm md:text-base">
                   <div className="flex items-center gap-2 bg-muted/30 px-3 py-1.5 rounded-full">
