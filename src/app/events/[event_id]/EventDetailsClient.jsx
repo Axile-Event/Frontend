@@ -14,7 +14,7 @@ import useAuthStore from "@/store/authStore";
 import { getImageUrl } from "@/lib/utils";
 import { EventDetailsSkeleton } from "@/components/skeletons";
 import useTempBookingStore from "@/store/tempBookingStore";
-import { useReferral, getValidReferral, cleanEventId } from "@/hooks/useReferral";
+import { useReferral, cleanEventId } from "@/hooks/useReferral";
 
 // Platform fee constants
 const PLATFORM_FEE = 80;
@@ -55,7 +55,7 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
   const [otherReferral, setOtherReferral] = useState("");
 
   // Referral tracking
-  const { referralCode, setReferral, clearReferral } = useReferral();
+  const { referralCode, setReferral, getValidReferral, clearReferral } = useReferral();
 
   // Capture referral from URL query param (?ref=abc123)
   useEffect(() => {
@@ -421,8 +421,8 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
               <div>
                 <h1 className="text-2xl md:text-4xl font-bold mb-3">{event.name}</h1>
 
-                {/* Subtle referral indicator */}
-                {referralCode && (
+                {/* Subtle referral indicator - only show if valid for this event */}
+                {getValidReferral(event?.event_id || eventId) && (
                   <motion.div 
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}

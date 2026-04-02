@@ -16,51 +16,29 @@ export const cleanEventId = (id) => {
  * Handles hydration, expiry validation, and Zustand sync.
  */
 export function useReferral() {
-  const { referralCode, eventId, timestamp, setReferral, clearReferral, isExpired } =
-    useReferralStore();
+  const {
+    referralCode,
+    setReferral,
+    getValidReferral,
+    clearReferral,
+    isExpired
+  } = useReferralStore();
 
   // On mount: validate expiry and auto-clear if stale
   useEffect(() => {
+    // Note: referralStore uses persist middleware which rehydrates automatically.
+    // We run an explicit check on mount to ensure stale data is cleared.
     if (referralCode && isExpired()) {
       clearReferral();
     }
   }, [referralCode, isExpired, clearReferral]);
 
   return {
-    referralCode: referralCode && !isExpired() ? referralCode : null,
-    eventId,
-    timestamp,
+    referralCode, // Added for UI checks like the banner
     setReferral,
+    getValidReferral,
     clearReferral,
   };
-}
-
-/**
- * Returns a valid referral code ONLY if it matches the given eventId.
- * Returns null for mismatched events, expired referrals, or no referral.
- */
-export function getValidReferral(currentEventId) {
-  if (typeof window === "undefined") return null;
-
-  try {
-    const raw = localStorage.getItem("axile-referral-storage");
-    if (!raw) return null;
-
-    const parsed = JSON.parse(raw);
-    const state = parsed?.state;
-    if (!state?.referralCode || !state?.timestamp) return null;
-
-    // Check expiry (7 days)
-    const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
-    if (Date.now() - state.timestamp > SEVEN_DAYS_MS) return null;
-
-    // Check event match - compare cleaned IDs
-    if (state.eventId && cleanEventId(state.eventId) !== cleanEventId(currentEventId)) return null;
-
-    return state.referralCode;
-  } catch {
-    return null;
-  }
 }
 
 export default useReferral;
