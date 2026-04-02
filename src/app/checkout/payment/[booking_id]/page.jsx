@@ -160,6 +160,8 @@ export default function CheckoutPaymentPage() {
       // Otherwise, initialize payment
       const response = await api.post("/tickets/initialize-payment/", {
         booking_id: booking_id,
+        redirect_url: `${window.location.origin}/payment`,
+        callback_url: `${window.location.origin}/payment`,
       });
 
       if (response.data.payment_url) {

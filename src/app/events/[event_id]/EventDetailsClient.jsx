@@ -282,7 +282,9 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
         ...(eventIdToUse === "event:TO-56363" && {
           referral_source: referralSource === "Other" ? `Other: ${otherReferral}` : referralSource,
           referral: referralSource === "Other" ? `Other: ${otherReferral}` : referralSource
-        })
+        }),
+        redirect_url: `${window.location.origin}/payment`,
+        callback_url: `${window.location.origin}/payment`,
       };
       
       console.log("Booking payload:", payload);

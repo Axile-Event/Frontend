@@ -31,11 +31,11 @@ export const metadata = {
   authors: [{ name: "Axile Team" }],
   creator: "Axile",
   publisher: "Axile",
-  metadataBase: new URL('https://axile.ng'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://www.axile.ng'),
   openGraph: {
     type: "website",
     locale: "en_NG",
-    url: "https://axile.ng",
+    url: process.env.NEXT_PUBLIC_SITE_URL || "https://www.axile.ng",
     title: "Axile | Sell and Discover Events in Nigeria",
     description: "The unified platform for Nigerian events. Manage ticket sales, track attendance, and discover the best experiences around you.",
     siteName: "Axile",
