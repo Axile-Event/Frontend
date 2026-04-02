@@ -21,7 +21,7 @@ const PaymentSummary = ({ summary, activeTab }) => {
   const currentTotal = isPaystack ? totalPaystack : 0;
 
   return (
-    <Card className="border-border bg-card/50 backdrop-blur-sm">
+    <Card className="border-border/70 bg-card/90 shadow-sm">
       <CardHeader className="pb-3">
         <CardTitle className="text-xl flex items-center gap-2">
           <Ticket className="h-5 w-5 text-rose-500" />
