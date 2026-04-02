@@ -446,8 +446,8 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
                           key={cat.category_id}
                           className={`p-4 rounded-2xl border-2 transition-all duration-200 ${
                             qty > 0
-                              ? "border-rose-500 bg-rose-500/5 shadow-lg shadow-rose-500/10"
-                              : "border-border bg-card hover:border-border/80 hover:bg-card/80"
+                              ? "border-rose-500/30 bg-card/90 shadow-sm ring-1 ring-rose-500/10"
+                              : "border-border bg-card hover:border-border/80 hover:bg-card/90"
                           } ${isCatSoldOut ? "opacity-50" : ""}`}
                         >
                           <div className="flex items-start justify-between gap-4">
@@ -594,8 +594,8 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
                 {/* Order Summary Card */}
                 <Card className={`border-2 transition-all duration-300 ${
                   orderSummary.totalQuantity > 0 
-                    ? "border-rose-500/50 bg-gradient-to-b from-rose-500/10 to-card shadow-xl shadow-rose-500/10" 
-                    : "border-border/50 bg-card/80"
+                    ? "border-rose-500/30 bg-card/95 shadow-sm shadow-rose-500/5" 
+                    : "border-border/50 bg-card/90"
                 }`}>
                   <CardHeader className="p-5 pb-4">
                     <CardTitle className="text-lg flex items-center gap-2">
