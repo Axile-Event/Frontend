@@ -36,6 +36,8 @@ import CustomDropdown from "@/components/ui/CustomDropdown";
 import BulkBookForAttendeeModal from "@/components/organizer/BulkBookForAttendeeModal";
 import ManualConfirmationModal from "@/components/payment/ManualConfirmationModal";
 import ReferralBadge from "@/components/organizer/ReferralBadge";
+import ReferralStatsTable from "@/components/organizer/ReferralStatsTable";
+import { fetchReferralStats } from "@/lib/referral";
 import useTempBookingStore from "@/store/tempBookingStore";
 
 // Book for Attendee Modal Component
@@ -419,6 +421,27 @@ export default function EventDetailsPage() {
       return eventData;
     },
     enabled: !!id,
+    refetchOnWindowFocus: true
+  });
+
+  // Fetch referral stats specifically for the dashboard
+  const { data: referralData, isLoading: referralLoading } = useQuery({
+    queryKey: queryKeys.organizer.referralStats(id),
+    queryFn: async () => {
+      if (!event?.use_referral) return [];
+      try {
+        // Map any available referee IDs to satisfy current API body requirements
+        const refereeIds = event?.referral_referee_ids || [];
+        const referrals = refereeIds.map((rid) => ({ referee_id: rid }));
+        
+        const stats = await fetchReferralStats(id, referrals);
+        return Array.isArray(stats) ? stats : (stats?.stats || stats?.data || []);
+      } catch (err) {
+        console.error("Referral stats error:", err);
+        return [];
+      }
+    },
+    enabled: !!id && !!event,
     refetchOnWindowFocus: true
   });
 
@@ -876,6 +899,21 @@ export default function EventDetailsPage() {
                   <span className="text-emerald-500 font-black text-base md:text-xl">FREE</span>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Referral Performance Section */}
+          {event.use_referral && (
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <Megaphone className="w-6 h-6 text-rose-500" />
+                <h2 className="text-2xl font-black uppercase tracking-tighter italic">Referral Performance</h2>
+              </div>
+              <ReferralStatsTable 
+                stats={referralData || []} 
+                loading={referralLoading} 
+                eventName={eventName} 
+              />
             </div>
           )}
         </div>
