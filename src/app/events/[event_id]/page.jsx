@@ -2,7 +2,7 @@ import { getImageUrl } from "@/lib/utils";
 import EventDetailsClient from "./EventDetailsClient";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://radar-ufvb.onrender.com/";
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://axiledev.vercel.app"; // Temporarily defaulting to dev URL as requested
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://www.axile.ng";
 
 // Helper function to fetch event data server-side by event ID or slug
 async function getEventById(identifier) {

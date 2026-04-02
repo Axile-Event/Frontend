@@ -106,7 +106,7 @@ export default function RootLayout({ children }) {
               "@context": "https://schema.org",
               "@type": "WebApplication",
               "name": "Axile",
-              "url": "https://axile.ng",
+              "url": process.env.NEXT_PUBLIC_SITE_URL || "https://www.axile.ng",
               "description": "A comprehensive event management and ticketing platform designed for Nigeria, enabling organizers to host events and attendees to book tickets securely.",
               "applicationCategory": "BusinessApplication",
               "operatingSystem": "Web",
