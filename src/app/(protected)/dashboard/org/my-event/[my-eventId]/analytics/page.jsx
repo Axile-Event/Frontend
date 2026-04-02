@@ -62,7 +62,7 @@ export default function AnalyticsPage() {
 
   const filteredTickets = data?.tickets?.filter(t => {
     const searchLower = searchTerm.toLowerCase();
-    const refSource = t.referral_source || t.referral_payload || t.referral || "";
+    const refSource = (t.referral_source || t.referral_payload || t.referral || t.ref_code || t.referral_code || t.referral_name || "").toString();
     return (
       t.student_full_name?.toLowerCase().includes(searchLower) ||
       t.student_email?.toLowerCase().includes(searchLower) ||
@@ -263,7 +263,7 @@ export default function AnalyticsPage() {
                     </td>
                     <td className="px-6 py-5">
                       <p className="text-xs text-gray-300">
-                        {t.referral_source || t.referral_payload || t.referral || (
+                        {t.referral_source || t.referral_payload || t.referral || t.ref_code || t.referral_code || t.referral_name || (
                           <span className="text-gray-600 italic">None</span>
                         )}
                       </p>
