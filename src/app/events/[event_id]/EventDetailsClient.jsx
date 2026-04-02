@@ -277,7 +277,10 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
         event_id: eventIdToUse,
         items: items,
         // Attach referral code only if valid and matches this event
-        ...(validReferral && { referral_code: validReferral }),
+        ...(validReferral && { 
+          referral_code: validReferral,
+          ref_code: validReferral 
+        }),
         // Scoped referral source for event:TO-56363
         ...(eventIdToUse === "event:TO-56363" && {
           referral_source: referralSource === "Other" ? `Other: ${otherReferral}` : referralSource,
