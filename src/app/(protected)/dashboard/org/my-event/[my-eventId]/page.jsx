@@ -438,9 +438,9 @@ export default function EventDetailsPage() {
     queryFn: async () => {
       if (!isReferralEnabled) return [];
       try {
-        // Map any available referee IDs to satisfy current API body requirements
-        const refereeIds = event?.referral_referee_ids || [];
-        const referrals = refereeIds.map((rid) => ({ referee_id: rid }));
+        // Map any available referee usernames/IDs to satisfy current API requirements
+        const usernames = event?.referral_usernames || event?.referral_referee_ids || [];
+        const referrals = usernames.map((un) => ({ username: un }));
         
         const stats = await fetchReferralStats(id, referrals);
         return Array.isArray(stats) ? stats : (stats?.stats || stats?.data || []);

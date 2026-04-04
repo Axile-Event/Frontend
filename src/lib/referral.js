@@ -16,7 +16,7 @@ export async function fetchReferralRewardTypes() {
  * Fetch referral stats for an event (organizer).
  * POST /organiser/<event_id>/referral-stats/
  * @param {string} eventId
- * @param {Array<{referee_id: string}>} referrals
+ * @param {Array<{username: string}>} referrals
  */
 export async function fetchReferralStats(eventId, referrals = []) {
   const res = await api.post(`/organiser/${eventId}/referral-stats/`, {

@@ -143,3 +143,16 @@ export function formatNumber(value) {
 export function getEventUrl(eventId) {
   return `/events/${eventId}`;
 }
+
+/**
+ * Reads a cookie by name from the browser.
+ * @param {string} name - The cookie name.
+ * @returns {string|null} - The cookie value or null if not found.
+ */
+export function getCookie(name) {
+  if (typeof document === "undefined") return null;
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(";").shift();
+  return null;
+}

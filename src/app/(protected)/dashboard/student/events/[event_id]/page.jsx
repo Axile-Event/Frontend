@@ -17,7 +17,7 @@ import {
 import { Loader2, MapPin, Calendar, Clock, Ticket, Info, CheckCircle2, Share2, Copy, Check, X, Maximize2, Plus, Minus, ShoppingCart } from "lucide-react";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
-import { getImageUrl } from "@/lib/utils";
+import { getImageUrl, getCookie } from "@/lib/utils";
 import { EventDetailsSkeleton } from "@/components/skeletons";
 import { useReferral, cleanEventId } from "@/hooks/useReferral";
 
@@ -55,7 +55,16 @@ const EventDetailsPage = () => {
   const [otherReferral, setOtherReferral] = useState("");
 
   const { setReferral, getValidReferral, clearReferral } = useReferral();
+  const [refUsername, setRefUsername] = useState(null);
   const searchParams = useSearchParams();
+
+  // Read referral username from cookie on mount
+  useEffect(() => {
+    const username = getCookie("ref_username");
+    if (username) {
+      setRefUsername(username);
+    }
+  }, []);
 
   // Capture referral from URL query param (?ref=abc123)
   useEffect(() => {
@@ -199,9 +208,9 @@ const EventDetailsPage = () => {
       const payload = {
         event_id: eventIdToUse,
         items: items,
-        // Attach referral code only if valid and matches this event (exactly field 'referral' as per doc)
-        ...(validReferral && { 
-          referral: validReferral 
+        // Attach referral: prioritize refUsername (cookie), fallback to validReferral (old system)
+        ...( (refUsername || validReferral) && { 
+          referral: refUsername || validReferral 
         }),
         // Scoped referral source for event:TO-56363
         ...(eventIdToUse === "event:TO-56363" && {

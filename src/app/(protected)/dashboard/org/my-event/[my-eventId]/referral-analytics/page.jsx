@@ -41,10 +41,9 @@ export default function ReferralAnalyticsPage() {
   } = useQuery({
     queryKey: queryKeys.organizer.referralStats(eventId),
     queryFn: async () => {
-      // We need referee IDs to query — get them from the event's referral_referee_ids
-      // or fallback to empty (backend should return what it can)
-      const refereeIds = event?.referral_referee_ids || [];
-      const referrals = refereeIds.map((id) => ({ referee_id: id }));
+      // We need usernames/IDs to query — get them from the event's referral_usernames or referral_referee_ids
+      const usernames = event?.referral_usernames || event?.referral_referee_ids || [];
+      const referrals = usernames.map((un) => ({ username: un }));
 
       try {
         const stats = await fetchReferralStats(eventId, referrals);

@@ -16,7 +16,7 @@ export default function ReferralStatsTable({ stats = [], loading = false, eventN
   const [searchTerm, setSearchTerm] = useState("");
 
   const filteredStats = stats.filter((s) =>
-    s.referral_name?.toLowerCase().includes(searchTerm.toLowerCase())
+    (s.username || s.referral_name || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const totalTickets = stats.reduce((sum, s) => sum + (s.tickets_sold || 0), 0);
@@ -25,9 +25,9 @@ export default function ReferralStatsTable({ stats = [], loading = false, eventN
   const exportToCSV = () => {
     if (stats.length === 0) return;
 
-    const headers = ["Referee Name", "Tickets Sold", "Revenue (₦)"];
+    const headers = ["Referee Username", "Tickets Sold", "Revenue (₦)"];
     const rows = stats.map((s) => [
-      s.referral_name || "Unknown",
+      s.username || s.referral_name || "Unknown",
       s.tickets_sold || 0,
       s.referral_revenue || 0,
     ]);
@@ -166,14 +166,14 @@ export default function ReferralStatsTable({ stats = [], loading = false, eventN
                     <td className="px-6 py-5">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full bg-gradient-to-br from-rose-500/20 to-purple-500/20 flex items-center justify-center text-[10px] font-black text-rose-500 border border-rose-500/20 uppercase">
-                          {s.referral_name
+                          {(s.username || s.referral_name || "")
                             ?.split(" ")
                             .map((n) => n[0])
                             .join("")
                             .slice(0, 2) || "?"}
                         </div>
                         <span className="text-sm font-bold text-white">
-                          {s.referral_name || "Unknown Referee"}
+                          {s.username || s.referral_name || "Unknown Referee"}
                         </span>
                       </div>
                     </td>
