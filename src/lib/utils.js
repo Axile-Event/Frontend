@@ -162,12 +162,12 @@ export function getCookie(name) {
  * Goal: Every number comes directly from API with no transformation except formatting.
  */
 export function formatRewardLabel(event) {
-  if (!event) return "No reward";
+  if (!event) return "";
   if (event.referral_reward_type === "flat") {
     return `₦${(event.referral_reward_amount || 0).toLocaleString()} per ticket`;
   }
   if (event.referral_reward_type === "percentage") {
     return `${event.referral_reward_percentage || 0}% per ticket`;
   }
-  return "No reward";
+  return "";
 }

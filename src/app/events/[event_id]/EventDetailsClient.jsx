@@ -450,7 +450,7 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
                       <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                     </div>
                     {refUsername ? `Referred by ${refUsername}` : "You were referred"}
-                    {event && (
+                    {event && formatRewardLabel(event) && (
                       <span className="ml-1 opacity-80">
                         • {formatRewardLabel(event)}
                       </span>
