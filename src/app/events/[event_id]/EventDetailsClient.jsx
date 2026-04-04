@@ -295,6 +295,8 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
         items: items,
         // Send referral username/ID in standard 'referral' field
         ...(finalReferral && { referral: finalReferral }),
+        // For maximum compatibility with all backend endpoints
+        ...(finalReferral && { referral_code: finalReferral }),
         // Also send referral_username if we have the cookie-based identity
         ...(refUsername && { referral_username: refUsername }),
         redirect_url: `${window.location.origin}/payment`,

@@ -32,7 +32,12 @@ export default function AnalyticsPage() {
     queryFn: async () => {
       try {
         const res = await api.get(`/analytics/event/${id}/`);
+        console.log("Analytics response raw:", res.data);
         const analyticsData = res.data.analytics || res.data;
+        console.log("Analytics tickets list:", analyticsData.tickets_list);
+        if (analyticsData.tickets_list?.[0]) {
+          console.log("Keys in ticket object:", Object.getOwnPropertyNames(analyticsData.tickets_list[0]));
+        }
         return {
           event_id: analyticsData.event_info?.event_id || id,
           event_name: analyticsData.event_info?.name || analyticsData.event_info?.event_name || "Unknown Event",
