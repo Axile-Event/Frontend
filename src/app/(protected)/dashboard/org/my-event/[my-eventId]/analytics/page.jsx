@@ -155,7 +155,12 @@ export default function AnalyticsPage() {
     { label: "Checked In", value: usedTickets, icon: <UserCheck className="w-5 h-5 text-emerald-500" />, sub: "Attended" },
     // Only show revenue for paid events
     ...(isPaidEvent 
-      ? [{ label: "Revenue", value: `₦${Number(data.statistics?.total_revenue || 0).toLocaleString()}`, icon: <TrendingUp className="w-5 h-5 text-blue-500" />, sub: "Gross Earnings" }]
+      ? [{ 
+          label: "Net Revenue", 
+          value: `₦${Number(data.statistics?.net_revenue || 0).toLocaleString()}`, 
+          icon: <TrendingUp className="w-5 h-5 text-emerald-500" />, 
+          sub: "Organizer's Share" 
+        }]
       : []),
     { label: "Pending", value: pendingTickets, icon: <CreditCard className="w-5 h-5 text-amber-500" />, sub: isPaidEvent ? "Awaiting Payment" : "Awaiting Confirmation" },
   ];

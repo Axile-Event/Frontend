@@ -100,23 +100,11 @@ export default function RefereeDetailsPage() {
     });
   }, [analytics, username]);
 
-  // 5. Calculate estimated commission based on actual rewarded tickets
-  const totalRevenue = referralStats?.referral_revenue || 0;
+  // 5. Use backend-calculated financials
+  const grossRevenue = referralStats?.referral_revenue || 0;
+  const commission = referralStats?.referral_payout || referralStats?.commission || 0;
+  const netRevenue = referralStats?.net_revenue || 0;
   const ticketsSold = referralStats?.tickets_sold || 0;
-  
-  const estimatedCommission = useMemo(() => {
-    if (!event || !referralStats) return 0;
-    
-    if (event.referral_reward_type === "flat") {
-      const amount = Number(event.referral_reward_amount) || 0;
-      return amount * ticketsSold;
-    } else if (event.referral_reward_type === "percentage") {
-      const pctValue = Number(event.referral_reward_percentage) || 0;
-      const pct = pctValue / 100;
-      return totalRevenue * pct;
-    }
-    return 0;
-  }, [event, referralStats, ticketsSold, totalRevenue]);
 
   const formattedDate = (iso) => {
     if (!iso) return "TBD";
@@ -208,23 +196,23 @@ export default function RefereeDetailsPage() {
           sub="Confirmed conversions"
         />
         <StatCard 
-          label="Estimated Sales" 
-          value={`₦${Number(totalRevenue).toLocaleString()}`} 
-          icon={<TrendingUp className="w-5 h-5 text-emerald-500" />} 
-          sub="Total Ref. Sales"
+          label="Gross Sales" 
+          value={`₦${Number(grossRevenue).toLocaleString()}`} 
+          icon={<TrendingUp className="w-5 h-5 text-blue-500" />} 
+          sub="Total revenue generated"
         />
         <StatCard 
-          label="Total Reward" 
-          value={`₦${estimatedCommission.toLocaleString()}`} 
-          icon={<div className="font-black text-xs text-blue-500">₦</div>} 
-          sub="Commission Earned"
+          label="Net Revenue" 
+          value={`₦${Number(netRevenue).toLocaleString()}`} 
+          icon={<div className="font-black text-xs text-emerald-500">₦</div>} 
+          sub="Organizer's share (80%)"
           highlight
         />
         <StatCard 
-          label="Avg. Conversion" 
-          value={ticketsSold > 0 ? `₦${Math.round(totalRevenue / ticketsSold).toLocaleString()}` : "₦0"} 
-          icon={<Info className="w-5 h-5 text-gray-600" />} 
-          sub="Value per ticket"
+          label="Ref. Reward" 
+          value={`₦${Number(commission).toLocaleString()}`} 
+          icon={<div className="font-black text-xs text-rose-500">₦</div>} 
+          sub="Payout to referee"
         />
       </div>
 
