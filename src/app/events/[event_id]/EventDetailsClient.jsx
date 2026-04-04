@@ -282,18 +282,21 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
       // Get valid referral for this specific event
       const validReferral = getValidReferral(eventIdToUse);
 
+      // Determine final referral identity
+      let finalReferral = refUsername || validReferral;
+      
+      // Override with scoped source if it matches specific tracking event and choice was made
+      if (eventIdToUse === "event:TO-56363" && referralSource) {
+         finalReferral = referralSource === "Other" ? `Other: ${otherReferral}` : referralSource;
+      }
+
       const payload = {
         event_id: eventIdToUse,
         items: items,
-        // Attach referral: prioritize refUsername (cookie), fallback to validReferral (old system)
-        ...( (refUsername || validReferral) && { 
-          referral: refUsername || validReferral 
-        }),
-        // Scoped referral source for event:TO-56363
-        ...(eventIdToUse === "event:TO-56363" && {
-          referral_source: referralSource === "Other" ? `Other: ${otherReferral}` : referralSource,
-          referral: referralSource === "Other" ? `Other: ${otherReferral}` : referralSource
-        }),
+        // Send referral username/ID in standard 'referral' field
+        ...(finalReferral && { referral: finalReferral }),
+        // Also send referral_username if we have the cookie-based identity
+        ...(refUsername && { referral_username: refUsername }),
         redirect_url: `${window.location.origin}/payment`,
         callback_url: `${window.location.origin}/payment`,
       };

@@ -62,7 +62,7 @@ export default function AnalyticsPage() {
 
   const filteredTickets = data?.tickets?.filter(t => {
     const searchLower = searchTerm.toLowerCase();
-    const refSource = (t.username || t.referral_source || t.referral_payload || t.referral || t.ref_code || t.referral_code || t.referral_name || "").toString();
+    const refSource = (t.referral || t.referral_username || t.referrer_username || t.referral_name || t.username || t.referral_source || t.referral_payload || t.ref_code || t.referral_code || "").toString();
     return (
       t.student_full_name?.toLowerCase().includes(searchLower) ||
       t.student_email?.toLowerCase().includes(searchLower) ||
@@ -88,7 +88,7 @@ export default function AnalyticsPage() {
       ticket.category_name || "General",
       ticket.total_price || ticket.price_per_ticket || "0",
       ticket.quantity || 0,
-      ticket.username || ticket.referral_source || ticket.referral_payload || ticket.referral || "N/A",
+      ticket.referral || ticket.referral_username || ticket.referrer_username || ticket.referral_name || ticket.username || ticket.referral_source || ticket.referral_payload || "N/A",
       ticket.status || "N/A",
       ticket.checked_in_at ? new Date(ticket.checked_in_at).toLocaleString() : "Not Checked In",
       ticket.created_at ? new Date(ticket.created_at).toLocaleString() : "N/A"
@@ -263,7 +263,7 @@ export default function AnalyticsPage() {
                     </td>
                     <td className="px-6 py-5">
                       <p className="text-xs text-gray-300">
-                        {t.username || t.referral_source || t.referral_payload || t.referral || t.ref_code || t.referral_code || t.referral_name || (
+                        {t.referral || t.referral_username || t.referrer_username || t.referral_name || t.username || t.referral_source || t.referral_payload || t.ref_code || t.referral_code || (
                           <span className="text-gray-600 italic">None</span>
                         )}
                       </p>
