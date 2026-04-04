@@ -350,6 +350,23 @@ const EventDetailsPage = () => {
           {/* Event Title & Info */}
           <div>
             <h1 className="text-2xl md:text-4xl font-bold mb-3">{event.name}</h1>
+
+            {/* Subtle referral indicator - only show if valid for this event */}
+            {getValidReferral(event?.event_id || eventId) && (
+              <motion.div 
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+                className="inline-flex items-center gap-1.5 px-3 py-1 mb-4 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[11px] font-semibold tracking-wide uppercase"
+              >
+                <div className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </div>
+                {refUsername ? `Referred by ${refUsername}` : "You were referred"}
+              </motion.div>
+            )}
+
             <div className="flex flex-wrap gap-4 text-muted-foreground text-sm md:text-base">
               <div className="flex items-center gap-2 bg-muted/30 px-3 py-1.5 rounded-full">
                 <Calendar className="h-4 w-4 text-rose-500" />
