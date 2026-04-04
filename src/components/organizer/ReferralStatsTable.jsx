@@ -12,26 +12,45 @@ import { motion } from "framer-motion";
  * @param {string} props.eventId - Current event ID for linking
  * @param {string} props.eventName - Event name for export
  */
-export default function ReferralStatsTable({ stats = [], loading = false, eventId = null, eventName = "Event" }) {
+export default function ReferralStatsTable({ 
+  stats = [], 
+  loading = false, 
+  eventId = null, 
+  eventName = "Event",
+  rewardConfig = { type: "flat", amount: 0, percentage: 0 } 
+}) {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
 
+  const calculateCommission = (s) => {
+    if (rewardConfig.type === "flat") {
+      return (s.tickets_sold || 0) * (Number(rewardConfig.amount) || 0);
+    } else if (rewardConfig.type === "percentage") {
+      return (Number(s.referral_revenue) || 0) * (Number(rewardConfig.percentage || 0) / 100);
+    }
+    return 0;
+  };
 
-  const filteredStats = stats.filter((s) =>
+  const processedStats = stats.map(s => ({
+    ...s,
+    commission: calculateCommission(s)
+  }));
+
+  const filteredStats = processedStats.filter((s) =>
     (s.username || s.referral_name || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const totalTickets = stats.reduce((sum, s) => sum + (s.tickets_sold || 0), 0);
-  const totalRevenue = stats.reduce((sum, s) => sum + (Number(s.referral_revenue) || 0), 0);
+  const totalCommission = processedStats.reduce((sum, s) => sum + (s.commission || 0), 0);
 
   const exportToCSV = () => {
     if (stats.length === 0) return;
 
-    const headers = ["Referee Username", "Tickets Sold", "Revenue (₦)"];
-    const rows = stats.map((s) => [
+    const headers = ["Referee Username", "Tickets Sold", "Commission (₦)"];
+    const rows = filteredStats.map((s) => [
       s.username || s.referral_name || "Unknown",
       s.tickets_sold || 0,
-      s.referral_revenue || 0,
+      s.commission || 0,
     ]);
 
     const csv = [
@@ -94,15 +113,15 @@ export default function ReferralStatsTable({ stats = [], loading = false, eventI
           <h3 className="text-2xl font-black text-white">{totalTickets.toLocaleString()}</h3>
         </div>
 
-        <div className="bg-[#0A0A0A] border border-white/5 rounded-2xl p-5 hover:border-white/10 transition-colors">
-          <div className="flex items-center justify-between mb-3">
+        <div className="bg-[#0A0A0A] border border-white/5 rounded-2xl p-5 hover:border-white/10 transition-colors text-emerald-400 font-bold">
+          <div className="flex items-center justify-between mb-3 text-white">
             <div className="p-2.5 bg-white/5 rounded-xl border border-white/5">
               <TrendingUp className="w-4 h-4 text-emerald-500" />
             </div>
             <ChevronRight className="w-3.5 h-3.5 text-gray-800" />
           </div>
-          <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-1">Referral Revenue</p>
-          <h3 className="text-2xl font-black text-emerald-400">₦{totalRevenue.toLocaleString()}</h3>
+          <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-1">Referral Commission</p>
+          <h3 className="text-2xl font-black">₦{totalCommission.toLocaleString()}</h3>
         </div>
       </div>
 
@@ -151,7 +170,7 @@ export default function ReferralStatsTable({ stats = [], loading = false, eventI
                   Tickets Sold
                 </th>
                 <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-500">
-                  Revenue Generated
+                  Total Commission
                 </th>
               </tr>
             </thead>
@@ -187,7 +206,7 @@ export default function ReferralStatsTable({ stats = [], loading = false, eventI
                     </td>
                     <td className="px-6 py-5">
                       <span className="text-sm font-bold text-emerald-400">
-                        ₦{Number(s.referral_revenue || 0).toLocaleString()}
+                        ₦{Number(s.commission || 0).toLocaleString()}
                       </span>
                     </td>
                   </motion.tr>

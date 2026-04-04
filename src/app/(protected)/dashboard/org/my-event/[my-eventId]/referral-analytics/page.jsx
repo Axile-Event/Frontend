@@ -198,6 +198,11 @@ export default function ReferralAnalyticsPage() {
         loading={statsLoading}
         eventId={eventId}
         eventName={event.name}
+        rewardConfig={{
+          type: event.referral_reward_type,
+          amount: event.referral_reward_amount,
+          percentage: event.referral_reward_percentage
+        }}
       />
     </div>
   );

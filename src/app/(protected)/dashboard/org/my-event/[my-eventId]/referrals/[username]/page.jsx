@@ -208,16 +208,16 @@ export default function RefereeDetailsPage() {
           sub="Confirmed conversions"
         />
         <StatCard 
-          label="Sales Revenue" 
+          label="Estimated Sales" 
           value={`₦${Number(totalRevenue).toLocaleString()}`} 
           icon={<TrendingUp className="w-5 h-5 text-emerald-500" />} 
-          sub="Basis for commission"
+          sub="Total Ref. Sales"
         />
         <StatCard 
-          label="Payout Due" 
+          label="Total Reward" 
           value={`₦${estimatedCommission.toLocaleString()}`} 
           icon={<div className="font-black text-xs text-blue-500">₦</div>} 
-          sub="Estimated commission"
+          sub="Commission Earned"
           highlight
         />
         <StatCard 
