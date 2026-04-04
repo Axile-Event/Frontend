@@ -45,6 +45,7 @@ export default function AnalyticsPage() {
           event_date: analyticsData.event_info?.date,
           event_status: analyticsData.event_info?.status,
           pricing_type: analyticsData.event_info?.pricing_type,
+          referral_usernames: analyticsData.event_info?.referral_usernames || analyticsData.event_info?.referral_referee_ids || [],
           tickets: analyticsData.tickets_list || [],
           count: analyticsData.tickets_list?.length || 0,
           statistics: {
