@@ -11,7 +11,7 @@ import { Loader2, MapPin, Calendar, Clock, Ticket, Info, Share2, Copy, Check, X,
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import useAuthStore from "@/store/authStore";
-import { getImageUrl, getCookie } from "@/lib/utils";
+import { getImageUrl, getCookie, formatRewardLabel } from "@/lib/utils";
 import { EventDetailsSkeleton } from "@/components/skeletons";
 import useTempBookingStore from "@/store/tempBookingStore";
 import { useReferral, cleanEventId } from "@/hooks/useReferral";
@@ -450,6 +450,11 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
                       <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                     </div>
                     {refUsername ? `Referred by ${refUsername}` : "You were referred"}
+                    {event && (
+                      <span className="ml-1 opacity-80">
+                        • {formatRewardLabel(event)}
+                      </span>
+                    )}
                   </motion.div>
                 )}
                 <div className="flex flex-wrap gap-4 text-muted-foreground text-sm md:text-base">
