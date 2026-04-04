@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import api from "@/lib/axios";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -54,7 +54,18 @@ const EventDetailsPage = () => {
   const [referralSource, setReferralSource] = useState("");
   const [otherReferral, setOtherReferral] = useState("");
 
-  const { getValidReferral, clearReferral } = useReferral();
+  const { setReferral, getValidReferral, clearReferral } = useReferral();
+  const searchParams = useSearchParams();
+
+  // Capture referral from URL query param (?ref=abc123)
+  useEffect(() => {
+    const ref = searchParams.get("ref");
+    const id = event?.event_id || eventId || slug;
+    
+    if (ref && id) {
+      setReferral(ref, cleanEventId(id));
+    }
+  }, [searchParams, event?.event_id, eventId, slug, setReferral]);
 
   // Set share URL on client side only to avoid hydration mismatch
   useEffect(() => {
@@ -188,9 +199,9 @@ const EventDetailsPage = () => {
       const payload = {
         event_id: eventIdToUse,
         items: items,
+        // Attach referral code only if valid and matches this event (exactly field 'referral' as per doc)
         ...(validReferral && { 
-          referral_code: validReferral,
-          ref_code: validReferral 
+          referral: validReferral 
         }),
         // Scoped referral source for event:TO-56363
         ...(eventIdToUse === "event:TO-56363" && {
