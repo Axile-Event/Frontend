@@ -444,7 +444,7 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                       <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                     </div>
-                    You were referred
+                    {refUsername ? `Referred by ${refUsername}` : "You were referred"}
                   </motion.div>
                 )}
                 <div className="flex flex-wrap gap-4 text-muted-foreground text-sm md:text-base">
