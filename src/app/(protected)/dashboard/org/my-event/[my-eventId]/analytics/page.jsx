@@ -267,11 +267,25 @@ export default function AnalyticsPage() {
                       <span className="text-sm font-bold">{t.quantity}</span>
                     </td>
                     <td className="px-6 py-5">
-                      <p className="text-xs text-gray-300">
-                        {t.referral || t.referral_username || t.referrer_username || t.referral_name || t.username || t.referral_source || t.referral_payload || t.ref_code || t.referral_code || (
-                          <span className="text-gray-600 italic">None</span>
-                        )}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        {(() => {
+                          const ref = t.referral || t.referral_username || t.referrer_username || t.referral_name || t.username || t.referral_source || t.referral_payload || t.ref_code || t.referral_code;
+                          
+                          if (!ref || ref.toLowerCase() === "none") {
+                            return <span className="text-gray-600 italic text-xs">None</span>;
+                          }
+
+                          return (
+                            <button
+                              onClick={() => router.push(`/dashboard/org/my-event/${id}/referrals/${ref}`)}
+                              className="text-xs text-rose-500 hover:text-rose-400 font-bold underline decoration-rose-500/30 underline-offset-4 transition-colors flex items-center gap-1 group/ref"
+                            >
+                              {ref}
+                              <ChevronRight className="w-3 h-3 group-hover/ref:translate-x-0.5 transition-transform" />
+                            </button>
+                          );
+                        })()}
+                      </div>
                     </td>
                     <td className="px-6 py-5">
                       <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border ${

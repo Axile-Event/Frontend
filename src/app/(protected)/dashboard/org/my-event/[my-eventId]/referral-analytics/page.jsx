@@ -196,6 +196,7 @@ export default function ReferralAnalyticsPage() {
       <ReferralStatsTable
         stats={referralData || []}
         loading={statsLoading}
+        eventId={eventId}
         eventName={event.name}
       />
     </div>

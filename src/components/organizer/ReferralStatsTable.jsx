@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Search, Users, TrendingUp, Ticket, ChevronRight, Download } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -8,12 +9,13 @@ import { motion } from "framer-motion";
  * Table displaying referral stats per referee for an event.
  *
  * @param {Object} props
- * @param {Array} props.stats - Array of { referral_name, tickets_sold, referral_revenue }
- * @param {boolean} props.loading - Loading state
+ * @param {string} props.eventId - Current event ID for linking
  * @param {string} props.eventName - Event name for export
  */
-export default function ReferralStatsTable({ stats = [], loading = false, eventName = "Event" }) {
+export default function ReferralStatsTable({ stats = [], loading = false, eventId = null, eventName = "Event" }) {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
+
 
   const filteredStats = stats.filter((s) =>
     (s.username || s.referral_name || "").toLowerCase().includes(searchTerm.toLowerCase())
@@ -161,7 +163,8 @@ export default function ReferralStatsTable({ stats = [], loading = false, eventN
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.05 }}
-                    className="border-b border-white/5 hover:bg-white/[0.02] transition-colors"
+                    onClick={() => eventId && router.push(`/dashboard/org/my-event/${eventId}/referrals/${s.username || s.referral_name}`)}
+                    className="border-b border-white/5 hover:bg-white/[0.04] transition-all cursor-pointer group"
                   >
                     <td className="px-6 py-5">
                       <div className="flex items-center gap-3">
@@ -172,7 +175,7 @@ export default function ReferralStatsTable({ stats = [], loading = false, eventN
                             .join("")
                             .slice(0, 2) || "?"}
                         </div>
-                        <span className="text-sm font-bold text-white">
+                        <span className="text-sm font-bold text-white group-hover:text-rose-500 transition-colors">
                           {s.username || s.referral_name || "Unknown Referee"}
                         </span>
                       </div>
