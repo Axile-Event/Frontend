@@ -219,6 +219,8 @@ const EventDetailsPage = () => {
           subtotal: orderSummary.subtotal,
           payment_url: response.data.payment_url,
           payment_reference: response.data.payment_reference,
+          payment_methods_allowed: event.payment_methods_allowed || event.payment_method_allowed || ["paystack"],
+          pricing_type: event.pricing_type,
           tickets: tickets,
           created_at: new Date().toISOString()
         };
