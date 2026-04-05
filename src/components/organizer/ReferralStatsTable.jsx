@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Search, Users, TrendingUp, Ticket, ChevronRight, Download } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -8,28 +9,35 @@ import { motion } from "framer-motion";
  * Table displaying referral stats per referee for an event.
  *
  * @param {Object} props
- * @param {Array} props.stats - Array of { referral_name, tickets_sold, referral_revenue }
- * @param {boolean} props.loading - Loading state
+ * @param {string} props.eventId - Current event ID for linking
  * @param {string} props.eventName - Event name for export
  */
-export default function ReferralStatsTable({ stats = [], loading = false, eventName = "Event" }) {
+export default function ReferralStatsTable({ 
+  stats = [], 
+  loading = false, 
+  eventId = null, 
+  eventName = "Event" 
+}) {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState("");
 
   const filteredStats = stats.filter((s) =>
-    s.referral_name?.toLowerCase().includes(searchTerm.toLowerCase())
+    (s.username || s.referral_name || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const totalTickets = stats.reduce((sum, s) => sum + (s.tickets_sold || 0), 0);
-  const totalRevenue = stats.reduce((sum, s) => sum + (Number(s.referral_revenue) || 0), 0);
+  const totalNetRevenue = stats.reduce((sum, s) => sum + (Number(s.net_revenue || 0)), 0);
 
   const exportToCSV = () => {
     if (stats.length === 0) return;
 
-    const headers = ["Referee Name", "Tickets Sold", "Revenue (₦)"];
-    const rows = stats.map((s) => [
-      s.referral_name || "Unknown",
+    const headers = ["Referee Username", "Tickets Sold", "Gross Sales (₦)", "Commission (₦)", "Net Revenue (₦)"];
+    const rows = filteredStats.map((s) => [
+      s.username || s.referral_name || "Unknown",
       s.tickets_sold || 0,
       s.referral_revenue || 0,
+      s.referral_payout || 0,
+      s.net_revenue || 0,
     ]);
 
     const csv = [
@@ -40,7 +48,7 @@ export default function ReferralStatsTable({ stats = [], loading = false, eventN
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `${eventName}_referral_stats_${new Date().toISOString().split("T")[0]}.csv`;
+    link.download = `${eventName}_referral_audit_${new Date().toISOString().split("T")[0]}.csv`;
     link.click();
   };
 
@@ -92,15 +100,15 @@ export default function ReferralStatsTable({ stats = [], loading = false, eventN
           <h3 className="text-2xl font-black text-white">{totalTickets.toLocaleString()}</h3>
         </div>
 
-        <div className="bg-[#0A0A0A] border border-white/5 rounded-2xl p-5 hover:border-white/10 transition-colors">
-          <div className="flex items-center justify-between mb-3">
+        <div className="bg-[#0A0A0A] border border-emerald-500/30 rounded-2xl p-5 hover:border-emerald-500/50 transition-colors text-emerald-400 font-bold bg-emerald-500/[0.02] shadow-xl">
+          <div className="flex items-center justify-between mb-3 text-white">
             <div className="p-2.5 bg-white/5 rounded-xl border border-white/5">
               <TrendingUp className="w-4 h-4 text-emerald-500" />
             </div>
             <ChevronRight className="w-3.5 h-3.5 text-gray-800" />
           </div>
-          <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-1">Referral Revenue</p>
-          <h3 className="text-2xl font-black text-emerald-400">₦{totalRevenue.toLocaleString()}</h3>
+          <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-1">Net Revenue (Org Share)</p>
+          <h3 className="text-2xl font-black text-white">₦{totalNetRevenue.toLocaleString()}</h3>
         </div>
       </div>
 
@@ -130,7 +138,7 @@ export default function ReferralStatsTable({ stats = [], loading = false, eventN
               className="flex items-center gap-2 bg-white/5 hover:bg-white/10 text-white border border-white/10 px-4 py-2.5 rounded-xl transition-all text-xs font-bold shrink-0"
             >
               <Download className="w-3.5 h-3.5" />
-              Export
+              Audit CSV
             </button>
           )}
         </div>
@@ -149,7 +157,7 @@ export default function ReferralStatsTable({ stats = [], loading = false, eventN
                   Tickets Sold
                 </th>
                 <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-500">
-                  Revenue Generated
+                  Organizer's Net
                 </th>
               </tr>
             </thead>
@@ -161,19 +169,20 @@ export default function ReferralStatsTable({ stats = [], loading = false, eventN
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.05 }}
-                    className="border-b border-white/5 hover:bg-white/[0.02] transition-colors"
+                    onClick={() => eventId && router.push(`/dashboard/org/my-event/${eventId}/referrals/${s.username || s.referral_name}`)}
+                    className="border-b border-white/5 hover:bg-white/[0.04] transition-all cursor-pointer group"
                   >
                     <td className="px-6 py-5">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-full bg-gradient-to-br from-rose-500/20 to-purple-500/20 flex items-center justify-center text-[10px] font-black text-rose-500 border border-rose-500/20 uppercase">
-                          {s.referral_name
+                          {(s.username || s.referral_name || "")
                             ?.split(" ")
                             .map((n) => n[0])
                             .join("")
                             .slice(0, 2) || "?"}
                         </div>
-                        <span className="text-sm font-bold text-white">
-                          {s.referral_name || "Unknown Referee"}
+                        <span className="text-sm font-bold text-white group-hover:text-rose-500 transition-colors">
+                          {s.username || s.referral_name || "Unknown Referee"}
                         </span>
                       </div>
                     </td>
@@ -184,7 +193,7 @@ export default function ReferralStatsTable({ stats = [], loading = false, eventN
                     </td>
                     <td className="px-6 py-5">
                       <span className="text-sm font-bold text-emerald-400">
-                        ₦{Number(s.referral_revenue || 0).toLocaleString()}
+                        ₦{Number(s.net_revenue || 0).toLocaleString()}
                       </span>
                     </td>
                   </motion.tr>

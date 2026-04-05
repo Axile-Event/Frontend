@@ -32,7 +32,12 @@ export default function AnalyticsPage() {
     queryFn: async () => {
       try {
         const res = await api.get(`/analytics/event/${id}/`);
+        console.log("Analytics response raw:", res.data);
         const analyticsData = res.data.analytics || res.data;
+        console.log("Analytics tickets list:", analyticsData.tickets_list);
+        if (analyticsData.tickets_list?.[0]) {
+          console.log("Keys in ticket object:", Object.getOwnPropertyNames(analyticsData.tickets_list[0]));
+        }
         return {
           event_id: analyticsData.event_info?.event_id || id,
           event_name: analyticsData.event_info?.name || analyticsData.event_info?.event_name || "Unknown Event",
@@ -40,6 +45,7 @@ export default function AnalyticsPage() {
           event_date: analyticsData.event_info?.date,
           event_status: analyticsData.event_info?.status,
           pricing_type: analyticsData.event_info?.pricing_type,
+          referral_usernames: analyticsData.event_info?.referral_usernames || analyticsData.event_info?.referral_referee_ids || [],
           tickets: analyticsData.tickets_list || [],
           count: analyticsData.tickets_list?.length || 0,
           statistics: {
@@ -62,7 +68,7 @@ export default function AnalyticsPage() {
 
   const filteredTickets = data?.tickets?.filter(t => {
     const searchLower = searchTerm.toLowerCase();
-    const refSource = (t.referral_source || t.referral_payload || t.referral || t.ref_code || t.referral_code || t.referral_name || "").toString();
+    const refSource = (t.referral || t.referral_username || t.referrer_username || t.referral_name || t.username || t.referral_source || t.referral_payload || t.ref_code || t.referral_code || "").toString();
     return (
       t.student_full_name?.toLowerCase().includes(searchLower) ||
       t.student_email?.toLowerCase().includes(searchLower) ||
@@ -88,7 +94,7 @@ export default function AnalyticsPage() {
       ticket.category_name || "General",
       ticket.total_price || ticket.price_per_ticket || "0",
       ticket.quantity || 0,
-      ticket.referral_source || ticket.referral_payload || ticket.referral || "N/A",
+      ticket.referral || ticket.referral_username || ticket.referrer_username || ticket.referral_name || ticket.username || ticket.referral_source || ticket.referral_payload || "N/A",
       ticket.status || "N/A",
       ticket.checked_in_at ? new Date(ticket.checked_in_at).toLocaleString() : "Not Checked In",
       ticket.created_at ? new Date(ticket.created_at).toLocaleString() : "N/A"
@@ -149,7 +155,12 @@ export default function AnalyticsPage() {
     { label: "Checked In", value: usedTickets, icon: <UserCheck className="w-5 h-5 text-emerald-500" />, sub: "Attended" },
     // Only show revenue for paid events
     ...(isPaidEvent 
-      ? [{ label: "Revenue", value: `₦${Number(data.statistics?.total_revenue || 0).toLocaleString()}`, icon: <TrendingUp className="w-5 h-5 text-blue-500" />, sub: "Gross Earnings" }]
+      ? [{ 
+          label: "Net Revenue", 
+          value: `₦${Number(data.statistics?.net_revenue || 0).toLocaleString()}`, 
+          icon: <TrendingUp className="w-5 h-5 text-emerald-500" />, 
+          sub: "Organizer's Share" 
+        }]
       : []),
     { label: "Pending", value: pendingTickets, icon: <CreditCard className="w-5 h-5 text-amber-500" />, sub: isPaidEvent ? "Awaiting Payment" : "Awaiting Confirmation" },
   ];
@@ -262,11 +273,25 @@ export default function AnalyticsPage() {
                       <span className="text-sm font-bold">{t.quantity}</span>
                     </td>
                     <td className="px-6 py-5">
-                      <p className="text-xs text-gray-300">
-                        {t.referral_source || t.referral_payload || t.referral || t.ref_code || t.referral_code || t.referral_name || (
-                          <span className="text-gray-600 italic">None</span>
-                        )}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        {(() => {
+                          const ref = t.referral || t.referral_username || t.referrer_username || t.referral_name || t.username || t.referral_source || t.referral_payload || t.ref_code || t.referral_code;
+                          
+                          if (!ref || ref.toLowerCase() === "none") {
+                            return <span className="text-gray-600 italic text-xs">None</span>;
+                          }
+
+                          return (
+                            <button
+                              onClick={() => router.push(`/dashboard/org/my-event/${id}/referrals/${ref}`)}
+                              className="text-xs text-rose-500 hover:text-rose-400 font-bold underline decoration-rose-500/30 underline-offset-4 transition-colors flex items-center gap-1 group/ref"
+                            >
+                              {ref}
+                              <ChevronRight className="w-3 h-3 group-hover/ref:translate-x-0.5 transition-transform" />
+                            </button>
+                          );
+                        })()}
+                      </div>
                     </td>
                     <td className="px-6 py-5">
                       <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border ${

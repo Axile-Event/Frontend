@@ -11,7 +11,7 @@ import { Loader2, MapPin, Calendar, Clock, Ticket, Info, Share2, Copy, Check, X,
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import useAuthStore from "@/store/authStore";
-import { getImageUrl } from "@/lib/utils";
+import { getImageUrl, getCookie, formatRewardLabel } from "@/lib/utils";
 import { EventDetailsSkeleton } from "@/components/skeletons";
 import useTempBookingStore from "@/store/tempBookingStore";
 import { useReferral, cleanEventId } from "@/hooks/useReferral";
@@ -56,6 +56,15 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
 
   // Referral tracking
   const { referralCode, setReferral, getValidReferral, clearReferral } = useReferral();
+  const [refUsername, setRefUsername] = useState(null);
+
+  // Read referral username from cookie on mount
+  useEffect(() => {
+    const username = getCookie("ref_username");
+    if (username) {
+      setRefUsername(username);
+    }
+  }, []);
 
   // Capture referral from URL query param (?ref=abc123)
   useEffect(() => {
@@ -273,19 +282,23 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
       // Get valid referral for this specific event
       const validReferral = getValidReferral(eventIdToUse);
 
+      // Determine final referral identity
+      let finalReferral = refUsername || validReferral;
+      
+      // Override with scoped source if it matches specific tracking event and choice was made
+      if (eventIdToUse === "event:TO-56363" && referralSource) {
+         finalReferral = referralSource === "Other" ? `Other: ${otherReferral}` : referralSource;
+      }
+
       const payload = {
         event_id: eventIdToUse,
         items: items,
-        // Attach referral code only if valid and matches this event
-        ...(validReferral && { 
-          referral_code: validReferral,
-          ref_code: validReferral 
-        }),
-        // Scoped referral source for event:TO-56363
-        ...(eventIdToUse === "event:TO-56363" && {
-          referral_source: referralSource === "Other" ? `Other: ${otherReferral}` : referralSource,
-          referral: referralSource === "Other" ? `Other: ${otherReferral}` : referralSource
-        }),
+        // Send referral username/ID in standard 'referral' field
+        ...(finalReferral && { referral: finalReferral }),
+        // For maximum compatibility with all backend endpoints
+        ...(finalReferral && { referral_code: finalReferral }),
+        // Also send referral_username if we have the cookie-based identity
+        ...(refUsername && { referral_username: refUsername }),
         redirect_url: `${window.location.origin}/payment`,
         callback_url: `${window.location.origin}/payment`,
       };
@@ -436,7 +449,12 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                       <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                     </div>
-                    You were referred
+                    {refUsername ? `Referred by ${refUsername}` : "You were referred"}
+                    {event && formatRewardLabel(event) && (
+                      <span className="ml-1 opacity-80">
+                        • {formatRewardLabel(event)}
+                      </span>
+                    )}
                   </motion.div>
                 )}
                 <div className="flex flex-wrap gap-4 text-muted-foreground text-sm md:text-base">
