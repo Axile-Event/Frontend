@@ -26,7 +26,8 @@ import {
   Mail,
   User,
   Minus,
-  Plus
+  Plus,
+  Megaphone
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { getImageUrl, getErrorMessage } from "../../../../../../lib/utils";
@@ -34,6 +35,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import CustomDropdown from "@/components/ui/CustomDropdown";
 import BulkBookForAttendeeModal from "@/components/organizer/BulkBookForAttendeeModal";
 import ManualConfirmationModal from "@/components/payment/ManualConfirmationModal";
+import ReferralBadge from "@/components/organizer/ReferralBadge";
+import ReferralStatsTable from "@/components/organizer/ReferralStatsTable";
+import { fetchReferralStats } from "@/lib/referral";
 import useTempBookingStore from "@/store/tempBookingStore";
 
 // Book for Attendee Modal Component
@@ -389,10 +393,17 @@ export default function EventDetailsPage() {
       const orgRes = await api.get("/organizer/events/");
       const list = Array.isArray(orgRes.data) ? orgRes.data : (orgRes.data?.events ?? []);
       let eventData = list.find((e) => String(e.event_id ?? e.id) === String(id));
-      if (!eventData) {
+      
+      // Always fetch full details to ensure we get all fields like use_referral, referral_reward_type, etc.
+      try {
         const publicRes = await api.get(`/events/${id}/details/`);
-        eventData = publicRes?.data;
+        if (publicRes?.data) {
+          eventData = eventData ? { ...eventData, ...publicRes.data } : publicRes.data;
+        }
+      } catch (err) {
+        if (!eventData) throw err;
       }
+
       if (eventData) {
         try {
           const ticketsRes = await api.get(`/tickets/organizer/${id}/tickets/`);
@@ -417,6 +428,28 @@ export default function EventDetailsPage() {
       return eventData;
     },
     enabled: !!id,
+    refetchOnWindowFocus: true
+  });
+
+  // Fetch referral stats specifically for the dashboard
+  const isReferralEnabled = event?.use_referral === true || String(event?.use_referral).toLowerCase() === 'true';
+  const { data: referralData, isLoading: referralLoading } = useQuery({
+    queryKey: queryKeys.organizer.referralStats(id),
+    queryFn: async () => {
+      if (!isReferralEnabled) return [];
+      try {
+        // Map any available referee IDs to satisfy current API body requirements
+        const refereeIds = event?.referral_referee_ids || [];
+        const referrals = refereeIds.map((rid) => ({ referee_id: rid }));
+        
+        const stats = await fetchReferralStats(id, referrals);
+        return Array.isArray(stats) ? stats : (stats?.stats || stats?.data || []);
+      } catch (err) {
+        console.error("Referral stats error:", err);
+        return [];
+      }
+    },
+    enabled: !!id && !!event,
     refetchOnWindowFocus: true
   });
 
@@ -850,7 +883,7 @@ export default function EventDetailsPage() {
                 </div>
                 <div className="pt-4 border-t border-white/5">
                   <button
-                    onClick={() => router.push(`/dashboard/org/my-event/${event.event_id ?? event.id}/tickets`)}
+                    onClick={() => router.push(`/dashboard/org/my-event/${id}/tickets`)}
                     className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/30 hover:border-rose-500/50 text-rose-400 hover:text-rose-300 font-bold text-xs md:text-sm transition-all"
                     title="Manage ticket categories"
                   >
@@ -874,6 +907,21 @@ export default function EventDetailsPage() {
                   <span className="text-emerald-500 font-black text-base md:text-xl">FREE</span>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Referral Performance Section */}
+          {isReferralEnabled && (
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <Megaphone className="w-6 h-6 text-rose-500" />
+                <h2 className="text-2xl font-black uppercase tracking-tighter italic">Referral Performance</h2>
+              </div>
+              <ReferralStatsTable 
+                stats={referralData || []} 
+                loading={referralLoading} 
+                eventName={eventName} 
+              />
             </div>
           )}
         </div>
@@ -907,15 +955,25 @@ export default function EventDetailsPage() {
 
             <div className="space-y-3 pt-6 border-t border-white/5">
               <button 
-                onClick={() => router.push(`/dashboard/org/my-event/${event.event_id ?? event.id}/analytics`)}
+                onClick={() => router.push(`/dashboard/org/my-event/${id}/analytics`)}
                 className="w-full py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm transition-all shadow-lg shadow-rose-600/20 active:scale-95 flex items-center justify-center gap-2 group"
               >
                 Detailed Analytics <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </button>
+
+              {/* Referral Analytics Button */}
+              {isReferralEnabled && (
+                <button
+                  onClick={() => router.push(`/dashboard/org/my-event/${id}/referral-analytics`)}
+                  className="w-full py-3 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 hover:border-rose-500/40 text-rose-400 font-bold text-sm transition-all active:scale-95 flex items-center justify-center gap-2"
+                >
+                  <Megaphone className="w-4 h-4" /> Referral Analytics
+                </button>
+              )}
               
               {isPaidEvent ? (
                 <button 
-                  onClick={() => router.push(`/dashboard/org/my-event/${event.event_id ?? event.id}/tickets`)}
+                  onClick={() => router.push(`/dashboard/org/my-event/${id}/tickets`)}
                   className="w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 font-bold text-sm transition-all active:scale-95 flex items-center justify-center gap-2"
                 >
                   <Ticket className="w-4 h-4" /> Manage Categories
@@ -927,6 +985,29 @@ export default function EventDetailsPage() {
               )}
             </div>
           </div>
+
+          {/* Referral Config Info */}
+          {isReferralEnabled && (
+            <div className="bg-[#0A0A0A] border border-rose-500/10 rounded-3xl p-6 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Megaphone className="w-4 h-4 text-rose-500" />
+                  <h4 className="text-sm font-bold text-white">Referral Rewards</h4>
+                </div>
+                <ReferralBadge
+                  useReferral={isReferralEnabled}
+                  rewardType={event.referral_reward_type}
+                  rewardAmount={event.referral_reward_amount}
+                  rewardPercentage={event.referral_reward_percentage}
+                />
+              </div>
+              <p className="text-[10px] text-gray-500 font-medium leading-relaxed">
+                {event.referral_reward_type === "flat"
+                  ? `Referees earn ₦${Number(event.referral_reward_amount || 0).toLocaleString()} for each ticket sold through their link.`
+                  : `Referees earn ${event.referral_reward_percentage || 0}% of each ticket price sold through their link.`}
+              </p>
+            </div>
+          )}
 
           <div className="bg-linear-to-br from-rose-500/10 to-transparent border border-white/5 rounded-3xl p-6 text-center">
             <p className="text-xs text-gray-400 font-medium">Need help managing your event?</p>

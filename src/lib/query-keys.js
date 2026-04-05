@@ -42,6 +42,8 @@ export const queryKeys = {
 		eventCategories: (eventId) => ['organizer', 'event', eventId, 'categories'],
 		banks: ['organizer', 'banks'],
 		bankAccount: ['organizer', 'bank-account'],
-		config: ['organizer', 'config']
+		config: ['organizer', 'config'],
+		referralStats: (eventId) => ['organizer', 'referral-stats', eventId],
+		referralRewardTypes: ['organizer', 'referral-reward-types']
 	}
 }

@@ -19,6 +19,7 @@ import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { getImageUrl } from "@/lib/utils";
 import { EventDetailsSkeleton } from "@/components/skeletons";
+import { useReferral, cleanEventId } from "@/hooks/useReferral";
 
 // Platform fee constants
 const PLATFORM_SERVICE_FEE = 80; // ₦80 service fee
@@ -52,6 +53,8 @@ const EventDetailsPage = () => {
   // Temporary referral source state for event:TO-56363
   const [referralSource, setReferralSource] = useState("");
   const [otherReferral, setOtherReferral] = useState("");
+
+  const { getValidReferral, clearReferral } = useReferral();
 
   // Set share URL on client side only to avoid hydration mismatch
   useEffect(() => {
@@ -180,9 +183,15 @@ const EventDetailsPage = () => {
         quantity: item.quantity,
       }));
       
+      const validReferral = getValidReferral(eventIdToUse);
+
       const payload = {
         event_id: eventIdToUse,
         items: items,
+        ...(validReferral && { 
+          referral_code: validReferral,
+          ref_code: validReferral 
+        }),
         // Scoped referral source for event:TO-56363
         ...(eventIdToUse === "event:TO-56363" && {
           referral_source: referralSource === "Other" ? `Other: ${otherReferral}` : referralSource,
@@ -210,10 +219,14 @@ const EventDetailsPage = () => {
           subtotal: orderSummary.subtotal,
           payment_url: response.data.payment_url,
           payment_reference: response.data.payment_reference,
+          payment_methods_allowed: event.payment_methods_allowed || event.payment_method_allowed || ["paystack"],
+          pricing_type: event.pricing_type,
           tickets: tickets,
           created_at: new Date().toISOString()
         };
         localStorage.setItem(`booking_${bookingId}`, JSON.stringify(bookingData));
+
+        if (validReferral) clearReferral();
         
         toast.success("Booking created! Redirecting to checkout...", { id: toastId });
         router.push(`/checkout/payment/${bookingId}`);
@@ -228,6 +241,7 @@ const EventDetailsPage = () => {
       }
 
       // Handle Free Event (Success)
+      if (validReferral) clearReferral();
       toast.success("Ticket booked successfully!", { id: toastId });
       if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("tickets-updated"));
       router.push("/dashboard/student/my-tickets");

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import api from "@/lib/axios";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +14,7 @@ import useAuthStore from "@/store/authStore";
 import { getImageUrl } from "@/lib/utils";
 import { EventDetailsSkeleton } from "@/components/skeletons";
 import useTempBookingStore from "@/store/tempBookingStore";
+import { useReferral, cleanEventId } from "@/hooks/useReferral";
 
 // Platform fee constants
 const PLATFORM_FEE = 80;
@@ -28,6 +29,7 @@ const calculatePaystackFee = (amount) => {
 
 const EventDetailsClient = ({ event_id, initialEvent }) => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const eventId = event_id;
   const { token, hydrated } = useAuthStore();
 
@@ -51,6 +53,20 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
   // Temporary referral source state for event:TO-56363
   const [referralSource, setReferralSource] = useState("");
   const [otherReferral, setOtherReferral] = useState("");
+
+  // Referral tracking
+  const { referralCode, setReferral, getValidReferral, clearReferral } = useReferral();
+
+  // Capture referral from URL query param (?ref=abc123)
+  useEffect(() => {
+    const ref = searchParams.get("ref");
+    const id = event?.event_id || eventId;
+    const cleaned = cleanEventId(id);
+
+    if (ref && cleaned) {
+      setReferral(ref, cleaned);
+    }
+  }, [searchParams, event?.event_id, eventId, setReferral]);
 
   // Restore ticket selections from localStorage after login redirect
   useEffect(() => {
@@ -254,14 +270,24 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
         quantity: item.quantity,
       }));
       
+      // Get valid referral for this specific event
+      const validReferral = getValidReferral(eventIdToUse);
+
       const payload = {
         event_id: eventIdToUse,
         items: items,
+        // Attach referral code only if valid and matches this event
+        ...(validReferral && { 
+          referral_code: validReferral,
+          ref_code: validReferral 
+        }),
         // Scoped referral source for event:TO-56363
         ...(eventIdToUse === "event:TO-56363" && {
           referral_source: referralSource === "Other" ? `Other: ${otherReferral}` : referralSource,
           referral: referralSource === "Other" ? `Other: ${otherReferral}` : referralSource
-        })
+        }),
+        redirect_url: `${window.location.origin}/payment`,
+        callback_url: `${window.location.origin}/payment`,
       };
       
       console.log("Booking payload:", payload);
@@ -288,6 +314,11 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
           created_at: new Date().toISOString()
         };
         localStorage.setItem(`booking_${bookingId}`, JSON.stringify(bookingDataForCheckout));
+
+        // Clear referral after successful booking
+        if (validReferral) {
+          clearReferral();
+        }
         
         toast.success("Booking created! Redirecting to payment...", { id: toastId });
         router.push(`/checkout/payment/${bookingId}`);
@@ -392,6 +423,22 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
               {/* Event Title & Info */}
               <div>
                 <h1 className="text-2xl md:text-4xl font-bold mb-3">{event.name}</h1>
+
+                {/* Subtle referral indicator - only show if valid for this event */}
+                {getValidReferral(event?.event_id || eventId) && (
+                  <motion.div 
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.5, ease: "easeOut" }}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 mb-4 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[11px] font-semibold tracking-wide uppercase"
+                  >
+                    <div className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                    </div>
+                    You were referred
+                  </motion.div>
+                )}
                 <div className="flex flex-wrap gap-4 text-muted-foreground text-sm md:text-base">
                   <div className="flex items-center gap-2 bg-muted/30 px-3 py-1.5 rounded-full">
                     <Calendar className="h-4 w-4 text-rose-500" />

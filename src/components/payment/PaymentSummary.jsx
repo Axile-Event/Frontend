@@ -16,9 +16,9 @@ const PaymentSummary = ({ summary, activeTab }) => {
     totalPaystack = 0,
   } = summary || {};
 
-  // Determine which fees to show based on active tab
+  // Determine which fees and total to show based on active tab
   const isPaystack = activeTab === "paystack";
-  const currentTotal = isPaystack ? totalPaystack : 0;
+  const currentTotal = isPaystack ? totalPaystack : (subtotal + serviceFee);
 
   return (
     <Card className="border-border/70 bg-card/90 shadow-sm">
@@ -100,12 +100,22 @@ const PaymentSummary = ({ summary, activeTab }) => {
           {isPaystack && paystackFee > 0 && (
             <div className="flex justify-between items-center text-sm">
               <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">Payment Processing</span>
+                <span className="text-muted-foreground">Processing Fee</span>
                 <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
                   Paystack
                 </span>
               </div>
               <span className="text-foreground">₦{paystackFee?.toLocaleString()}</span>
+            </div>
+          )}
+
+          {/* Manual Transfer Additional Fee Disclaimer */}
+          {!isPaystack && (
+            <div className="bg-amber-500/5 border border-amber-510/10 rounded-lg p-2.5 flex gap-2">
+              <Info size={14} className="text-amber-500 shrink-0 mt-0.5" />
+              <p className="text-[10px] text-amber-200/70 leading-relaxed font-medium">
+                Note: An additional 6% processing fee will be calculated during manual verification by the admin.
+              </p>
             </div>
           )}
 
@@ -120,11 +130,9 @@ const PaymentSummary = ({ summary, activeTab }) => {
             <span className="text-2xl font-bold text-rose-500">
               ₦{currentTotal?.toLocaleString()}
             </span>
-            {isPaystack && paystackFee > 0 && (
-              <p className="text-[10px] text-muted-foreground mt-0.5">
-                Includes ₦{(serviceFee + paystackFee).toLocaleString()} in fees
-              </p>
-            )}
+            <p className="text-[10px] text-muted-foreground mt-0.5">
+              Includes ₦{(isPaystack ? (serviceFee + paystackFee) : serviceFee).toLocaleString()} in fees
+            </p>
           </div>
         </div>
       </CardContent>

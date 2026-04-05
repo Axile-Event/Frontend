@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import api from "../../../../../lib/axios";
 import { queryKeys } from "@/lib/query-keys";
 import toast from "react-hot-toast";
@@ -10,6 +10,9 @@ import useOrganizerStore from "../../../../../store/orgStore";
 import CustomDropdown from "@/components/ui/CustomDropdown";
 import Loading from "@/components/ui/Loading";
 import PinPromptModal from "@/components/PinPromptModal";
+import ReferralToggle from "@/components/organizer/ReferralToggle";
+import ReferralConfigFields from "@/components/organizer/ReferralConfigFields";
+import { appendReferralFields, validateReferralConfig } from "@/lib/referral";
 import {
   MapPin,
   Calendar,
@@ -25,6 +28,7 @@ import {
   Plus,
   Edit2,
   Zap,
+  Megaphone,
 } from "lucide-react";
 import DateTimePicker from "@/components/ui/DateTimePicker";
 
@@ -58,9 +62,18 @@ export default function CreateEvent() {
     date: "",
     capacity: "",
     max_quantity_per_booking: "",
+    payment_methods_allowed: [],
   });
 
   const [categories, setCategories] = useState([]);
+
+  // Referral config state
+  const [referralConfig, setReferralConfig] = useState({
+    use_referral: false,
+    referral_reward_type: "",
+    referral_reward_amount: "",
+    referral_reward_percentage: "",
+  });
 
   const [imageFile, setImageFile] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -70,6 +83,45 @@ export default function CreateEvent() {
   const [createdEventId, setCreatedEventId] = useState(null);
   const [showPinPrompt, setShowPinPrompt] = useState(false);
   const [pendingSubmit, setPendingSubmit] = useState(false);
+  const DRAFT_KEY = "axile_event_creation_draft";
+  const [hasLoadedDraft, setHasLoadedDraft] = useState(false);
+
+  // Load draft on mount
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    
+    const savedDraft = localStorage.getItem(DRAFT_KEY);
+    if (savedDraft) {
+      try {
+        const { form: savedForm, categories: savedCategories, referralConfig: savedReferral } = JSON.parse(savedDraft);
+        if (savedForm) {
+          setForm(prev => ({ ...prev, ...savedForm }));
+        }
+        if (savedCategories && Array.isArray(savedCategories)) {
+          setCategories(savedCategories);
+        }
+        if (savedReferral) {
+          setReferralConfig(prev => ({ ...prev, ...savedReferral }));
+        }
+        toast.success("Draft restored. You can continue editing.", {
+          id: "draft-restored-toast",
+          icon: '📝',
+          duration: 3000
+        });
+      } catch (err) {
+        console.error("Error loading draft:", err);
+      }
+    }
+    setHasLoadedDraft(true);
+  }, []);
+
+  // Save draft on form changes - Only after initial load is complete
+  useEffect(() => {
+    if (!hasLoadedDraft || typeof window === "undefined") return;
+    
+    const draft = { form, categories, referralConfig };
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+  }, [form, categories, referralConfig, hasLoadedDraft]);
 
   // Fetch config (GET /config/) and populate eventTypes/pricingTypes.
   useEffect(() => {
@@ -242,12 +294,11 @@ export default function CreateEvent() {
       updateCategory(index, "price", numericValue);
     }
   };
-
   const validate = () => {
     const e = {};
     if (!form.name.trim()) e.name = "Name is required";
     if (!form.description.trim()) e.description = "Description is required";
-    if (!["paid", "free"].includes(form.pricing_type))
+    if (["paid", "free"].includes(form.pricing_type) === false)
       e.pricing_type = "Invalid pricing type";
     if (!form.event_type) e.event_type = "Event type is required";
     if (!form.location.trim()) e.location = "Location is required";
@@ -278,6 +329,15 @@ export default function CreateEvent() {
         }
       }
     }
+    
+    // Payment method validation for paid events
+    if (form.pricing_type === "paid" && (!form.payment_methods_allowed || form.payment_methods_allowed.length === 0)) {
+       e.payment_methods_allowed = "At least one payment method is required for paid events";
+    }
+
+    // Referral validation
+    const referralErrors = validateReferralConfig(referralConfig, form.pricing_type, categories);
+    Object.assign(e, referralErrors);
 
     // length checks per docs
     if (form.name && form.name.length > 200)
@@ -286,7 +346,7 @@ export default function CreateEvent() {
       e.location = "Location must be ≤ 200 characters";
 
     setErrors(e);
-    return Object.keys(e).length === 0;
+    return e;
   };
 
   const resetForm = () => {
@@ -299,19 +359,29 @@ export default function CreateEvent() {
       date: "",
       capacity: "",
       max_quantity_per_booking: "",
+      payment_methods_allowed: [],
+    });
+    setReferralConfig({
+      use_referral: false,
+      referral_reward_type: "",
+      referral_reward_amount: "",
+      referral_reward_percentage: "",
     });
     setImageFile(null);
     setPreview(null);
     setErrors({});
     setCategories([]);
+    localStorage.removeItem(DRAFT_KEY);
   };
 
 
 
   const submit = async (ev) => {
     ev.preventDefault();
-    if (!validate()) {
-      toast.error("Please fill in all required fields correctly.");
+    const localErrors = validate();
+    if (Object.keys(localErrors).length > 0) {
+      const firstError = Object.values(localErrors)[0] || "Please fill in all required fields correctly.";
+      toast.error(firstError);
       return;
     }
 
@@ -337,6 +407,10 @@ export default function CreateEvent() {
       formData.append("pricing_type", form.pricing_type);
       formData.append("event_type", form.event_type);
       formData.append("location", form.location.trim());
+      
+      if (form.pricing_type === "paid" && form.payment_methods_allowed?.length > 0) {
+        formData.append("payment_methods_allowed", form.payment_methods_allowed.join(","));
+      }
 
       // convert local datetime input to ISO with Z
       const isoDate = form.date ? new Date(form.date).toISOString() : "";
@@ -351,12 +425,22 @@ export default function CreateEvent() {
         formData.append("max_quantity_per_booking", form.max_quantity_per_booking);
       }
 
+      // Append referral config to FormData
+      appendReferralFields(formData, referralConfig);
+
+      // Debug: log what we're sending
+      console.log("[CreateEvent] Referral config:", referralConfig);
+      console.log("[CreateEvent] FormData entries:", [...formData.entries()]);
+
       // IMPORTANT: don't set Content-Type for FormData; the browser will add the correct boundary.
       const res = await api.post("/event/", formData);
 
 
       if (res && res.status >= 200 && res.status < 300) {
         const newId = res.data.event_id || res.data.id;
+
+        // Debug: log the response to see if referral fields are returned
+        console.log("[CreateEvent] API response:", res.data);
 
         // If backend hasn't propagated the image URL yet, keep the selected image
         // so the organizer can still see the correct cover immediately in My Events.
@@ -421,19 +505,56 @@ export default function CreateEvent() {
         setShowSuccessModal(true);
         queryClient.invalidateQueries({ queryKey: queryKeys.organizer.events });
         queryClient.invalidateQueries({ queryKey: queryKeys.organizer.dashboard });
-        // resetForm();
+        localStorage.removeItem(DRAFT_KEY);
       } else {
         toast.error(`Unexpected server response: ${res?.status}`);
       }
     } catch (err) {
-      const msg =
-        err?.response?.data?.detail ||
+      console.error("[CreateEvent] Full Error Object:", err);
+      
+      if (err.response) {
+        console.error("[CreateEvent] Response Data:", err.response.data);
+        console.error("[CreateEvent] Response Status:", err.response.status);
+        console.error("[CreateEvent] Response Headers:", err.response.headers);
+      } else if (err.request) {
+        console.error("[CreateEvent] No response received. Request details:", err.request);
+      } else {
+        console.error("[CreateEvent] Error setting up request:", err.message);
+      }
+
+      let msg =
         err?.response?.data?.message ||
-        (err?.response?.data ? JSON.stringify(err.response.data) : null) ||
-        err?.message ||
-        "Failed to create event";
+        err?.response?.data?.error ||
+        err?.response?.data?.detail;
+
+      // Handle the case where 'detail' is an object containing field-specific errors
+      if (typeof msg === "object" && msg !== null) {
+        try {
+          // Drill into the first validation error found in the object
+          const firstKey = Object.keys(msg)[0];
+          const firstVal = msg[firstKey];
+          const displayVal = Array.isArray(firstVal) ? firstVal[0] : (typeof firstVal === 'object' ? JSON.stringify(firstVal) : String(firstVal));
+          msg = `${firstKey}: ${displayVal}`;
+        } catch (e) {
+          msg = JSON.stringify(msg);
+        }
+      }
+      
+      // Final fallback to generic error parsing
+      if (!msg && err?.response?.data && typeof err.response.data === "object") {
+        try {
+          const firstKey = Object.keys(err.response.data)[0];
+          const firstVal = err.response.data[firstKey];
+          const displayVal = Array.isArray(firstVal) ? firstVal[0] : (typeof firstVal === 'object' ? JSON.stringify(firstVal) : String(firstVal));
+          msg = `${firstKey}: ${displayVal}`;
+        } catch (e) {
+          msg = JSON.stringify(err.response.data);
+        }
+      }
+      
+      msg = (typeof msg === 'string' ? msg : null) || err?.message || "Failed to create event";
+        
       toast.error(msg);
-      console.error("Create event error:", err?.response || err);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } finally {
       setLoading(false);
@@ -602,7 +723,7 @@ export default function CreateEvent() {
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
                   Pricing <span className="text-rose-500">*</span>
                 </label>
-                <div className="flex bg-white/5 p-1 rounded-xl border border-white/10">
+                <div className="flex bg-white/5 p-1 rounded-xl border border-white/10 relative">
                   {pricingTypes.map((p) => (
                     <button
                       key={p.value}
@@ -614,16 +735,24 @@ export default function CreateEvent() {
                             pricing_type: p.value,
                             // Capacity is only for free events
                             capacity: p.value === "paid" ? "" : s.capacity,
+                            payment_methods_allowed: p.value === "free" ? [] : s.payment_methods_allowed,
                           }));
                           setErrors((prev) => ({
                             ...prev,
                             pricing_type: undefined,
                             capacity: undefined,
                             categories: undefined,
+                            referral: undefined,
+                            payment_methods_allowed: undefined,
                           }));
                           if (p.value === "free") {
                             // Simplify free event flow: capacity-driven single category
                             setCategories([]);
+                            // Disable referral for free events
+                            setReferralConfig((prev) => ({
+                              ...prev,
+                              use_referral: false,
+                            }));
                           }
                         }
                       }
@@ -632,6 +761,11 @@ export default function CreateEvent() {
                       {p.label}
                     </button>
                   ))}
+                  {errors.pricing_type && (
+                    <p className="absolute -bottom-5 left-0 text-[10px] text-rose-500 font-bold">
+                      {errors.pricing_type}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -678,7 +812,10 @@ export default function CreateEvent() {
                 </label>
                 <DateTimePicker
                   selected={form.date}
-                  onChange={(value) => setForm(prev => ({ ...prev, date: value }))}
+                  onChange={(value) => {
+                     setForm(prev => ({ ...prev, date: value }));
+                     setErrors(prev => ({ ...prev, date: undefined }));
+                  }}
                   placeholder="Select event date and time"
                   hasError={!!errors.date}
                 />
@@ -775,6 +912,89 @@ export default function CreateEvent() {
                 )}
               </div>
 
+              {/* payment method type */}
+              {form.pricing_type === "paid" && (
+                 <div className="space-y-3 pt-4 border-t border-white/5 animate-in fade-in slide-in-from-top-2 duration-300">
+                    <div className="flex items-center gap-2">
+                      <Zap className="w-4 h-4 text-rose-500" />
+                      <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                        Allowed Payment Methods <span className="text-rose-500">*</span>
+                      </label>
+                    </div>
+                    <p className="text-[11px] text-gray-400 font-medium leading-relaxed max-w-lg mb-1">
+                      Choose how your attendees will purchase their tickets. <span className="text-rose-500 font-bold">This is compulsory for paid events</span> to ensure you can receive funds.
+                    </p>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                       {[
+                         { 
+                           id: "paystack", 
+                           label: "Paystack", 
+                           description: "Faster and more seamless for users, but attracts higher transaction charges." 
+                         },
+                         { 
+                           id: "manual_bank_transfer", 
+                           label: "Manual Bank Transfer", 
+                           description: "A bit slower for users, but with fewer transaction charges." 
+                         },
+                       ].map((method) => {
+                         const isSelected = form.payment_methods_allowed?.includes(method.id);
+                         return (
+                           <button
+                             key={method.id}
+                             type="button"
+                             onClick={() => {
+                               const current = form.payment_methods_allowed || [];
+                               const updated = current.includes(method.id)
+                                 ? current.filter((m) => m !== method.id)
+                                 : [...current, method.id];
+                               setForm((s) => ({ ...s, payment_methods_allowed: updated }));
+                               setErrors((p) => ({ ...p, payment_methods_allowed: undefined }));
+                             }}
+                             className={`flex flex-col items-start gap-3 p-5 rounded-2xl border transition-all duration-300 text-left group relative overflow-hidden ${
+                               isSelected
+                                 ? "bg-rose-600/10 border-rose-600 shadow-[0_0_20px_rgba(225,29,72,0.1)]"
+                                 : "bg-white/5 border-white/10 text-gray-400 hover:border-white/20 hover:bg-white/8"
+                             }`}
+                           >
+                             {/* Visual background glow for selected state */}
+                             {isSelected && (
+                               <div className="absolute top-0 right-0 w-24 h-24 bg-rose-600/5 rounded-full -mr-8 -mt-8 blur-2xl animate-pulse" />
+                             )}
+                             
+                             <div className="flex w-full items-center justify-between relative z-10">
+                               <p className={`text-sm font-bold tracking-tight transition-colors ${isSelected ? "text-white" : "text-gray-300 group-hover:text-white"}`}>
+                                 {method.label}
+                               </p>
+                               <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
+                                 isSelected
+                                    ? "bg-rose-600 border-rose-600 scale-110 shadow-[0_0_10px_rgba(225,29,72,0.4)]"
+                                    : "border-gray-600 group-hover:border-gray-400 group-hover:scale-105"
+                               }`}>
+                                 {isSelected && (
+                                   <div className="w-2.5 h-2.5 bg-white rounded-full animate-in zoom-in-50 duration-200 shadow-sm" />
+                                 )}
+                               </div>
+                             </div>
+                             
+                             <p className={`text-[10px] font-medium leading-relaxed transition-colors relative z-10 ${isSelected ? "text-gray-200" : "text-gray-500 group-hover:text-gray-400"}`}>
+                               {method.description}
+                             </p>
+                           </button>
+                         );
+                       })}
+                     </div>
+                     {errors.payment_methods_allowed && (
+                       <div className="flex items-center gap-2 px-1 animate-in fade-in slide-in-from-left-1 mt-1">
+                         <span className="w-1.5 h-1.5 bg-rose-500 rounded-full animate-pulse" />
+                         <p className="text-[10px] text-rose-500 font-bold uppercase tracking-tight">
+                           {errors.payment_methods_allowed}
+                         </p>
+                       </div>
+                     )}
+                 </div>
+              )}
+
               {/* Ticket Categories Section */}
               {form.pricing_type === "paid" && (
                 <div className="space-y-4 pt-4 border-t border-white/5">
@@ -800,11 +1020,6 @@ export default function CreateEvent() {
                     <p className="text-[10px] text-gray-500 font-medium">
                       No ticket categories added. Events must have at least one ticket category.
                     </p>
-                    {errors.categories && (
-                      <p className="text-[10px] text-rose-500 font-bold mt-2">
-                        {errors.categories}
-                      </p>
-                    )}
                   </div>
                 ) : (
                   <div className="space-y-4">
@@ -895,8 +1110,82 @@ export default function CreateEvent() {
                     ))}
                   </div>
                 )}
+
+                {errors.categories && (
+                  <p className="text-[10px] text-rose-500 font-bold mt-2 ml-1">
+                    {errors.categories}
+                  </p>
+                )}
               </div>
               )}
+
+              {/* Referral Rewards Section */}
+              <div className="space-y-4 pt-4 border-t border-white/5">
+                <div className="flex items-center gap-2 mb-2">
+                  <Megaphone className="w-4 h-4 text-rose-500" />
+                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">
+                    Referral Rewards
+                  </h3>
+                </div>
+
+                <ReferralToggle
+                  enabled={referralConfig.use_referral}
+                  onChange={(enabled) => {
+                    setReferralConfig((prev) => ({
+                      ...prev,
+                      use_referral: enabled,
+                      // Clear values when disabling
+                      ...(enabled ? {} : {
+                        referral_reward_type: "",
+                        referral_reward_amount: "",
+                        referral_reward_percentage: "",
+                      }),
+                    }));
+                    setErrors((prev) => ({
+                      ...prev,
+                      referral: undefined,
+                      referral_reward_type: undefined,
+                      referral_reward_amount: undefined,
+                      referral_reward_percentage: undefined,
+                    }));
+                  }}
+                  isFreeEvent={form.pricing_type === "free"}
+                  error={errors.referral}
+                />
+
+                <AnimatePresence>
+                  {referralConfig.use_referral && form.pricing_type !== "free" && (
+                    <ReferralConfigFields
+                      rewardType={referralConfig.referral_reward_type}
+                      rewardAmount={referralConfig.referral_reward_amount}
+                      rewardPercentage={referralConfig.referral_reward_percentage}
+                      onTypeChange={(type) => {
+                        setReferralConfig((prev) => ({
+                          ...prev,
+                          referral_reward_type: type,
+                          referral_reward_amount: "",
+                          referral_reward_percentage: "",
+                        }));
+                        setErrors((prev) => ({
+                          ...prev,
+                          referral_reward_type: undefined,
+                          referral_reward_amount: undefined,
+                          referral_reward_percentage: undefined,
+                        }));
+                      }}
+                      onAmountChange={(val) => {
+                        setReferralConfig((prev) => ({ ...prev, referral_reward_amount: val }));
+                        setErrors((prev) => ({ ...prev, referral_reward_amount: undefined }));
+                      }}
+                      onPercentageChange={(val) => {
+                        setReferralConfig((prev) => ({ ...prev, referral_reward_percentage: val }));
+                        setErrors((prev) => ({ ...prev, referral_reward_percentage: undefined }));
+                      }}
+                      errors={errors}
+                    />
+                  )}
+                </AnimatePresence>
+              </div>
             </div>
 
             <button
@@ -1031,6 +1320,27 @@ export default function CreateEvent() {
                           </div>
                         )
                     )}
+                  </div>
+                </div>
+              )}
+
+              {/* Referral Preview */}
+              {referralConfig.use_referral && form.pricing_type !== "free" && (
+                <div className="pt-4 border-t border-white/5">
+                  <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-2">
+                    Referral Reward
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <div className="px-3 py-1.5 bg-rose-500/10 border border-rose-500/20 rounded-lg">
+                      <span className="text-[10px] font-bold text-rose-400 flex items-center gap-1.5">
+                        <Megaphone className="w-3 h-3" />
+                        {referralConfig.referral_reward_type === "flat"
+                          ? `₦${Number(referralConfig.referral_reward_amount || 0).toLocaleString()} per ticket`
+                          : referralConfig.referral_reward_type === "percentage"
+                          ? `${referralConfig.referral_reward_percentage || 0}% per ticket`
+                          : "Referral enabled"}
+                      </span>
+                    </div>
                   </div>
                 </div>
               )}
