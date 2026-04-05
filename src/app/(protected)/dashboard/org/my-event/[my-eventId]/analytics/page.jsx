@@ -33,31 +33,37 @@ export default function AnalyticsPage() {
       try {
         const res = await api.get(`/analytics/event/${id}/`);
         console.log("Analytics response raw:", res.data);
+        
+        // Handle various response structures
         const analyticsData = res.data.analytics || res.data;
-        console.log("Analytics tickets list:", analyticsData.tickets_list);
-        if (analyticsData.tickets_list?.[0]) {
-          console.log("Keys in ticket object:", Object.getOwnPropertyNames(analyticsData.tickets_list[0]));
-        }
+        const eventData = res.data.event || analyticsData.event_info;
+        const statistics = analyticsData.statistics || {};
+        
+        // Prefer revenue from the 'event' object as specified by the user
+        const revenue = res.data.event?.revenue ?? statistics.net_revenue ?? statistics.total_revenue ?? 0;
+        
         return {
-          event_id: analyticsData.event_info?.event_id || id,
-          event_name: analyticsData.event_info?.name || analyticsData.event_info?.event_name || "Unknown Event",
-          event_location: analyticsData.event_info?.location,
-          event_date: analyticsData.event_info?.date,
-          event_status: analyticsData.event_info?.status,
-          pricing_type: analyticsData.event_info?.pricing_type,
-          referral_usernames: analyticsData.event_info?.referral_usernames || analyticsData.event_info?.referral_referee_ids || [],
+          event_id: eventData?.event_id || id,
+          event_name: eventData?.name || eventData?.event_name || "Unknown Event",
+          event_location: eventData?.location,
+          event_date: eventData?.date,
+          event_status: eventData?.status,
+          pricing_type: eventData?.pricing_type,
+          referral_usernames: eventData?.referral_usernames || eventData?.referral_referee_ids || [],
           tickets: analyticsData.tickets_list || [],
           count: analyticsData.tickets_list?.length || 0,
           statistics: {
-            confirmed: analyticsData.statistics?.total_tickets_sold || 0,
-            pending: analyticsData.statistics?.pending_tickets || 0,
-            cancelled: analyticsData.statistics?.cancelled_tickets || 0,
-            used: analyticsData.statistics?.used_tickets || 0,
-            total_revenue: analyticsData.statistics?.total_revenue || 0,
-            available_spots: analyticsData.statistics?.available_spots ?? "∞"
+            confirmed: statistics.total_tickets_sold || 0,
+            pending: statistics.pending_tickets || 0,
+            cancelled: statistics.cancelled_tickets || 0,
+            used: statistics.used_tickets || 0,
+            total_revenue: revenue,
+            net_revenue: revenue, // Add net_revenue mapping
+            available_spots: statistics.available_spots ?? "∞"
           }
         };
       } catch (err) {
+        console.error("Analytics fetch error:", err);
         const fallbackRes = await api.get(`/tickets/organizer/${id}/tickets/`);
         return fallbackRes.data;
       }
