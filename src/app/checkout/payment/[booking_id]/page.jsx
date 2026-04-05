@@ -19,6 +19,7 @@ import toast from "react-hot-toast";
 import PaymentSummary from "@/components/payment/PaymentSummary";
 import PaymentTabs from "@/components/payment/PaymentTabs";
 import PaystackTab from "@/components/payment/PaystackTab";
+import ManualTransferTab from "@/components/payment/ManualTransferTab";
 
 // Platform service fee (charged to customer)
 const PLATFORM_FEE = 80;
@@ -52,12 +53,9 @@ export default function CheckoutPaymentPage() {
         return;
       }
 
-      // Decode the booking_id in case it's URL encoded
       const decodedBookingId = decodeURIComponent(booking_id);
 
       try {
-        // Try to get from localStorage (stored during booking)
-        // Check both encoded and decoded versions
         let storedBooking = localStorage.getItem(`booking_${decodedBookingId}`);
         if (!storedBooking) {
           storedBooking = localStorage.getItem(`booking_${booking_id}`);
@@ -66,78 +64,59 @@ export default function CheckoutPaymentPage() {
         if (storedBooking) {
           const parsed = JSON.parse(storedBooking);
 
-          // Handle multi-category bookings (new format with items array)
           let subtotal = 0;
           let totalQuantity = 0;
           let items = [];
 
           if (parsed.items && Array.isArray(parsed.items)) {
-            // New format: multiple categories
             items = parsed.items;
-            subtotal =
-              parsed.subtotal ||
-              items.reduce(
-                (sum, item) => sum + (item.total || item.price * item.quantity),
-                0,
-              );
-            totalQuantity =
-              parsed.total_quantity ||
-              items.reduce((sum, item) => sum + item.quantity, 0);
+            subtotal = parsed.subtotal || items.reduce((sum, item) => sum + (item.total || item.price * item.quantity), 0);
+            totalQuantity = parsed.total_quantity || items.reduce((sum, item) => sum + item.quantity, 0);
           } else {
-            // Legacy format: single category
             const quantity = parsed.quantity || 1;
             const pricePerTicket = parseFloat(parsed.price_per_ticket || 0);
             subtotal = pricePerTicket * quantity;
             totalQuantity = quantity;
-            items = [
-              {
-                name: parsed.category_name,
-                price: pricePerTicket,
-                quantity: quantity,
-                total: subtotal,
-              },
-            ];
+            items = [{ name: parsed.category_name, price: pricePerTicket, quantity, total: subtotal }];
           }
 
-          const serviceFee = subtotal > 0 ? PLATFORM_FEE : 0; // ₦80 service fee for paid tickets
-          // Paystack calculates fee on the total amount INCLUDING platform service fee
+          const serviceFee = subtotal > 0 ? PLATFORM_FEE : 0;
           const paystackFee = calculatePaystackFee(subtotal + serviceFee);
-          const platformFee = serviceFee + paystackFee; // Combined: ₦80 + Paystack fee
-          // const total = subtotal + platformFee;
-          const totalPaystack = subtotal + platformFee;
-        
+          const totalPaystack = subtotal + serviceFee + paystackFee;
+          const totalManual = subtotal + serviceFee;
 
           setBookingData({
             booking_id: parsed.booking_id,
-            ticketNumber:
-              parsed.booking_id?.replace("booking:", "") ||
-              decodedBookingId.replace("booking:", ""),
+            ticketNumber: parsed.booking_id?.replace("booking:", "") || decodedBookingId.replace("booking:", ""),
             event_name: parsed.event_name,
-            items: items, // Array of categories
+            items,
             quantity: totalQuantity,
-            subtotal: subtotal,
-            serviceFee: serviceFee, // ₦80 platform service fee
-            paystackFee: paystackFee, // Paystack processing fee
-            platformFee: platformFee, // Combined fees (for backwards compatibility)
+            subtotal,
+            serviceFee,
+            paystackFee,
             totalPaystack,
+            totalManual,
             payment_url: parsed.payment_url,
             payment_reference: parsed.payment_reference,
+            allowedMethods: parsed.payment_methods_allowed || ["paystack"],
+            pricing_type: parsed.pricing_type || "paid"
           });
+          
+          // Set default tab based on first allowed method if paystack not available
+          const allowed = parsed.payment_methods_allowed || ["paystack"];
+          if (!allowed.includes('paystack') && allowed.includes('manual_bank_transfer')) {
+            setActiveTab('manual_bank_transfer');
+          }
+          
           setLoading(false);
           return;
         }
 
-        // No localStorage data found - show error with helpful message
-        // The booking data should have been stored when the user initiated the booking
-        setError(
-          "Booking session expired or not found. Please go back to the event page and try booking again.",
-        );
+        setError("Booking session expired or not found. Please go back to the event page and try booking again.");
         setLoading(false);
       } catch (err) {
         console.error("Error loading booking:", err);
-        setError(
-          "Unable to load booking details. Please try booking again from the event page.",
-        );
+        setError("Unable to load booking details. Please try booking again from the event page.");
         setLoading(false);
       }
     };
@@ -147,23 +126,17 @@ export default function CheckoutPaymentPage() {
 
   const handlePayWithPaystack = async () => {
     if (!bookingData) return;
-
     setPaymentLoading(true);
-
     try {
-      // If we already have a payment_url, redirect directly
       if (bookingData.payment_url) {
         window.location.href = bookingData.payment_url;
         return;
       }
-
-      // Otherwise, initialize payment
       const response = await api.post("/tickets/initialize-payment/", {
         booking_id: booking_id,
         redirect_url: `${window.location.origin}/payment`,
         callback_url: `${window.location.origin}/payment`,
       });
-
       if (response.data.payment_url) {
         window.location.href = response.data.payment_url;
       } else {
@@ -171,10 +144,7 @@ export default function CheckoutPaymentPage() {
       }
     } catch (error) {
       console.error("Payment initialization error:", error);
-      toast.error(
-        error.response?.data?.error ||
-          "Failed to initialize payment. Please try again.",
-      );
+      toast.error(error.response?.data?.error || "Failed to initialize payment. Please try again.");
       setPaymentLoading(false);
     }
   };
@@ -203,7 +173,7 @@ export default function CheckoutPaymentPage() {
             <Button variant="outline" onClick={() => router.back()}>
               Go Back
             </Button>
-            <Button onClick={() => router.push("/events")}>
+            <Button onClick={() => router.push("/dashboard/student/events")}>
               Browse Events
             </Button>
           </div>
@@ -226,7 +196,6 @@ export default function CheckoutPaymentPage() {
               <span className="hidden sm:inline">Back</span>
             </button>
 
-            {/* Checkout indicator */}
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium bg-rose-500/10 text-rose-600 dark:text-rose-400">
               <ShieldCheck size={14} />
               <span className="hidden sm:inline">Secure Checkout</span>
@@ -237,7 +206,7 @@ export default function CheckoutPaymentPage() {
                 Total
               </p>
               <p className="font-bold text-rose-500">
-                ₦{bookingData?.totalPaystack?.toLocaleString()}
+                ₦{(activeTab === "paystack" ? bookingData?.totalPaystack : bookingData?.totalManual)?.toLocaleString()}
               </p>
             </div>
           </div>
@@ -246,7 +215,7 @@ export default function CheckoutPaymentPage() {
 
       <div className="container mx-auto px-4 py-4 md:py-8">
         <div className="max-w-4xl mx-auto">
-          {/* Page Title - Desktop */}
+          {/* Page Details */}
           <div className="hidden md:block mb-6">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-rose-500/10 flex items-center justify-center">
@@ -254,41 +223,36 @@ export default function CheckoutPaymentPage() {
               </div>
               <div>
                 <h1 className="text-2xl font-bold">Secure your tickets</h1>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-muted-foreground font-medium">
                   {bookingData?.event_name}
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Mobile: Compact Event Info */}
-          <div className="md:hidden mb-4">
-            <div className="bg-muted/50 rounded-xl p-3 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-rose-500/10 flex items-center justify-center flex-shrink-0">
-                <Ticket className="w-5 h-5 text-rose-500" />
-              </div>
-              <div className="min-w-0">
-                <p className="font-semibold text-sm truncate">
-                  {bookingData?.event_name}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {bookingData?.quantity}x {bookingData?.category_name}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Two Column Layout */}
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 lg:gap-8">
-            {/* Left: Payment Options (wider) */}
-            <div className="lg:col-span-3 space-y-3 md:space-y-4">
-              <PaymentTabs activeTab={activeTab} onChange={setActiveTab} />
-              <div>
+            {/* Left: Payment Options */}
+            <div className="lg:col-span-3 space-y-4">
+              <PaymentTabs 
+                activeTab={activeTab} 
+                onChange={setActiveTab} 
+                allowedMethods={bookingData?.allowedMethods} 
+              />
+              
+              <div className="mt-4">
+                {activeTab === "paystack" ? (
                   <PaystackTab
                     summary={bookingData}
                     onPay={handlePayWithPaystack}
                     loading={paymentLoading}
                   />
+                ) : (
+                  <ManualTransferTab 
+                    summary={bookingData} 
+                    bookingId={decodeURIComponent(booking_id)}
+                    paymentReference={bookingData?.payment_reference}
+                  />
+                )}
               </div>
             </div>
 
@@ -297,90 +261,71 @@ export default function CheckoutPaymentPage() {
               <div className="lg:sticky lg:top-20 space-y-4">
                 <PaymentSummary summary={bookingData} activeTab={activeTab}/>
 
-                {/* Payment Info Card */}
-                <div className="bg-muted/30 rounded-xl p-4 space-y-3">
+                {/* Trust Section */}
+                <div className="bg-muted/30 rounded-xl p-4 space-y-3 border border-border/30">
                   <div className="flex items-start gap-3">
                     <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
                       <Zap className="w-4 h-4 text-emerald-500" />
                     </div>
                     <div>
-                      <p className="font-medium text-sm">
-                        Instant Confirmation
+                      <p className="font-bold text-sm">
+                        {activeTab === 'paystack' ? 'Instant Confirmation' : 'Manual Verification'}
                       </p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Your ticket will be delivered immediately after payment
+                      <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
+                        {activeTab === 'paystack' 
+                          ? 'Your tickets will be delivered immediately after successful payment' 
+                          : 'Admin will verify your transfer and confirm tickets within 12-24 hours'}
                       </p>
                     </div>
                   </div>
 
                   <div className="border-t border-border/50 pt-3 space-y-2">
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
                       <CheckCircle2 size={12} className="text-emerald-500" />
-                      <span>Pay with Card, Bank Transfer, or USSD</span>
+                      <span>{activeTab === 'paystack' ? 'Pay with Card, Bank Transfer, or USSD' : 'No extra processing fees'}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
                       <CheckCircle2 size={12} className="text-emerald-500" />
-                      <span>256-bit SSL encryption</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <CheckCircle2 size={12} className="text-emerald-500" />
-                      <span>Secured by Paystack</span>
+                      <span>{activeTab === 'paystack' ? 'Secured by Paystack' : 'Direct bank transfer to Axile'}</span>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-
-          {/* Trust Badges - Desktop */}
-          <div className="hidden md:flex items-center justify-center gap-6 mt-10 pt-6 border-t border-border/50">
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <ShieldCheck size={16} className="text-emerald-500" />
-              <span>SSL Encrypted</span>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Ticket size={16} className="text-rose-500" />
-              <span>Instant Delivery</span>
-            </div>
-          </div>
-
-          {/* Footer Info */}
-          <p className="text-center text-xs text-muted-foreground mt-6 md:mt-4">
-            Need help?
-            <button className="text-primary ml-1 hover:underline">
-              Contact Support
-            </button>
-          </p>
         </div>
       </div>
 
       {/* Mobile: Sticky Bottom Summary */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-md border-t border-border/50 p-3 z-40">
-        <div className="flex items-center justify-between gap-3">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-md border-t border-border/50 p-4 z-40">
+        <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="text-[10px] text-muted-foreground">Total Amount</p>
-            <p className="text-base font-bold">
-              ₦{activeTab === "paystack" ? bookingData?.totalPaystack?.toLocaleString() : 0}
+            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Total Amount</p>
+            <p className="text-lg font-bold text-rose-500">
+              ₦{(activeTab === "paystack" ? bookingData?.totalPaystack : bookingData?.totalManual)?.toLocaleString()}
             </p>
           </div>
-          {activeTab === "paystack" && (
+          {activeTab === "paystack" ? (
             <Button
               onClick={handlePayWithPaystack}
               disabled={paymentLoading}
-              className="h-10 px-6 text-sm bg-rose-600 hover:bg-rose-700 shadow-md"
+              className="h-12 px-8 text-sm font-bold bg-rose-600 hover:bg-rose-700 shadow-lg shadow-rose-600/20"
             >
               {paymentLoading ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin text-white" />
               ) : (
                 "Pay Now"
               )}
             </Button>
+          ) : (
+            <div className="text-[10px] text-muted-foreground font-medium text-right leading-tight max-w-[120px]">
+              Use button above to confirm transfer
+            </div>
           )}
         </div>
       </div>
 
-      {/* Spacer for mobile sticky footer */}
-      <div className="lg:hidden h-20" />
+      <div className="lg:hidden h-24" />
     </div>
   );
 }
