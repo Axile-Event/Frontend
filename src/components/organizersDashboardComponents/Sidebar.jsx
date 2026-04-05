@@ -9,7 +9,8 @@ import {
   Settings,
   User,
   Wallet,
-  Users
+  Users,
+  Share2
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -38,6 +39,11 @@ const OrganizationDashboardNavLinks = [
   },
   { name: "Profile", link: "/dashboard/org/profile", icon: <User /> },
   { name: "Payout", link: "/dashboard/org/payout", icon: <Wallet /> },
+  {
+    name: "Referrals",
+    link: "/dashboard/org/referrals",
+    icon: <Share2 />,
+  },
 ];
 
 export default function Sidebar() {

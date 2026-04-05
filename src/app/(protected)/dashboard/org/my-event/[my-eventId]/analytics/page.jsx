@@ -99,7 +99,7 @@ export default function AnalyticsPage() {
     }
 
     // Create CSV headers - includes category info from analytics endpoint
-    const headers = ["Attendee Name", "Email", "Ticket ID", "Category", "Price", "Quantity", "Referral", "Status", "Check-in Time", "Purchase Date"];
+    const headers = ["Attendee Name", "Email", "Ticket ID", "Category", "Price", "Quantity", "Status", "Check-in Time", "Purchase Date"];
     
     // Create CSV rows
     const rows = data.tickets.map(ticket => [
@@ -109,7 +109,6 @@ export default function AnalyticsPage() {
       ticket.category_name || "General",
       ticket.total_price || ticket.price_per_ticket || "0",
       ticket.quantity || 0,
-      ticket.referral || ticket.referral_username || ticket.referrer_username || ticket.referral_name || ticket.username || ticket.referral_source || ticket.referral_payload || "N/A",
       ticket.status || "N/A",
       ticket.checked_in_at ? new Date(ticket.checked_in_at).toLocaleString() : "Not Checked In",
       ticket.created_at ? new Date(ticket.created_at).toLocaleString() : "N/A"
@@ -256,7 +255,6 @@ export default function AnalyticsPage() {
                   <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-500">Ticket ID</th>
                   <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-500">Category</th>
                   <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-500">Quantity</th>
-                  <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-500">Referral</th>
                   <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-500">Status</th>
                   <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-500">Check-in</th>
                 </tr>
@@ -286,27 +284,6 @@ export default function AnalyticsPage() {
                     </td>
                     <td className="px-6 py-5">
                       <span className="text-sm font-bold">{t.quantity}</span>
-                    </td>
-                    <td className="px-6 py-5">
-                      <div className="flex items-center gap-2">
-                        {(() => {
-                          const ref = t.referral || t.referral_username || t.referrer_username || t.referral_name || t.username || t.referral_source || t.referral_payload || t.ref_code || t.referral_code;
-                          
-                          if (!ref || ref.toLowerCase() === "none") {
-                            return <span className="text-gray-600 italic text-xs">None</span>;
-                          }
-
-                          return (
-                            <button
-                              onClick={() => router.push(`/dashboard/org/my-event/${id}/referrals/${ref}`)}
-                              className="text-xs text-rose-500 hover:text-rose-400 font-bold underline decoration-rose-500/30 underline-offset-4 transition-colors flex items-center gap-1 group/ref"
-                            >
-                              {ref}
-                              <ChevronRight className="w-3 h-3 group-hover/ref:translate-x-0.5 transition-transform" />
-                            </button>
-                          );
-                        })()}
-                      </div>
                     </td>
                     <td className="px-6 py-5">
                       <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border ${

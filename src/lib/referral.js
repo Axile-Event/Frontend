@@ -26,6 +26,22 @@ export async function fetchReferralStats(eventId, referrals = []) {
 }
 
 /**
+ * Fetch referral stats using referee IDs.
+ * POST /organiser/<event_id>/referral-stats/
+ * @param {string} eventId
+ * @param {Array<string>} referralIds
+ */
+export async function postReferralStats(eventId, referralIds = []) {
+  const referrals = Array.isArray(referralIds) 
+    ? referralIds.map(id => ({ referee_id: id }))
+    : [];
+  const res = await api.post(`/organiser/${eventId}/referral-stats/`, {
+    referrals,
+  });
+  return res?.data;
+}
+
+/**
  * Build referral FormData fields for event create/update.
  * Appends to existing FormData instance.
  * @param {FormData} formData
