@@ -45,15 +45,40 @@ const MyEvent = () => {
         list.map(async (event) => {
           const eventId = event.event_id ?? event.id;
           try {
-            const ticketsRes = await api.get(`/tickets/organizer/${eventId}/tickets/`);
-            const stats = ticketsRes.data?.statistics || {};
+            const [ticketsRes, analyticsRes] = await Promise.allSettled([
+              api.get(`/tickets/organizer/${eventId}/tickets/`),
+              api.get(`/analytics/event/${eventId}/`)
+            ]);
+
+            const stats = (ticketsRes.status === 'fulfilled' ? ticketsRes.value.data?.statistics : null) || {};
+            let analyticsRevenue = 0;
+
+            if (analyticsRes.status === 'fulfilled') {
+              const aData = analyticsRes.value.data.analytics || analyticsRes.value.data;
+              const aStats = aData.statistics || {};
+              const aRevenueSource = analyticsRes.value.data.event?.revenue;
+
+              if (aRevenueSource && typeof aRevenueSource === "object") {
+                analyticsRevenue = aRevenueSource.organizer_revenue ?? 
+                                   aRevenueSource.net_revenue ?? 
+                                   aRevenueSource.earnings ?? 
+                                   aRevenueSource.organizer_share ?? 
+                                   aRevenueSource.net ?? 
+                                   aRevenueSource.total_revenue ?? 0;
+              } else {
+                analyticsRevenue = aRevenueSource ?? aStats.net_revenue ?? aStats.total_revenue ?? stats.total_revenue ?? 0;
+              }
+            } else {
+              analyticsRevenue = stats.total_revenue || 0;
+            }
+
             return {
               ...event,
               ticket_stats: {
                 confirmed_tickets: stats.confirmed || 0,
                 tickets_sold: stats.sold ?? (stats.confirmed || 0) + (stats.used || 0),
                 pending_tickets: stats.pending || 0,
-                total_revenue: stats.total_revenue || 0,
+                total_revenue: analyticsRevenue, // Use correct net revenue
                 available_spots: stats.available_spots ?? "∞"
               }
             };

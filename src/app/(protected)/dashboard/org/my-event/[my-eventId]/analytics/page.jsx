@@ -34,13 +34,22 @@ export default function AnalyticsPage() {
         const res = await api.get(`/analytics/event/${id}/`);
         console.log("Analytics response raw:", res.data);
         
-        // Handle various response structures
-        const analyticsData = res.data.analytics || res.data;
-        const eventData = res.data.event || analyticsData.event_info;
-        const statistics = analyticsData.statistics || {};
-        
-        // Prefer revenue from the 'event' object as specified by the user
-        const revenue = res.data.event?.revenue ?? statistics.net_revenue ?? statistics.total_revenue ?? 0;
+        // 1. Resiliently extract "org money" from the nested revenue object or statistics
+        const revenueSource = res.data.event?.revenue;
+        let revenue = 0;
+
+        if (revenueSource && typeof revenueSource === "object") {
+          // If it's an object, extract "org money" fields as hinted by the user
+          revenue = revenueSource.organizer_revenue ?? 
+                    revenueSource.net_revenue ?? 
+                    revenueSource.earnings ?? 
+                    revenueSource.organizer_share ?? 
+                    revenueSource.net ?? 
+                    revenueSource.total_revenue ?? 0;
+        } else {
+          // Fallback to numeric value or other statistics fields
+          revenue = revenueSource ?? statistics.net_revenue ?? statistics.total_revenue ?? 0;
+        }
         
         return {
           event_id: eventData?.event_id || id,
@@ -57,8 +66,8 @@ export default function AnalyticsPage() {
             pending: statistics.pending_tickets || 0,
             cancelled: statistics.cancelled_tickets || 0,
             used: statistics.used_tickets || 0,
-            total_revenue: revenue,
-            net_revenue: revenue, // Add net_revenue mapping
+            total_revenue: statistics.total_revenue || revenue,
+            net_revenue: revenue, // Correctly mapped "org money" to net_revenue
             available_spots: statistics.available_spots ?? "∞"
           }
         };
