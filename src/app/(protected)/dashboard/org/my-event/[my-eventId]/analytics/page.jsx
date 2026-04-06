@@ -126,7 +126,7 @@ export default function AnalyticsPage() {
     const url = URL.createObjectURL(blob);
     
     link.setAttribute("href", url);
-    link.setAttribute("download", `${data.event_name || 'event'}_attendees_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute("download", `Axile_${data.event_name || 'event'}_attendees_${new Date().toISOString().split('T')[0]}.csv`);
     link.style.visibility = "hidden";
     
     document.body.appendChild(link);

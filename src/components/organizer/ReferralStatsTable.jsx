@@ -48,7 +48,7 @@ export default function ReferralStatsTable({
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = `${eventName}_referral_audit_${new Date().toISOString().split("T")[0]}.csv`;
+    link.download = `Axile_${eventName}_referral_audit_${new Date().toISOString().split("T")[0]}.csv`;
     link.click();
   };
 
