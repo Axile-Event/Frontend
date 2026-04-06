@@ -37,7 +37,7 @@ import BulkBookForAttendeeModal from "@/components/organizer/BulkBookForAttendee
 import ManualConfirmationModal from "@/components/payment/ManualConfirmationModal";
 import ReferralBadge from "@/components/organizer/ReferralBadge";
 import ReferralStatsTable from "@/components/organizer/ReferralStatsTable";
-import { fetchReferralStats } from "@/lib/referral";
+import { getReferralStats } from "@/lib/referral";
 import useTempBookingStore from "@/store/tempBookingStore";
 
 // Book for Attendee Modal Component
@@ -475,12 +475,8 @@ export default function EventDetailsPage() {
     queryFn: async () => {
       if (!isReferralEnabled) return [];
       try {
-        // Map any available referee usernames/IDs to satisfy current API requirements
-        const usernames = event?.referral_usernames || event?.referral_referee_ids || [];
-        const referrals = usernames.map((un) => ({ username: un }));
-        
-        const stats = await fetchReferralStats(id, referrals);
-        return Array.isArray(stats) ? stats : (stats?.stats || stats?.data || []);
+        const stats = await getReferralStats(id);
+        return Array.isArray(stats) ? stats : (stats?.referrals || stats?.stats || stats?.data || []);
       } catch (err) {
         console.error("Referral stats error:", err);
         return [];
