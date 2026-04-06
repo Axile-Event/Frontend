@@ -15,17 +15,31 @@ export async function fetchReferralRewardTypes() {
 /**
  * Fetch referral stats for an event (organizer).
  * Returns all referrers for the event with their usernames and stats.
- * No longer requires referee_ids.
+ * Uses POST /organiser/{event_id}/referral-stats/ with empty referrals array.
  * @param {string} eventId
  * @param {Array} referrals - Optional array of {username: string} to filter results
  */
 export async function getReferralStats(eventId, referrals = []) {
-  // Use POST with a body to fetch stats for the event
-  // Note: Docs specifically use 'organiser' (with an s) for this referral endpoint
-  const res = await api.post(`/organiser/${eventId}/referral-stats/`, {
-    referrals: referrals,
-  });
-  return res?.data;
+  // USER UPDATED FORMAT: event:EV-XXXXX
+  const decoded = decodeURIComponent(eventId);
+  const prefixedId = decoded.startsWith("event:") ? decoded : `event:${decoded}`;
+  const safeId = encodeURIComponent(prefixedId);
+  
+  const url = `/organizer/${safeId}/referral-stats/`;
+  
+  console.log('--- REFERRAL STATS FETCH ---');
+  console.log('Raw ID:', eventId);
+  console.log('Prefixed ID:', prefixedId);
+  console.log('Final URL:', url);
+
+  try {
+    const res = await api.post(url, { referrals });
+    console.log(`✅ SUCCESS: POST ${url}`, res.data);
+    return res.data;
+  } catch (err) {
+    console.error(`❌ FAILED: POST ${url}`, err.response?.status || err.message);
+    throw err;
+  }
 }
 
 // Alias for backwards compatibility or alternative naming

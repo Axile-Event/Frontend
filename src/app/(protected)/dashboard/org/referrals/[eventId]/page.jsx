@@ -68,49 +68,38 @@ const ReferralDetailPage = () => {
   } = useQuery({
     queryKey: queryKeys.organizer.referralStats(eventId),
     queryFn: async () => {
-      const decodedId = decodeURIComponent(eventId);
-      const cleanId = decodedId.replace("event:", "");
-      
-      const attempts = [
-        { method: 'POST', url: `/organiser/${cleanId}/referral-stats/`, body: { referrals: [] } },
-        { method: 'GET', url: `/organiser/${cleanId}/referral-stats/` },
-        { method: 'GET', url: `/organizer/${cleanId}/referrals/` }
-      ];
-
-      for (const attempt of attempts) {
-        try {
-          const res = attempt.method === 'POST' ? await api.post(attempt.url, attempt.body) : await api.get(attempt.url);
-          if (res?.data) {
-            console.log(`🟢 SUCCESS: ${attempt.method} ${attempt.url}`, res.data);
-            return res.data;
-          }
-        } catch (err) {
-          continue; 
-        }
-      }
-      return null; 
+      // Pass the full eventId directly to the API (likely including 'event:' prefix)
+      // The getReferralStats utility will handle encoding
+      const data = await getReferralStats(eventId);
+      return data;
     },
     enabled: !!eventId
   });
 
+  // DEBUG REAL DATA
+  console.log('--- REAL API DATA ---');
+  console.log('STATS DATA:', statsData);
+  
   const referrals = useMemo(() => {
     const list = Array.isArray(statsData) 
       ? statsData 
-      : statsData?.referrals ?? statsData?.stats ?? statsData?.data ?? [];
+      : statsData?.stats ?? statsData?.referrals ?? statsData?.data ?? [];
     
+    console.log('PROCESSED REFERRALS LIST:', list);
     return [...list].sort((a, b) => (Number(b.tickets_sold) || 0) - (Number(a.tickets_sold) || 0));
   }, [statsData]);
 
   const summary = useMemo(() => {
-    // Reward configuration can now be bundled in the stats response
-    const rewardConfig = statsData?.referral_reward ?? event;
+    // Reward configuration is now bundled in the stats response
+    const rewardConfig = statsData?.referral_reward;
     
     return {
-      totalReferrers: referrals.length,
+      // Use explicit count from backend if available
+      totalReferrers: statsData?.count ?? referrals.length,
       totalTickets: referrals.reduce((sum, r) => sum + (Number(r.tickets_sold) || 0), 0),
       totalNetRevenue: referrals.reduce((sum, r) => sum + (Number(r.organizer_net_revenue) || 0), 0),
       totalGrossSales: referrals.reduce((sum, r) => sum + (Number(r.referred_sales_total) || 0), 0),
-      rewardConfig
+      rewardConfig: rewardConfig || event
     };
   }, [referrals, statsData, event]);
 
@@ -282,14 +271,15 @@ const ReferralDetailPage = () => {
               </thead>
               <tbody>
                 {referrals.map((row, idx) => (
-                  <tr key={idx} className="border-b border-white/5 hover:bg-white/[0.03] transition-colors">
+                  <tr key={row.username || idx} className="border-b border-white/5 hover:bg-white/[0.03] transition-colors">
                     <td className="py-6 px-8">
                        <div className="flex items-center gap-3">
                          <div className="w-10 h-10 rounded-full bg-linear-to-br from-rose-500/20 to-purple-500/20 flex items-center justify-center text-[11px] font-black text-rose-500 border border-rose-500/20 uppercase">
                            {(row.referral_name || row.username || "U")[0].toUpperCase()}
                          </div>
-                         <div>
-                            <p className="text-sm font-bold">{row.referral_name || row.username || "Unknown Referrer"}</p>
+                         <div className="flex flex-col">
+                            <p className="text-sm font-bold">{row.referral_name || "Unknown Referrer"}</p>
+                            <p className="text-xs text-muted-foreground opacity-60">@{row.username}</p>
                          </div>
                        </div>
                     </td>
@@ -301,14 +291,14 @@ const ReferralDetailPage = () => {
                     </td>
                     <td className="py-6 px-6 text-right text-rose-400/80">
                       <div className="flex flex-col items-end">
-                        <span className="text-sm font-bold">-{formatCurrency(row.referral_revenue)}</span>
-                        <span className="text-[10px] font-medium opacity-60">Referee Cut</span>
+                        <span className="text-sm font-bold">-{formatCurrency(row.referral_earnings)}</span>
+                        <span className="text-[10px] font-medium opacity-60">Commission Paid</span>
                       </div>
                     </td>
                     <td className="py-6 px-8 text-right">
                       <div className="flex flex-col items-end">
                         <span className="font-bold text-emerald-400 text-lg">{formatCurrency(row.organizer_net_revenue)}</span>
-                        <span className="text-[10px] text-gray-500 font-medium">Your Earnings</span>
+                        <span className="text-[10px] text-gray-500 font-medium">Your Net Profit</span>
                       </div>
                     </td>
                   </tr>
