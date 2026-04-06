@@ -70,27 +70,51 @@ const ReferralDetailPage = () => {
     queryFn: async () => {
       const decodedId = decodeURIComponent(eventId);
       const cleanId = decodedId.replace("event:", "");
-      // Fetch all referral data for this event (no IDs required)
-      const data = await getReferralStats(cleanId);
-      return data;
+      
+      const testBody = { referrals: [{ username: "samkiel" }] };
+      const attempts = [
+        // Pattern 1: Directly under organiser/ (from docs)
+        { method: 'POST', url: `/organiser/${cleanId}/referral-stats/`, body: testBody },
+        { method: 'POST', url: `/organiser/${decodedId}/referral-stats/`, body: testBody },
+        { method: 'GET', url: `/organiser/${cleanId}/referral-stats/` },
+        { method: 'GET', url: `/organiser/${cleanId}/stats/` },
+        // Pattern 2: Under organizer/ (common in this project)
+        { method: 'POST', url: `/organizer/events/${cleanId}/referral-stats/`, body: testBody },
+        { method: 'POST', url: `/organizer/${cleanId}/referral-stats/`, body: testBody },
+        { method: 'GET', url: `/organizer/events/${cleanId}/referrals/` },
+        { method: 'GET', url: `/organizer/${cleanId}/stats/` }
+      ];
+
+      for (const attempt of attempts) {
+        try {
+          const res = attempt.method === 'POST' ? await api.post(attempt.url, attempt.body) : await api.get(attempt.url);
+          if (res?.data) {
+            console.log(`🟢 SUCCESS: ${attempt.method} ${attempt.url}`, res.data);
+            return res.data;
+          }
+        } catch (err) {
+          continue; 
+        }
+      }
+      console.log("🔴 All referral stats endpoints failed (404/405/400).");
+      return []; 
     },
     enabled: !!eventId
   });
 
   const referrals = useMemo(() => {
-    // Normalize response — handle both array and {referrals: [...]} shape
     const list = Array.isArray(statsData) 
       ? statsData 
       : statsData?.referrals ?? statsData?.stats ?? statsData?.data ?? [];
     
-    return [...list].sort((a, b) => (b.tickets_sold || 0) - (a.tickets_sold || 0));
+    return [...list].sort((a, b) => (Number(b.tickets_sold) || 0) - (Number(a.tickets_sold) || 0));
   }, [statsData]);
 
   const summary = useMemo(() => {
     return {
       totalReferrers: referrals.length,
-      totalTickets: referrals.reduce((sum, r) => sum + (r.tickets_sold || 0), 0),
-      totalRevenue: referrals.reduce((sum, r) => sum + (r.referral_revenue || 0), 0)
+      totalTickets: referrals.reduce((sum, r) => sum + (Number(r.tickets_sold) || 0), 0),
+      totalRevenue: referrals.reduce((sum, r) => sum + (Number(r.referral_revenue) || 0), 0)
     };
   }, [referrals]);
 

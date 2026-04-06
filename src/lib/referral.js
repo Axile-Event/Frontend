@@ -20,8 +20,8 @@ export async function fetchReferralRewardTypes() {
  */
 export async function getReferralStats(eventId) {
   // Use POST with an empty body to fetch all stats for the event
-  // as per the new simplified backend flow.
-  const res = await api.post(`/organizer/${eventId}/referral-stats/`, {
+  // Note: Docs specifically use 'organiser' (with an s) for this referral endpoint
+  const res = await api.post(`/organiser/${eventId}/referral-stats/`, {
     referrals: [],
   });
   return res?.data;
