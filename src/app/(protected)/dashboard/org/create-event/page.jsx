@@ -67,7 +67,7 @@ export default function CreateEvent() {
     date: "",
     capacity: "",
     max_quantity_per_booking: "",
-    payment_methods_allowed: ["paystack"],
+    payment_methods_allowed: [],
   });
 
   const [categories, setCategories] = useState([]);
@@ -88,6 +88,7 @@ export default function CreateEvent() {
   const [createdEventId, setCreatedEventId] = useState(null);
   const [showPinPrompt, setShowPinPrompt] = useState(false);
   const [pendingSubmit, setPendingSubmit] = useState(false);
+  const [saveAsDraft, setSaveAsDraft] = useState(false);
   const DRAFT_KEY = "axile_event_creation_draft";
   const [hasLoadedDraft, setHasLoadedDraft] = useState(false);
 
@@ -363,7 +364,7 @@ export default function CreateEvent() {
       date: "",
       capacity: "",
       max_quantity_per_booking: "",
-      payment_methods_allowed: ["paystack"],
+      payment_methods_allowed: [],
     });
     setReferralConfig({
       use_referral: false,
@@ -380,9 +381,13 @@ export default function CreateEvent() {
 
 
 
-  const submit = async (ev) => {
-    ev.preventDefault();
-    const localErrors = validate();
+  const submit = async (ev, isDraft = false) => {
+    if (ev) ev.preventDefault();
+    setSaveAsDraft(isDraft);
+    
+    // Only validate full requirements if not a draft
+    // If it's a draft, we might allow some missing fields
+    const localErrors = isDraft ? {} : validate();
     if (Object.keys(localErrors).length > 0) {
       const firstError = Object.values(localErrors)[0] || "Please fill in all required fields correctly.";
       toast.error(firstError);
@@ -417,8 +422,10 @@ export default function CreateEvent() {
           ? form.payment_methods_allowed 
           : (form.payment_methods_allowed ? [form.payment_methods_allowed] : ["paystack"]);
         
-        // Backend expects valid JSON string for this field
-        formData.append("payment_methods_allowed", JSON.stringify(methods));
+        // Append each method individually so the backend receives a list
+        methods.forEach(method => {
+          formData.append("payment_methods_allowed", method);
+        });
       }
 
       // convert local datetime input to ISO with Z
@@ -433,6 +440,9 @@ export default function CreateEvent() {
       if (form.max_quantity_per_booking) {
         formData.append("max_quantity_per_booking", form.max_quantity_per_booking);
       }
+
+      // Add save_as_draft flag
+      formData.append("save_as_draft", saveAsDraft ? "true" : "false");
 
       // Debug: log what we're sending
       console.log("[CreateEvent] FormData entries:", [...formData.entries()]);
@@ -683,6 +693,16 @@ export default function CreateEvent() {
              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Draft Saved</span>
           </div>
+          <button
+            type="button"
+            disabled={loading}
+            onClick={(e) => submit(e, true)}
+            className="px-6 py-2.5 rounded-xl border border-rose-500/30 text-xs font-bold text-rose-500 hover:bg-rose-500/10 transition-all active:scale-95 disabled:opacity-50"
+          >
+            {loading && saveAsDraft ? (
+               <span className="w-3 h-3 border-2 border-rose-500/20 border-t-rose-500 rounded-full animate-spin" />
+            ) : "Save as Draft"}
+          </button>
           <button
             type="button"
             onClick={() => router.back()}
@@ -1115,94 +1135,103 @@ export default function CreateEvent() {
                 )}
 
                 {/* Payment Methods Section */}
-                <div className="space-y-4 pt-4 border-t border-white/5">
-                <div className="flex items-center gap-2 mb-2">
-                  <CreditCard className="w-4 h-4 text-rose-500" />
-                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">
-                    Payment Methods
-                  </h3>
-                </div>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {[
-                    { 
-                      id: 'paystack', 
-                      label: 'Paystack', 
-                      desc: 'Auto-confirmed' ,
-                      explanation: 'Payments are processed instantly through Paystack. Tickets are automatically issued to attendees upon successful payment. (Standard fees apply)'
-                    },
-                    { 
-                      id: 'manual_bank_transfer', 
-                      label: 'Bank Transfer', 
-                      desc: 'Manual confirm',
-                      explanation: 'Attendees transfer to our company account. Due to the manual nature of verification, it may take some time to process, but all valid payments will be approved.'
-                    }
-                  ].map((method) => {
-                    const isSelected = (form.payment_methods_allowed || []).includes(method.id);
-                    return (
-                      <button
-                        key={method.id}
-                        type="button"
-                        onClick={() => {
-                          const current = Array.isArray(form.payment_methods_allowed) 
-                            ? form.payment_methods_allowed 
-                            : (form.payment_methods_allowed ? [form.payment_methods_allowed] : []);
-                          
-                          if (isSelected) {
-                            // Don't allow empty selection for paid events
-                            if (current.length > 1) {
-                              setForm(s => ({
-                                ...s,
-                                payment_methods_allowed: current.filter(m => m !== method.id)
-                              }));
-                            } else {
-                              toast.error("At least one method required");
-                            }
-                          } else {
-                            setForm(s => ({
-                              ...s,
-                              payment_methods_allowed: [...current, method.id]
-                            }));
-                          }
-                          setErrors(prev => ({ ...prev, payment_methods_allowed: undefined }));
-                        }}
-                        className={`flex items-center justify-between p-4 rounded-2xl border transition-all duration-300 ${
-                          isSelected 
-                            ? "bg-rose-500/10 border-rose-500/50 shadow-lg shadow-rose-900/10" 
-                            : "bg-white/5 border-white/10 hover:border-white/20"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`p-2 rounded-xl transition-colors ${
-                            isSelected ? "bg-rose-500/20 text-rose-400" : "bg-white/10 text-gray-500"
-                          }`}>
-                            {method.id === 'paystack' ? <CreditCard className="w-4 h-4" /> : <Banknote className="w-4 h-4" />}
-                          </div>
-                          <div className="text-left">
-                            <p className="text-[11px] font-black uppercase tracking-wider text-white">
-                              {method.label}
-                            </p>
-                            <p className="text-[9px] font-bold text-rose-500 uppercase tracking-tight mb-1">
-                              {method.desc}
-                            </p>
-                            <p className="text-[10px] text-gray-500 font-medium leading-relaxed max-w-[200px]">
-                              {method.explanation}
-                            </p>
-                          </div>
-                        </div>
-                        {isSelected && <CheckCircle2 className="w-5 h-5 text-rose-500 animate-in zoom-in-0 duration-300" />}
-                      </button>
-                    );
-                  })}
-                </div>
-                {errors.payment_methods_allowed && (
-                  <p className="text-[10px] text-rose-500 font-bold mt-2 ml-1 uppercase">
-                    {errors.payment_methods_allowed}
-                  </p>
+                {form.pricing_type === "paid" && (
+                  <div className="space-y-4 pt-4 border-t border-white/5">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CreditCard className="w-4 h-4 text-rose-500" />
+                      <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">
+                        Payment Methods
+                      </h3>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 gap-3">
+                      {[
+                        { 
+                          id: 'paystack', 
+                          label: 'Paystack', 
+                          desc: 'Auto-confirmed',
+                          explanation: 'Payments are processed instantly through Paystack. Tickets are automatically issued to attendees upon successful payment. (Standard fees apply)',
+                          icon: <CreditCard className="w-5 h-5" />
+                        },
+                        { 
+                          id: 'manual_bank_transfer', 
+                          label: 'Bank Transfer', 
+                          desc: 'Manual confirm',
+                          explanation: 'Attendees transfer directly to our company account. Due to the manual nature of verification, it may take some time to process, but all valid payments will be approved.',
+                          icon: <Banknote className="w-5 h-5" />
+                        }
+                      ].map((method) => {
+                        const isSelected = (form.payment_methods_allowed || []).includes(method.id);
+                        return (
+                          <button
+                            key={method.id}
+                            type="button"
+                            onClick={() => {
+                              const current = Array.isArray(form.payment_methods_allowed) 
+                                ? form.payment_methods_allowed 
+                                : (form.payment_methods_allowed ? [form.payment_methods_allowed] : []);
+                              
+                              if (isSelected) {
+                                if (current.length > 1) {
+                                  setForm(s => ({
+                                    ...s,
+                                    payment_methods_allowed: current.filter(m => m !== method.id)
+                                  }));
+                                } else {
+                                  toast.error("At least one method required");
+                                }
+                              } else {
+                                setForm(s => ({
+                                  ...s,
+                                  payment_methods_allowed: [...current, method.id]
+                                }));
+                              }
+                              setErrors(prev => ({ ...prev, payment_methods_allowed: undefined }));
+                            }}
+                            className={`flex flex-col sm:flex-row sm:items-center gap-4 p-5 rounded-2xl border transition-all duration-300 text-left ${
+                              isSelected 
+                                ? "bg-rose-500/10 border-rose-500/50 shadow-lg shadow-rose-900/10" 
+                                : "bg-white/5 border-white/10 hover:border-white/20 hover:bg-white/[0.07]"
+                            }`}
+                          >
+                            <div className={`p-3 rounded-xl shrink-0 transition-colors ${
+                              isSelected ? "bg-rose-500/20 text-rose-400" : "bg-white/10 text-gray-500"
+                            }`}>
+                              {method.icon}
+                            </div>
+                            
+                            <div className="flex-1 space-y-1">
+                              <div className="flex items-center gap-2">
+                                <span className={`text-sm font-black uppercase tracking-wider ${isSelected ? "text-white" : "text-gray-300"}`}>
+                                  {method.label}
+                                </span>
+                                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full border uppercase tracking-tight ${
+                                  isSelected ? "bg-rose-500/20 border-rose-500/30 text-rose-400" : "bg-white/5 border-white/10 text-gray-500"
+                                }`}>
+                                  {method.desc}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-gray-500 font-medium leading-relaxed max-w-2xl">
+                                {method.explanation}
+                              </p>
+                            </div>
+
+                            <div className={`shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
+                              isSelected ? "bg-rose-500 border-rose-500 text-white scale-110" : "border-white/10 text-transparent"
+                            }`}>
+                              <CheckCircle2 className="w-4 h-4" />
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {errors.payment_methods_allowed && (
+                      <p className="text-[10px] text-rose-500 font-bold mt-2 ml-1 uppercase">
+                        {errors.payment_methods_allowed}
+                      </p>
+                    )}
+                  </div>
                 )}
-                </div>
-              </div>
-              )}
 
               {/* Referral Rewards Section */}
               <div className="space-y-4 pt-4 border-t border-white/5">
@@ -1446,9 +1475,13 @@ export default function CreateEvent() {
               <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mb-2">
                 <CheckCircle2 className="w-16 h-16 text-emerald-500 mb-4" />
               </div>
-              <h2 className="text-2xl font-bold text-white">Event Created & Pending</h2>
+              <h2 className="text-2xl font-bold text-white">
+                {saveAsDraft ? "Draft Saved" : "Event Created & Pending"}
+              </h2>
               <p className="text-gray-400 text-center max-w-md">
-                Your event has been successfully created and is currently pending approval. An email will be delivered to you once your event is approved and is live.
+                {saveAsDraft 
+                  ? "Your event has been saved as a draft. You can access it anytime from 'My Events' and publish it later."
+                  : "Your event has been successfully created and is currently pending approval. An email will be delivered to you once your event is approved and is live."}
               </p>
             </div>
 

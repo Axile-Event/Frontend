@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { motion, AnimatePresence } from "framer-motion";
 import api from "../../../../../lib/axios";
 import { Loader2, Copy, Check, ExternalLink, Plus, Clock, Search, Megaphone } from "lucide-react";
 import toast from "react-hot-toast";
@@ -18,6 +19,7 @@ const MyEvent = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [localImages, setLocalImages] = useState({});
   const [brokenImages, setBrokenImages] = useState({});
+  const [activeTab, setActiveTab] = useState("live"); // "live" or "draft"
 
   const { data: events = [], isLoading: loading } = useQuery({
     queryKey: queryKeys.organizer.events,
@@ -111,11 +113,17 @@ const MyEvent = () => {
     ? []
     : events.filter((ev) => {
         const lowerQuery = searchQuery.toLowerCase();
-        return (
+        const matchesSearch = (
           (ev.name && ev.name.toLowerCase().includes(lowerQuery)) ||
           (ev.event_type && ev.event_type.toLowerCase().includes(lowerQuery)) ||
           (ev.location && ev.location.toLowerCase().includes(lowerQuery))
         );
+
+        if (!matchesSearch) return false;
+
+        const isDraft = ev.status === "draft" || ev.save_as_draft === true || ev.is_draft === true;
+        if (activeTab === "draft") return isDraft;
+        return !isDraft;
       });
 
   const refetchEvents = () => {
@@ -207,6 +215,41 @@ const MyEvent = () => {
         </div>
       </div>
 
+      {/* Tabs */}
+      <div className="flex items-center gap-6 border-b border-white/5 pb-1">
+        <button
+          onClick={() => setActiveTab("live")}
+          className={`pb-4 text-sm font-bold transition-all relative ${
+            activeTab === "live" ? "text-rose-500" : "text-gray-500 hover:text-gray-300"
+          }`}
+        >
+          Live Events
+          {activeTab === "live" && (
+            <motion.div
+              layoutId="activeTab"
+              className="absolute bottom-0 left-0 right-0 h-0.5 bg-rose-500"
+            />
+          )}
+        </button>
+        <button
+          onClick={() => setActiveTab("draft")}
+          className={`pb-4 text-sm font-bold transition-all relative ${
+            activeTab === "draft" ? "text-rose-500" : "text-gray-500 hover:text-gray-300"
+          }`}
+        >
+          Drafts
+          <span className="ml-2 px-1.5 py-0.5 bg-white/5 rounded text-[10px] text-gray-400">
+            {events.filter(ev => ev.status === "draft" || ev.save_as_draft === true || ev.is_draft === true).length}
+          </span>
+          {activeTab === "draft" && (
+            <motion.div
+              layoutId="activeTab"
+              className="absolute bottom-0 left-0 right-0 h-0.5 bg-rose-500"
+            />
+          )}
+        </button>
+      </div>
+
       {loading ? (
         <OrganizerEventsPageSkeleton />
       ) : events.length === 0 ? (
@@ -291,10 +334,12 @@ const MyEvent = () => {
                     <div className={`px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest backdrop-blur-xl border flex items-center gap-1.5 ${
                       ev.status === 'verified' 
                       ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" 
+                      : (ev.status === 'draft' || ev.save_as_draft === true || ev.is_draft === true)
+                      ? "text-rose-400 bg-rose-500/10 border-rose-500/20"
                       : "text-amber-400 bg-amber-500/10 border-amber-500/20"
                     }`}>
                       {ev.status === 'verified' ? <Check className="w-2.5 h-2.5" /> : <Clock className="w-2.5 h-2.5" />}
-                      {ev.status === 'verified' ? 'Verified' : (ev.status || 'Pending')}
+                      {ev.status === 'verified' ? 'Verified' : (ev.status === 'draft' || ev.save_as_draft === true || ev.is_draft === true) ? 'Draft' : (ev.status || 'Pending')}
                     </div>
                     
                     <div className="px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest backdrop-blur-xl bg-black/40 border border-white/10 text-white">
@@ -370,21 +415,39 @@ const MyEvent = () => {
                     </div>
                     
                     <button
-                      onClick={(e) => ev.status === 'verified' ? handleCopyLink(e, ev) : e.stopPropagation()}
-                      disabled={ev.status !== 'verified'}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (ev.status === 'draft' || ev.save_as_draft === true || ev.is_draft === true) {
+                          router.push(`/dashboard/org/edit-event/${id}`);
+                        } else if (ev.status === 'verified') {
+                          handleCopyLink(e, ev);
+                        }
+                      }}
+                      disabled={ev.status !== 'verified' && ev.status !== 'draft' && !ev.save_as_draft && !ev.is_draft}
                       className={`flex items-center gap-1.5 px-2.5 py-1.5 border rounded-lg transition-all font-medium ${
                         ev.status === 'verified'
                           ? 'bg-rose-500/5 hover:bg-rose-500/15 border-rose-500/30 hover:border-rose-500/50 group/copy cursor-pointer'
+                          : (ev.status === 'draft' || ev.save_as_draft === true || ev.is_draft === true)
+                          ? 'bg-rose-600 hover:bg-rose-700 text-white border-rose-600 cursor-pointer'
                           : 'bg-gray-900/30 border-gray-700 cursor-not-allowed opacity-50'
                       }`}
-                      title={ev.status === 'verified' ? 'Copy Event Link' : 'Event must be verified to share'}
+                      title={ev.status === 'verified' ? 'Copy Event Link' : (ev.status === 'draft' || ev.save_as_draft === true || ev.is_draft === true) ? 'Edit & Publish' : 'Event must be verified to share'}
                     >
-                      <Copy className={`w-3.5 h-3.5 transition-colors ${
-                        ev.status === 'verified' ? 'text-rose-500 group-hover/copy:text-rose-400' : 'text-gray-600'
-                      }`} />
-                      <span className={`text-[10px] transition-colors font-bold uppercase tracking-wider ${
-                        ev.status === 'verified' ? 'text-rose-500 group-hover/copy:text-rose-400' : 'text-gray-600'
-                      }`}>Copy Link</span>
+                      {(ev.status === 'draft' || ev.save_as_draft === true || ev.is_draft === true) ? (
+                        <>
+                          <Plus className="w-3.5 h-3.5" />
+                          <span className="text-[10px] font-bold uppercase tracking-wider">Publish</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className={`w-3.5 h-3.5 transition-colors ${
+                            ev.status === 'verified' ? 'text-rose-500 group-hover/copy:text-rose-400' : 'text-gray-600'
+                          }`} />
+                          <span className={`text-[10px] transition-colors font-bold uppercase tracking-wider ${
+                            ev.status === 'verified' ? 'text-rose-500 group-hover/copy:text-rose-400' : 'text-gray-600'
+                          }`}>Copy Link</span>
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>

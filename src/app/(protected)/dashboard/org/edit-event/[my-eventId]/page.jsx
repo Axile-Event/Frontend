@@ -51,7 +51,7 @@ export default function EditEventPage() {
     event_type: "",
     pricing_type: "",
     max_quantity_per_booking: "",
-    payment_methods_allowed: ["paystack"],
+    payment_methods_allowed: [],
   });
   const [categories, setCategories] = useState([]);
   const [referralConfig, setReferralConfig] = useState({
@@ -65,6 +65,8 @@ export default function EditEventPage() {
   const [errors, setErrors] = useState({});
   const [showPinPrompt, setShowPinPrompt] = useState(false);
   const [pendingSubmit, setPendingSubmit] = useState(false);
+  const [wantsToPublish, setWantsToPublish] = useState(false);
+  const [isDraft, setIsDraft] = useState(false);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -144,6 +146,8 @@ export default function EditEventPage() {
             referral_reward_amount: eventData.referral_reward_amount ?? "",
             referral_reward_percentage: eventData.referral_reward_percentage ?? "",
           });
+
+          setIsDraft(eventData.status === "draft" || eventData.save_as_draft === true || eventData.is_draft === true);
 
           if (eventData.image) {
             setPreview(eventData.image);
@@ -290,12 +294,17 @@ export default function EditEventPage() {
     return Object.keys(e).length === 0;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (e, shouldPublish = false) => {
+    if (e) e.preventDefault();
+    setWantsToPublish(shouldPublish);
     
-    if (!validate()) {
-      toast.error("Please fill in all required fields correctly.");
-      return;
+    // Only validate full requirements if publishing
+    // If saving as draft, we might allow some missing fields
+    if (shouldPublish || !isDraft) {
+      if (!validate()) {
+        toast.error("Please fill in all required fields correctly.");
+        return;
+      }
     }
 
     setPendingSubmit(true);
@@ -319,8 +328,10 @@ export default function EditEventPage() {
           ? form.payment_methods_allowed 
           : (form.payment_methods_allowed ? [form.payment_methods_allowed] : ["paystack"]);
         
-        // Backend expects valid JSON string for this field
-        formData.append("payment_methods_allowed", JSON.stringify(methods));
+        // Append each method individually so the backend receives a list
+        methods.forEach(method => {
+          formData.append("payment_methods_allowed", method);
+        });
       }
 
       // convert local datetime input to ISO with Z
@@ -335,6 +346,12 @@ export default function EditEventPage() {
       if (form.max_quantity_per_booking) {
         formData.append("max_quantity_per_booking", form.max_quantity_per_booking);
       }
+
+      // Add save_as_draft flag
+      // If we are publishing, send false. If we are saving as draft, send true.
+      // If it's not a draft, default to false.
+      const sendDraftFlag = isDraft ? !wantsToPublish : false;
+      formData.append("save_as_draft", sendDraftFlag ? "true" : "false");
 
       // Debug: log referral fields being sent
       console.log("[EditEvent] Referral config:", referralConfig);
@@ -385,7 +402,7 @@ export default function EditEventPage() {
           }
         }
 
-        toast.success("Event updated successfully!");
+        toast.success(wantsToPublish ? "Event published successfully!" : "Event updated successfully!");
         queryClient.invalidateQueries({ queryKey: queryKeys.organizer.events });
         queryClient.invalidateQueries({ queryKey: queryKeys.organizer.dashboard });
         queryClient.invalidateQueries({ queryKey: queryKeys.organizer.eventDetail(eventId) });
@@ -494,13 +511,30 @@ export default function EditEventPage() {
             required.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="text-xs font-semibold text-gray-500 hover:text-white transition-colors"
-        >
-          Cancel
-        </button>
+        <div className="flex items-center gap-3">
+          {isDraft && (
+            <button
+              type="button"
+              disabled={submitting}
+              onClick={(e) => handleSubmit(e, true)}
+              className="px-6 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-rose-600/20 active:scale-95 disabled:opacity-50 flex items-center gap-2"
+            >
+              {submitting && wantsToPublish ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <Megaphone className="w-3 h-3" />
+              )}
+              Publish Event
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="text-xs font-semibold text-gray-500 hover:text-white transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -810,69 +844,62 @@ export default function EditEventPage() {
                           </div>
                         </div>
                       ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
               {/* Payment Methods Section */}
               {form.pricing_type === "paid" && (
                 <div className="space-y-4 pt-4 border-t border-white/5">
-                <div className="flex items-center gap-2 mb-2">
-                  <CreditCard className="w-4 h-4 text-rose-500" />
-                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">
-                    Payment Methods
-                  </h3>
-                </div>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {[
-                    { 
-                      id: 'paystack', 
-                      label: 'Paystack', 
-                      desc: 'Auto-confirmed',
-                      explanation: 'Payments are processed instantly through Paystack. Tickets are automatically issued to attendees upon successful payment. (Standard fees apply)'
-                    },
-                    { 
-                      id: 'manual_bank_transfer', 
-                      label: 'Bank Transfer', 
-                      desc: 'Manual confirm',
-                      explanation: 'Attendees transfer to our company account. Due to the manual nature of verification, it may take some time to process, but all valid payments will be approved.'
-                    }
-                  ].map((method) => {
-                    const isSelected = (form.payment_methods_allowed || []).includes(method.id);
-                    return (
-                      <button
-                        key={method.id}
-                        type="button"
-                        onClick={() => {
-                          const current = Array.isArray(form.payment_methods_allowed) 
-                            ? form.payment_methods_allowed 
-                            : (form.payment_methods_allowed ? [form.payment_methods_allowed] : []);
-                          
-                          if (isSelected) {
-                            if (current.length > 1) {
-                              setForm(s => ({
-                                ...s,
-                                payment_methods_allowed: current.filter(m => m !== method.id)
-                              }));
+                  <div className="flex items-center gap-2 mb-2">
+                    <CreditCard className="w-4 h-4 text-rose-500" />
+                    <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">
+                      Payment Methods
+                    </h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3">
+                    {[
+                      {
+                        id: "paystack",
+                        label: "Paystack",
+                        desc: "Auto-confirmed",
+                        explanation:
+                          "Payments are processed instantly through Paystack. Tickets are automatically issued to attendees upon successful payment. (Standard fees apply)",
+                        icon: <CreditCard className="w-5 h-5" />,
+                      },
+                      {
+                        id: "manual_bank_transfer",
+                        label: "Bank Transfer",
+                        desc: "Manual confirm",
+                        explanation:
+                          "Attendees transfer directly to our company account. Due to the manual nature of verification, it may take some time to process, but all valid payments will be approved.",
+                        icon: <Banknote className="w-5 h-5" />,
+                      },
+                    ].map((method) => {
+                      const isSelected = (form.payment_methods_allowed || []).includes(method.id);
+                      return (
+                        <button
+                          key={method.id}
+                          type="button"
+                          onClick={() => {
+                            const current = Array.isArray(form.payment_methods_allowed)
+                              ? form.payment_methods_allowed
+                              : form.payment_methods_allowed
+                              ? [form.payment_methods_allowed]
+                              : [];
+
+                            if (isSelected) {
+                              if (current.length > 1) {
+                                setForm((s) => ({
+                                  ...s,
+                                  payment_methods_allowed: current.filter((m) => m !== method.id),
+                                }));
+                              } else {
+                                toast.error("At least one method required");
+                              }
                             } else {
-                              toast.error("At least one method required");
+                              setForm((s) => ({
+                                ...s,
+                                payment_methods_allowed: [...current, method.id],
+                              }));
                             }
-                          } else {
-                            setForm(s => ({
-                              ...s,
-                              payment_methods_allowed: [...current, method.id]
-                            }));
-                          }
-                          setErrors(prev => ({ ...prev, payment_methods_allowed: undefined }));
-                        }}
-                        className={`flex items-center justify-between p-4 rounded-2xl border transition-all duration-300 ${
-                          isSelected 
-                            ? "bg-rose-500/10 border-rose-500/50 shadow-lg shadow-rose-900/10" 
-                            : "bg-white/5 border-white/10 hover:border-white/20"
-                        }`}
-                      >
                         <div className="flex items-center gap-3">
                           <div className={`p-2 rounded-xl transition-colors ${
                             isSelected ? "bg-rose-500/20 text-rose-400" : "bg-white/10 text-gray-500"
