@@ -413,11 +413,12 @@ export default function CreateEvent() {
       formData.append("location", form.location.trim());
       
       if (form.pricing_type === "paid") {
-        // Backend expects it exactly as an array or comma-separated string based on existing patterns
         const methods = Array.isArray(form.payment_methods_allowed) 
-          ? form.payment_methods_allowed.join(",") 
-          : (form.payment_methods_allowed || "paystack");
-        formData.append("payment_methods_allowed", methods);
+          ? form.payment_methods_allowed 
+          : (form.payment_methods_allowed ? [form.payment_methods_allowed] : ["paystack"]);
+        
+        // Backend expects valid JSON string for this field
+        formData.append("payment_methods_allowed", JSON.stringify(methods));
       }
 
       // convert local datetime input to ISO with Z
@@ -433,11 +434,7 @@ export default function CreateEvent() {
         formData.append("max_quantity_per_booking", form.max_quantity_per_booking);
       }
 
-      // Append referral config to FormData
-      appendReferralFields(formData, referralConfig);
-
       // Debug: log what we're sending
-      console.log("[CreateEvent] Referral config:", referralConfig);
       console.log("[CreateEvent] FormData entries:", [...formData.entries()]);
 
       // IMPORTANT: don't set Content-Type for FormData; the browser will add the correct boundary.
@@ -524,6 +521,7 @@ export default function CreateEvent() {
         console.error("[CreateEvent] Response Data:", err.response.data);
         console.error("[CreateEvent] Response Status:", err.response.status);
         console.error("[CreateEvent] Response Headers:", err.response.headers);
+        console.error("[CreateEvent] Full Error Response:", err.response);
       } else if (err.request) {
         console.error("[CreateEvent] No response received. Request details:", err.request);
       } else {
@@ -1127,8 +1125,18 @@ export default function CreateEvent() {
                 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {[
-                    { id: 'paystack', label: 'Paystack', desc: 'Auto-confirmed' },
-                    { id: 'manual_bank_transfer', label: 'Bank Transfer', desc: 'Manual confirm' }
+                    { 
+                      id: 'paystack', 
+                      label: 'Paystack', 
+                      desc: 'Auto-confirmed' ,
+                      explanation: 'Payments are processed instantly through Paystack. Tickets are automatically issued to attendees upon successful payment. (Standard fees apply)'
+                    },
+                    { 
+                      id: 'manual_bank_transfer', 
+                      label: 'Bank Transfer', 
+                      desc: 'Manual confirm',
+                      explanation: 'Attendees transfer to our company account. Due to the manual nature of verification, it may take some time to process, but all valid payments will be approved.'
+                    }
                   ].map((method) => {
                     const isSelected = (form.payment_methods_allowed || []).includes(method.id);
                     return (
@@ -1174,12 +1182,15 @@ export default function CreateEvent() {
                             <p className="text-[11px] font-black uppercase tracking-wider text-white">
                               {method.label}
                             </p>
-                            <p className="text-[9px] font-bold text-gray-500 uppercase tracking-tight">
+                            <p className="text-[9px] font-bold text-rose-500 uppercase tracking-tight mb-1">
                               {method.desc}
+                            </p>
+                            <p className="text-[10px] text-gray-500 font-medium leading-relaxed max-w-[200px]">
+                              {method.explanation}
                             </p>
                           </div>
                         </div>
-                        {isSelected && <CheckCircle2 className="w-4 h-4 text-rose-500 animate-in zoom-in-0 duration-300" />}
+                        {isSelected && <CheckCircle2 className="w-5 h-5 text-rose-500 animate-in zoom-in-0 duration-300" />}
                       </button>
                     );
                   })}

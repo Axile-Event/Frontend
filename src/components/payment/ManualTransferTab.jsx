@@ -61,7 +61,7 @@ const ManualTransferTab = ({ summary, bookingId, paymentReference }) => {
           </p>
           <div className="flex gap-2 p-2.5 bg-amber-500/5 border border-amber-500/10 rounded-lg">
             <Info size={14} className="text-amber-500 shrink-0 mt-0.5" />
-            <p className="text-[10px] text-amber-200/60 leading-relaxed italic">
+            <p className="text-[10px] text-amber-200/60 leading-relaxed">
               <strong>Wait!</strong> An additional <strong>6% processing fee</strong> will be added to this amount by our verification system upon matching your transfer.
             </p>
           </div>
