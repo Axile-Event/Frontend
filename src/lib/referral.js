@@ -17,15 +17,19 @@ export async function fetchReferralRewardTypes() {
  * Returns all referrers for the event with their usernames and stats.
  * No longer requires referee_ids.
  * @param {string} eventId
+ * @param {Array} referrals - Optional array of {username: string} to filter results
  */
-export async function getReferralStats(eventId) {
-  // Use POST with an empty body to fetch all stats for the event
+export async function getReferralStats(eventId, referrals = []) {
+  // Use POST with a body to fetch stats for the event
   // Note: Docs specifically use 'organiser' (with an s) for this referral endpoint
   const res = await api.post(`/organiser/${eventId}/referral-stats/`, {
-    referrals: [],
+    referrals: referrals,
   });
   return res?.data;
 }
+
+// Alias for backwards compatibility or alternative naming
+export const fetchReferralStats = getReferralStats;
 
 /**
  * Build referral FormData fields for event create/update.
