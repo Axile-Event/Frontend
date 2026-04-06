@@ -121,10 +121,7 @@ const MyEvent = () => {
 
         if (!matchesSearch) return false;
 
-        const isDraft = 
-          String(ev.status || "").toLowerCase() === "draft" || 
-          String(ev.save_as_draft).toLowerCase() === "true" || 
-          String(ev.is_draft).toLowerCase() === "true";
+        const isDraft = String(ev.status || "").toLowerCase() === "draft";
         if (activeTab === "draft") return isDraft;
         return !isDraft;
       });
@@ -242,7 +239,7 @@ const MyEvent = () => {
         >
           Drafts
           <span className="ml-2 px-1.5 py-0.5 bg-white/5 rounded text-[10px] text-gray-400">
-            {events.filter(ev => ev.status === "draft" || ev.save_as_draft === true || ev.is_draft === true).length}
+            {events.filter(ev => String(ev.status || "").toLowerCase() === "draft").length}
           </span>
           {activeTab === "draft" && (
             <motion.div
@@ -307,10 +304,7 @@ const MyEvent = () => {
               <article
                 key={key}
                 onClick={() => {
-                  const isDraftCard = 
-                    String(ev.status || "").toLowerCase() === "draft" || 
-                    String(ev.save_as_draft).toLowerCase() === "true" || 
-                    String(ev.is_draft).toLowerCase() === "true";
+                  const isDraftCard = String(ev.status || "").toLowerCase() === "draft";
                   
                   router.push(isDraftCard
                     ? `/dashboard/org/edit-event/${id}`
@@ -347,12 +341,12 @@ const MyEvent = () => {
                     <div className={`px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest backdrop-blur-xl border flex items-center gap-1.5 ${
                       String(ev.status || "").toLowerCase() === 'verified' 
                       ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" 
-                      : (String(ev.status || "").toLowerCase() === 'draft' || String(ev.save_as_draft).toLowerCase() === "true" || String(ev.is_draft).toLowerCase() === "true")
-                      ? "text-rose-400 bg-rose-500/10 border-rose-500/20"
+                      : String(ev.status || "").toLowerCase() === 'draft'
+                      ? "text-amber-400 bg-amber-500/10 border-amber-500/20"
                       : "text-amber-400 bg-amber-500/10 border-amber-500/20"
                     }`}>
                       {String(ev.status || "").toLowerCase() === 'verified' ? <Check className="w-2.5 h-2.5" /> : <Clock className="w-2.5 h-2.5" />}
-                      {String(ev.status || "").toLowerCase() === 'verified' ? 'Verified' : (String(ev.status || "").toLowerCase() === 'draft' || String(ev.save_as_draft).toLowerCase() === "true" || String(ev.is_draft).toLowerCase() === "true") ? 'Draft' : (ev.status || 'Pending')}
+                      {String(ev.status || "").toLowerCase() === 'verified' ? 'Verified' : String(ev.status || "").toLowerCase() === 'draft' ? 'Draft' : (ev.status || 'Pending')}
                     </div>
                     
                     <div className="px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest backdrop-blur-xl bg-black/40 border border-white/10 text-white">
@@ -430,13 +424,13 @@ const MyEvent = () => {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (String(ev.status || "").toLowerCase() === 'draft' || String(ev.save_as_draft).toLowerCase() === "true" || String(ev.is_draft).toLowerCase() === "true") {
+                        if (String(ev.status || "").toLowerCase() === 'draft') {
                           router.push(`/dashboard/org/edit-event/${id}`);
                         } else if (String(ev.status || "").toLowerCase() === 'verified') {
                           handleCopyLink(e, ev);
                         }
                       }}
-                      disabled={String(ev.status || "").toLowerCase() !== 'verified' && String(ev.status || "").toLowerCase() !== 'draft' && String(ev.save_as_draft).toLowerCase() !== "true" && String(ev.is_draft).toLowerCase() !== "true"}
+                      disabled={String(ev.status || "").toLowerCase() !== 'verified' && String(ev.status || "").toLowerCase() !== 'draft'}
                       className={`flex items-center gap-1.5 px-2.5 py-1.5 border rounded-lg transition-all font-medium ${
                         String(ev.status || "").toLowerCase() === 'verified'
                           ? 'bg-rose-500/5 hover:bg-rose-500/15 border-rose-500/30 hover:border-rose-500/50 group/copy cursor-pointer'
@@ -444,9 +438,9 @@ const MyEvent = () => {
                           ? 'bg-rose-600 hover:bg-rose-700 text-white border-rose-600 cursor-pointer'
                           : 'bg-gray-900/30 border-gray-700 cursor-not-allowed opacity-50'
                       }`}
-                      title={String(ev.status || "").toLowerCase() === 'verified' ? 'Copy Event Link' : (String(ev.status || "").toLowerCase() === 'draft' || String(ev.save_as_draft).toLowerCase() === "true" || String(ev.is_draft).toLowerCase() === "true") ? 'Edit & Publish' : 'Event must be verified to share'}
+                      title={String(ev.status || "").toLowerCase() === 'verified' ? 'Copy Event Link' : String(ev.status || "").toLowerCase() === 'draft' ? 'Edit & Publish' : 'Event must be verified to share'}
                     >
-                      {(String(ev.status || "").toLowerCase() === 'draft' || String(ev.save_as_draft).toLowerCase() === "true" || String(ev.is_draft).toLowerCase() === "true") ? (
+                      {String(ev.status || "").toLowerCase() === 'draft' ? (
                         <>
                           <Plus className="w-3.5 h-3.5" />
                           <span className="text-[10px] font-bold uppercase tracking-wider">Publish</span>

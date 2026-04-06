@@ -88,8 +88,7 @@ export default function CreateEvent() {
   const [createdEventId, setCreatedEventId] = useState(null);
   const [showPinPrompt, setShowPinPrompt] = useState(false);
   const [pendingSubmit, setPendingSubmit] = useState(false);
-  const [saveAsDraft, setSaveAsDraft] = useState(false);
-  const [pendingDraftMode, setPendingDraftMode] = useState(false);
+  const [isDraft, setIsDraft] = useState(false);
   const DRAFT_KEY = "axile_event_creation_draft";
   const [hasLoadedDraft, setHasLoadedDraft] = useState(false);
 
@@ -382,10 +381,9 @@ if (/^\d*\.?\d*$/.test(numericValue)) {
 
 
 
-  const submit = async (ev, isDraft = false) => {
+  const submit = async (ev, draftFlag = false) => {
     if (ev) ev.preventDefault();
-    setSaveAsDraft(isDraft);
-    setPendingDraftMode(isDraft);
+    setIsDraft(draftFlag);
     
     // Always validate full requirements, even for drafts.
     // A draft is a complete event that simply hasn't been published yet.
@@ -407,7 +405,7 @@ if (/^\d*\.?\d*$/.test(numericValue)) {
     setShowPinPrompt(true);
   };
 
-  const executeCreateEvent = async (isDraft = false) => {
+  const executeCreateEvent = async () => {
     setLoading(true);
     setPendingSubmit(false);
 
@@ -528,6 +526,9 @@ if (/^\d*\.?\d*$/.test(numericValue)) {
         }
 
         setCreatedEventId(newId);
+        if (isDraft) {
+          toast.success("Event saved as draft");
+        }
         setShowSuccessModal(true);
         queryClient.invalidateQueries({ queryKey: queryKeys.organizer.events });
         queryClient.invalidateQueries({ queryKey: queryKeys.organizer.dashboard });
@@ -585,6 +586,7 @@ if (/^\d*\.?\d*$/.test(numericValue)) {
       window.scrollTo({ top: 0, behavior: "smooth" });
     } finally {
       setLoading(false);
+      setIsDraft(false);
     }
   };
 
@@ -709,7 +711,7 @@ if (/^\d*\.?\d*$/.test(numericValue)) {
             className="px-6 py-2.5 rounded-xl border border-rose-500/30 text-xs font-bold text-rose-500 hover:bg-rose-500/10 transition-all active:scale-95 disabled:opacity-50"
             title="All fields must be filled to save a draft"
           >
-            {loading && saveAsDraft ? (
+            {loading && isDraft ? (
                <span className="w-3 h-3 border-2 border-rose-500/20 border-t-rose-500 rounded-full animate-spin" />
             ) : "Save as Draft"}
           </button>
@@ -1510,10 +1512,10 @@ if (/^\d*\.?\d*$/.test(numericValue)) {
                 <CheckCircle2 className="w-16 h-16 text-emerald-500 mb-4" />
               </div>
               <h2 className="text-2xl font-bold text-white">
-                {saveAsDraft ? "Draft Saved" : "Event Created & Pending"}
+                {isDraft ? "Draft Saved" : "Event Created & Pending"}
               </h2>
               <p className="text-gray-400 text-center max-w-md">
-                {saveAsDraft 
+                {isDraft 
                   ? "Your event has been saved as a draft. You can access it anytime from 'My Events' and publish it later."
                   : "Your event has been successfully created and is currently pending approval. An email will be delivered to you once your event is approved and is live."}
               </p>
@@ -1544,7 +1546,7 @@ if (/^\d*\.?\d*$/.test(numericValue)) {
         }}
         onSuccess={() => {
           setShowPinPrompt(false);
-          executeCreateEvent(pendingDraftMode);
+          executeCreateEvent();
         }}
         action="create event"
         requireSetup={true}

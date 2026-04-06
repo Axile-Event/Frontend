@@ -137,10 +137,7 @@ export default function EditEventPage() {
         console.log("[EditEvent] found eventData:", eventData ? `${eventData.event_id ?? eventData.id} (${eventData.status})` : "NULL — not found in list");
 
         // Case-insensitive status check and flexible flag detection
-        const isDraftEvent = 
-          String(eventData?.status).toLowerCase() === "draft" || 
-          String(eventData?.save_as_draft).toLowerCase() === "true" || 
-          String(eventData?.is_draft).toLowerCase() === "true";
+        const isDraftEvent = String(eventData?.status).toLowerCase() === "draft";
 
         if (!isDraftEvent && eventId) {
           try {
@@ -477,7 +474,11 @@ export default function EditEventPage() {
         queryClient.invalidateQueries({ queryKey: queryKeys.organizer.dashboard });
         queryClient.invalidateQueries({ queryKey: queryKeys.organizer.eventDetail(eventId) });
         queryClient.invalidateQueries({ queryKey: queryKeys.organizer.eventTickets(eventId) });
-        router.push(`/dashboard/org/my-event/${eventId}`);
+        if (wantsToPublish) {
+          router.push("/dashboard/org/my-event");
+        } else {
+          router.push(`/dashboard/org/my-event/${eventId}`);
+        }
       } else {
         toast.error(`Unexpected server response: ${response?.status}`);
       }
@@ -582,7 +583,20 @@ export default function EditEventPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          {isDraft && (
+          <button
+            type="submit"
+            disabled={submitting}
+            onClick={(e) => handleSubmit(e, false)}
+            className="px-8 py-3.5 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-bold transition-all border border-white/10 flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-50"
+          >
+            {submitting && !wantsToPublish ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Save className="w-4 h-4" />
+            )}
+            {event.status === "draft" ? "Save Draft" : "Save Changes"}
+          </button>
+          {event.status === "draft" && (
             <button
               type="button"
               disabled={submitting}
@@ -1090,24 +1104,36 @@ export default function EditEventPage() {
             </div>
 
 
-            <button
-              type="submit"
-              disabled={submitting}
-              className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-rose-600/20 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-4"
-            >
-              {submitting ? (
-                <>
+            <div className="flex flex-col sm:flex-row gap-4 mt-6">
+              <button
+                type="submit"
+                disabled={submitting}
+                className={`flex-1 ${isDraft ? 'bg-white/5 hover:bg-white/10 text-white border border-white/10' : 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/20'} font-bold py-4 rounded-2xl transition-all shadow-lg active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
+              >
+                {submitting && !wantsToPublish ? (
                   <span className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                  {wantsToPublish
-                    ? "Publishing Event..."
-                    : isDraft
-                    ? "Saving Draft..."
-                    : "Updating Event..."}
-                </>
-              ) : (
-                isDraft ? "Save Draft Changes" : "Save Changes"
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
+                {isDraft ? "Save Draft" : "Save Changes"}
+              </button>
+
+              {isDraft && (
+                <button
+                  type="button"
+                  disabled={submitting}
+                  onClick={(e) => handleSubmit(e, true)}
+                  className="flex-1 bg-rose-600 hover:bg-rose-700 text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-rose-600/20 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {submitting && wantsToPublish ? (
+                    <span className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <Megaphone className="w-4 h-4" />
+                  )}
+                  Publish Event
+                </button>
               )}
-            </button>
+            </div>
           </form>
         </section>
 
