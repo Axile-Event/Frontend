@@ -95,14 +95,14 @@ export default function Overview() {
         return acc;
       }, { total_events_created: 0, verified_events: 0, pending_events: 0, denied_events: 0 });
 
-      const walletData = walletRes.status === "fulfilled" ? walletRes.value.data : null;
+      const orgWallet = walletRes.status === "fulfilled" ? walletRes.value.data : null;
       
       let analytics = null;
       if (analyticsRes.status === "fulfilled") {
         const analyticsData = analyticsRes.value.data.analytics || analyticsRes.value.data;
         analytics = { 
           ...analyticsData, 
-          total_revenue: walletData ? Number(walletData.total_balance) : totalNetRevenueFromEvents,
+          total_revenue: orgWallet ? Number(orgWallet.total_balance) : totalNetRevenueFromEvents,
           total_tickets_sold: totalTicketsFromEvents, 
           total_events: eventsData.length 
         };
@@ -110,7 +110,7 @@ export default function Overview() {
         analytics = {
           total_events: eventsData.length,
           total_tickets_sold: totalTicketsFromEvents,
-          total_revenue: walletData ? Number(walletData.total_balance) : totalNetRevenueFromEvents,
+          total_revenue: orgWallet ? Number(orgWallet.total_balance) : totalNetRevenueFromEvents,
           revenue_by_event: [],
         };
       }
@@ -119,7 +119,7 @@ export default function Overview() {
         ? (orgRes.value.data.Org_profile || orgRes.value.data)
         : null;
         
-      return { analytics, eventsData, organization, recentEvents, eventStatusStats, wallet: walletData };
+      return { analytics, eventsData, organization, recentEvents, eventStatusStats, wallet: orgWallet };
     },
     enabled: !!hydrated,
     refetchOnWindowFocus: true
@@ -130,6 +130,7 @@ export default function Overview() {
   const eventStatusStats = data?.eventStatusStats ?? { total_events_created: 0, verified_events: 0, pending_events: 0, denied_events: 0 };
   const { organization: orgFromStore } = useOrganizerStore();
   const organization = data?.organization ?? orgFromStore;
+  const orgWallet = data?.wallet ?? null;
 
   useEffect(() => {
     if (!data) return;
@@ -146,8 +147,6 @@ export default function Overview() {
     queryClient.invalidateQueries({ queryKey: queryKeys.organizer.dashboard });
   }, [lastUpdate, queryClient]);
 
-  // Removed first-welcome logic (no longer needed)
-  
   // Check if PIN reminder should be shown - ONLY uses has_pin from database
   useEffect(() => {
     // Only check after organization data is loaded
@@ -206,7 +205,6 @@ export default function Overview() {
       }
 
       // Backend expects: { Email, pin }
-      let pinAlreadyExists = false;
       try {
         await api.post('/pin/', { Email: email, pin: pinValue });
         toast.success('PIN set successfully!');
@@ -216,29 +214,24 @@ export default function Overview() {
           typeof emailErr === 'string' && emailErr.toLowerCase().includes('already exists');
 
         if (alreadyExists) {
-          // PIN already exists - this is actually an error state
           toast.error('You have already set a PIN for this account');
-          pinAlreadyExists = true;
         } else {
           throw apiErr;
         }
       }
       
-      // Refetch organization profile to update has_pin status from database
+      // Refetch organization profile
       try {
         const orgRes = await api.get("/organizer/profile/");
         if (orgRes.data) {
           const orgData = orgRes.data.Org_profile || orgRes.data;
           setOrganization(orgData);
-          
-          // Clear PIN reminder dismiss flag from localStorage
           localStorage.removeItem('Axile_pin_reminder_dismissed');
         }
       } catch (profileErr) {
         console.error("Failed to refetch organization profile:", profileErr);
       }
       
-      // Close modal and hide reminder
       setShowSetPinModal(false);
       setShowPinReminder(false);
       setPinValue('');
@@ -303,34 +296,31 @@ export default function Overview() {
             exit={{ opacity: 0, y: -20 }}
             className="relative overflow-hidden bg-gradient-to-r from-rose-900/40 via-rose-900/20 to-black/40 border border-rose-500/30 p-5 rounded-2xl shadow-xl backdrop-blur-md"
           >
-            <div className="flex flex-col md:flex-row items-center justify-between gap-5 relative z-1">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 flex items-center justify-center bg-rose-500/20 rounded-2xl border border-rose-500/30">
-                  <ShieldAlert className="w-6 h-6 text-rose-500" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-white">Enable Your Security PIN</h3>
-                  <p className="text-sm text-gray-300">Set a 4-digit PIN to protect your payouts and banking details.</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-3 w-full md:w-auto">
-                <button
-                  onClick={() => {
-                    localStorage.setItem('Axile_pin_reminder_dismissed', Date.now().toString());
-                    setShowPinReminder(false);
-                  }}
-                  className="flex-1 md:flex-initial px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-gray-300 text-sm font-semibold transition-colors"
-                >
-                  Dismiss
-                </button>
-                <button
-                  onClick={() => setShowSetPinModal(true)}
-                  className="flex-1 md:flex-initial px-4 py-2 bg-rose-600 hover:bg-rose-700 rounded-xl text-white text-sm font-semibold transition-colors shadow-lg shadow-rose-600/20"
-                >
-                  Set PIN Now
-                </button>
-              </div>
-            </div>
+             <div className="flex flex-col md:flex-row items-center justify-between gap-5 relative z-1">
+               <div className="flex items-center gap-4">
+                 <div className="w-12 h-12 flex items-center justify-center bg-rose-500/20 rounded-2xl border border-rose-500/30">
+                   <ShieldAlert className="w-6 h-6 text-rose-500" />
+                 </div>
+                 <div>
+                   <h3 className="text-lg font-bold text-white">Enable Your Security PIN</h3>
+                   <p className="text-sm text-gray-300">Set a 4-digit PIN to protect your payouts and banking details.</p>
+                 </div>
+               </div>
+               <div className="flex items-center gap-3 w-full md:w-auto">
+                 <button
+                   onClick={handleDismissReminder}
+                   className="flex-1 md:flex-initial px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl text-gray-300 text-sm font-semibold transition-colors"
+                 >
+                   Dismiss
+                 </button>
+                 <button
+                   onClick={() => setShowSetPinModal(true)}
+                   className="flex-1 md:flex-initial px-4 py-2 bg-rose-600 hover:bg-rose-700 rounded-xl text-white text-sm font-semibold transition-colors shadow-lg shadow-rose-600/20"
+                 >
+                   Set PIN Now
+                 </button>
+               </div>
+             </div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -465,9 +455,9 @@ export default function Overview() {
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {recentEvents.map((event) => (
+                  {recentEvents.map((event, idx) => (
                     <div
-                      key={event.id}
+                      key={event.event_id || event.id || idx}
                       onClick={() => router.push(`/dashboard/org/my-event/${event.event_id || event.id}`)}
                       className="group bg-white/5 border border-white/5 rounded-2xl overflow-hidden hover:border-rose-500/30 transition-all cursor-pointer flex flex-col"
                     >
@@ -555,7 +545,7 @@ export default function Overview() {
                     <div>
                        <p className="text-[10px] text-gray-500 font-bold mb-1">Available</p>
                        <p className="text-xl font-black text-emerald-500 font-mono">
-                          {hideBalances ? '₦••••••' : `₦${Number(walletData?.available_balance || 0).toLocaleString()}`}
+                          {hideBalances ? '₦••••••' : `₦${Number(orgWallet?.available_balance || 0).toLocaleString()}`}
                        </p>
                     </div>
                     <div className="p-2 bg-emerald-500/10 rounded-xl">
@@ -567,7 +557,7 @@ export default function Overview() {
                     <div>
                        <p className="text-[10px] text-gray-500 font-bold mb-1">Pending</p>
                        <p className="text-xl font-black text-amber-500 font-mono">
-                          {hideBalances ? '₦••••••' : `₦${Number(walletData?.pending_balance || 0).toLocaleString()}`}
+                          {hideBalances ? '₦••••••' : `₦${Number(orgWallet?.pending_balance || 0).toLocaleString()}`}
                        </p>
                     </div>
                     <div className="p-2 bg-amber-500/10 rounded-xl">
@@ -595,7 +585,10 @@ function StatCard({ label, value, icon, description, trend, hideBalances, onTogg
   const displayValue = hideBalances ? '₦••••••' : value;
   
   return (
-    <div className="bg-[#0A0A0A] border border-white/5 p-5 rounded-2xl shadow-lg hover:border-white/10 transition-all group">
+    <div 
+      onClick={onToggleVisibility}
+      className={`bg-[#0A0A0A] border border-white/5 p-5 rounded-2xl shadow-lg hover:border-white/10 transition-all group ${onToggleVisibility ? 'cursor-pointer active:scale-[0.98]' : ''}`}
+    >
       <div className="flex items-start justify-between mb-4">
         <div className="p-2.5 rounded-xl bg-white/5 group-hover:bg-white/10 transition-colors">
           {icon}
@@ -608,7 +601,10 @@ function StatCard({ label, value, icon, description, trend, hideBalances, onTogg
           )}
           {onToggleVisibility && (
             <button
-              onClick={onToggleVisibility}
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleVisibility();
+              }}
               className="p-1.5 rounded-lg hover:bg-white/10 transition-colors text-gray-500 hover:text-white"
               title={hideBalances ? "Show balance" : "Hide balance"}
             >
