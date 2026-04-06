@@ -161,7 +161,7 @@ const ReferralsListPage = () => {
             return (
               <Card 
                 key={id}
-                onClick={() => router.push(`/dashboard/org/referrals/${id}`)}
+                onClick={() => router.push(`/dashboard/org/referrals/${encodeURIComponent(id)}`)}
                 className="group bg-[#0A0A0A] border-white/5 rounded-[2rem] overflow-hidden hover:border-rose-500/30 transition-all duration-500 cursor-pointer shadow-xl hover:shadow-rose-600/5"
               >
                 <div className="aspect-video relative overflow-hidden">

@@ -34,28 +34,28 @@ const ReferralDetailPage = () => {
   } = useQuery({
     queryKey: queryKeys.organizer.eventDetail(eventId),
     queryFn: async () => {
-      const rawId = decodeURIComponent(eventId);
-      const decodedId = rawId.replace("event:", "");
+      const decodedId = decodeURIComponent(eventId);
       
-      // Try to get from organizer list first for quick availability
-      let eventData = null;
-      try {
-        const orgRes = await api.get("/organizer/events/");
-        const list = Array.isArray(orgRes.data) ? orgRes.data : (orgRes.data?.events ?? []);
-        // Match both with and without prefix for robustness
-        eventData = list.find((e) => {
-          const eId = String(e.event_id ?? e.id).replace("event:", "");
-          return eId === decodedId;
-        });
-      } catch (err) {
-        console.warn("Organizer events list non-critical failure");
+      // Call organizer profiles endpoint which is richer for organizers (includes referral configs)
+      const res = await api.get("/organizer/events/");
+      const payload = res?.data;
+      
+      let list = [];
+      if (Array.isArray(payload)) list = payload;
+      else if (Array.isArray(payload?.events)) list = payload.events;
+      else if (Array.isArray(payload?.data)) list = payload.data;
+      
+      // Match with the current ID (after decoding)
+      const found = list.find(e => {
+        const entryId = String(e.event_id ?? e.id);
+        return entryId === decodedId || entryId.replace("event:", "") === decodedId.replace("event:", "");
+      });
+      
+      if (!found) {
+        throw new Error("Event not found in your organizer profile");
       }
-
-      // Always fetch full details for referral settings
-      const res = await api.get(`/events/${decodedId}/details/`);
-      const fullDetail = res?.data;
       
-      return eventData ? { ...eventData, ...fullDetail } : fullDetail;
+      return found;
     }
   });
 
@@ -68,10 +68,10 @@ const ReferralDetailPage = () => {
   } = useQuery({
     queryKey: queryKeys.organizer.referralStats(eventId),
     queryFn: async () => {
-      const decodedId = decodeURIComponent(eventId).replace("event:", "");
-      // Per instructions: Send an empty referrals array [] and check if the API returns all referees.
-      // If it requires IDs, we show an empty table.
-      const data = await postReferralStats(decodedId, []);
+      const decodedId = decodeURIComponent(eventId);
+      const cleanId = decodedId.replace("event:", "");
+      // Send an empty referrals array [] to fetch all available referral data for this event.
+      const data = await postReferralStats(cleanId, []);
       return data;
     },
     enabled: !!eventId
