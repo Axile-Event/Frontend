@@ -21,14 +21,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
 
 const ReferralDetailPage = () => {
   const router = useRouter();
@@ -42,8 +34,23 @@ const ReferralDetailPage = () => {
   } = useQuery({
     queryKey: queryKeys.organizer.eventDetail(eventId),
     queryFn: async () => {
-      const res = await api.get(`/event/${eventId}/details/`);
-      return res?.data;
+      const decodedId = decodeURIComponent(eventId);
+      
+      // Try to get from organizer list first for quick availability
+      let eventData = null;
+      try {
+        const orgRes = await api.get("/organizer/events/");
+        const list = Array.isArray(orgRes.data) ? orgRes.data : (orgRes.data?.events ?? []);
+        eventData = list.find((e) => String(e.event_id ?? e.id) === String(decodedId));
+      } catch (err) {
+        console.warn("Organizer events list non-critical failure");
+      }
+
+      // Always fetch full details for referral settings
+      const res = await api.get(`/events/${decodedId}/details/`);
+      const fullDetail = res?.data;
+      
+      return eventData ? { ...eventData, ...fullDetail } : fullDetail;
     }
   });
 
@@ -56,9 +63,10 @@ const ReferralDetailPage = () => {
   } = useQuery({
     queryKey: queryKeys.organizer.referralStats(eventId),
     queryFn: async () => {
+      const decodedId = decodeURIComponent(eventId);
       // Per instructions: Send an empty referrals array [] and check if the API returns all referees.
       // If it requires IDs, we show an empty table.
-      const data = await postReferralStats(eventId, []);
+      const data = await postReferralStats(decodedId, []);
       return data;
     },
     enabled: !!eventId
@@ -232,36 +240,41 @@ const ReferralDetailPage = () => {
               </div>
             </div>
           ) : (
-            <Table>
-              <TableHeader className="bg-white/[0.02]">
-                <TableRow className="border-white/5 hover:bg-transparent">
-                  <TableHead className="py-5 text-gray-400 font-bold uppercase text-[10px] tracking-widest pl-8">Referrer</TableHead>
-                  <TableHead className="py-5 text-gray-400 font-bold uppercase text-[10px] tracking-widest">Tickets Sold</TableHead>
-                  <TableHead className="py-5 text-gray-400 font-bold uppercase text-[10px] tracking-widest text-right pr-8">Revenue Generated</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-white/5 bg-white/[0.02]">
+                  <th className="px-8 py-5 text-gray-400 font-bold uppercase text-[10px] tracking-widest">Referrer</th>
+                  <th className="px-6 py-5 text-gray-400 font-bold uppercase text-[10px] tracking-widest">Tickets Sold</th>
+                  <th className="px-8 py-5 text-gray-400 font-bold uppercase text-[10px] tracking-widest text-right">Revenue Generated</th>
+                </tr>
+              </thead>
+              <tbody>
                 {referrals.map((row, idx) => (
-                  <TableRow key={idx} className="border-white/5 hover:bg-white/[0.03] transition-colors">
-                    <TableCell className="py-6 pl-8">
+                  <tr key={idx} className="border-b border-white/5 hover:bg-white/[0.03] transition-colors">
+                    <td className="py-6 px-8">
                        <div className="flex items-center gap-3">
-                         <div className="w-8 h-8 bg-rose-600/10 rounded-lg flex items-center justify-center text-[10px] font-bold text-rose-500">
-                           {row.referral_name?.[0].toUpperCase() || "R"}
+                         <div className="w-10 h-10 rounded-full bg-linear-to-br from-rose-500/20 to-purple-500/20 flex items-center justify-center text-[11px] font-black text-rose-500 border border-rose-500/20 uppercase">
+                           {(row.referral_name || "Unknown")[0].toUpperCase()}
                          </div>
-                         <span className="font-semibold">{row.referral_name || "Unknown Referrer"}</span>
+                         <div>
+                            <p className="text-sm font-bold">{row.referral_name || "Unknown Referrer"}</p>
+                            <p className="text-[10px] text-gray-500 font-medium">#{row.referee_id?.slice(0, 8) || "N/A"}</p>
+                         </div>
                        </div>
-                    </TableCell>
-                    <TableCell className="py-6 font-bold text-lg">{row.tickets_sold}</TableCell>
-                    <TableCell className="py-6 text-right pr-8">
+                    </td>
+                    <td className="py-6 px-6">
+                      <span className="text-lg font-bold">{row.tickets_sold}</span>
+                    </td>
+                    <td className="py-6 px-8 text-right">
                       <div className="flex flex-col items-end">
                         <span className="font-bold text-emerald-400 text-lg">{formatCurrency(row.referral_revenue)}</span>
                         <span className="text-[10px] text-gray-500 font-medium">Earned by Referrer</span>
                       </div>
-                    </TableCell>
-                  </TableRow>
+                    </td>
+                  </tr>
                 ))}
-              </TableBody>
-            </Table>
+              </tbody>
+            </table>
           )}
         </div>
       </Card>

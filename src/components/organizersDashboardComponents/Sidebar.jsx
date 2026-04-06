@@ -131,41 +131,41 @@ export default function Sidebar() {
         <div className="mb-4 flex items-center px-2">
           <Logo  iconSize="h-18 w-auto" scale="scale-[2]" className="origin-left" />
         </div>
-        <nav className="flex-1 flex flex-col gap-4">
+        <nav className="flex-1 flex flex-col gap-2">
           {OrganizationDashboardNavLinks.map((link) => (
             <Link
               key={link.name}
               href={link.link}
-              className={`flex items-center gap-3 p-2 rounded-lg ${
+              className={`flex items-center gap-3 p-1.5 rounded-lg transition-all duration-300 ${
                 location === link.link
-                  ? 'bg-gray-200 text-gray-900 font-bold'
-                  : 'text-gray-200 hover:bg-gray-800'
+                  ? 'bg-white/10 text-white font-bold'
+                  : 'text-gray-400 hover:bg-white/5 hover:text-gray-200'
               }`}
             >
-              {link.icon}
-              <span className="text-xs">{link.name}</span>
+              {cloneElement(link.icon, { size: 18, strokeWidth: 2 })}
+              <span className="text-[11px] uppercase tracking-wider">{link.name}</span>
             </Link>
           ))}
         </nav>
-        <hr className="border-gray-800 w-full mb-4" />
-        <div className="space-y-4">
+        <hr className="border-gray-900 w-full mt-6 mb-4" />
+        <div className="space-y-2">
           <Link
             href="/dashboard/org/settings"
-            className={`flex items-center gap-3 p-2 rounded-lg ${
+            className={`flex items-center gap-3 p-1.5 rounded-lg transition-all duration-300 ${
               location === '/dashboard/org/settings'
-                ? 'bg-gray-200 text-gray-900 font-bold'
-                : 'text-gray-200 hover:bg-gray-800'
+                ? 'bg-white/10 text-white font-bold'
+                : 'text-gray-400 hover:bg-white/5 hover:text-gray-200'
             }`}
           >
-            <Settings />
-            <span className="text-xs">Settings</span>
+            <Settings size={18} strokeWidth={2} />
+            <span className="text-[11px] uppercase tracking-wider">Settings</span>
           </Link>
           <button 
             onClick={handleLogout}
-            className="hover:bg-gray-200 p-2 md:p-2 hover:rounded-xl font-bold md:flex md:flex-row hidden md:gap-3 items-center text-red-500 cursor-pointer w-full text-left"
+            className="p-1.5 hover:bg-red-500/10 rounded-lg font-bold flex gap-3 items-center text-red-500 cursor-pointer w-full text-left transition-all duration-300"
           >
-            <LogOut />
-            <span className="text-sm">Logout</span>
+            <LogOut size={18} strokeWidth={2} />
+            <span className="text-[11px] uppercase tracking-wider">Logout</span>
           </button>
         </div>
       </aside>
