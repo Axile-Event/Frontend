@@ -259,37 +259,12 @@ export default function CheckoutPaymentPage() {
             {/* Right: Order Summary */}
             <div className="lg:col-span-2">
               <div className="lg:sticky lg:top-20 space-y-4">
-                <PaymentSummary summary={bookingData} activeTab={activeTab}/>
-
-                {/* Trust Section */}
-                <div className="bg-muted/30 rounded-xl p-4 space-y-3 border border-border/30">
-                  <div className="flex items-start gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
-                      <Zap className="w-4 h-4 text-emerald-500" />
-                    </div>
-                    <div>
-                      <p className="font-bold text-sm">
-                        {activeTab === 'paystack' ? 'Instant Confirmation' : 'Manual Verification'}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">
-                        {activeTab === 'paystack' 
-                          ? 'Your tickets will be delivered immediately after successful payment' 
-                          : 'Admin will verify your transfer and confirm tickets within 12-24 hours'}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="border-t border-border/50 pt-3 space-y-2">
-                    <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                      <CheckCircle2 size={12} className="text-emerald-500" />
-                      <span>{activeTab === 'paystack' ? 'Pay with Card, Bank Transfer, or USSD' : 'No extra processing fees'}</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                      <CheckCircle2 size={12} className="text-emerald-500" />
-                      <span>{activeTab === 'paystack' ? 'Secured by Paystack' : 'Direct bank transfer to Axile'}</span>
-                    </div>
-                  </div>
-                </div>
+                <PaymentSummary 
+                  summary={bookingData} 
+                  activeTab={activeTab}
+                  onPay={handlePayWithPaystack}
+                  loading={paymentLoading}
+                />
               </div>
             </div>
           </div>

@@ -42,24 +42,18 @@ const useReferralStore = create(
        * Otherwise clears state and returns null.
        */
       getValidReferral: (currentEventId) => {
-        const { referralCode, eventId, timestamp, clearReferral } = get();
+        const { referralCode, eventId, timestamp } = get();
 
+        // If no code or timestamp, nothing to validate
         if (!referralCode || !timestamp) return null;
 
         // Check expiry (7 days)
         const isExpired = Date.now() - timestamp > SEVEN_DAYS_MS;
-        if (isExpired) {
-          clearReferral();
-          return null;
-        }
+        if (isExpired) return null;
 
         // Check event match - compare cleaned IDs
         const matched = cleanId(eventId) === cleanId(currentEventId);
-        if (!matched) {
-          // Requirement: "otherwise clears and returns null"
-          clearReferral();
-          return null;
-        }
+        if (!matched) return null;
 
         return referralCode;
       },
