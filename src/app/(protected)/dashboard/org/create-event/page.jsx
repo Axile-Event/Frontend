@@ -67,7 +67,7 @@ export default function CreateEvent() {
     date: "",
     capacity: "",
     max_quantity_per_booking: "",
-    payment_methods_allowed: ["paystack"],
+    payment_methods_allowed: [],
   });
 
   const [categories, setCategories] = useState([]);
@@ -363,7 +363,7 @@ export default function CreateEvent() {
       date: "",
       capacity: "",
       max_quantity_per_booking: "",
-      payment_methods_allowed: ["paystack"],
+      payment_methods_allowed: [],
     });
     setReferralConfig({
       use_referral: false,
@@ -1132,55 +1132,75 @@ export default function CreateEvent() {
                   ].map((method) => {
                     const isSelected = (form.payment_methods_allowed || []).includes(method.id);
                     return (
-                      <button
-                        key={method.id}
-                        type="button"
-                        onClick={() => {
-                          const current = Array.isArray(form.payment_methods_allowed) 
-                            ? form.payment_methods_allowed 
-                            : (form.payment_methods_allowed ? [form.payment_methods_allowed] : []);
-                          
-                          if (isSelected) {
-                            // Don't allow empty selection for paid events
-                            if (current.length > 1) {
+                      <div key={method.id} className="space-y-3">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const current = Array.isArray(form.payment_methods_allowed) 
+                              ? form.payment_methods_allowed 
+                              : (form.payment_methods_allowed ? [form.payment_methods_allowed] : []);
+                            
+                            if (isSelected) {
                               setForm(s => ({
                                 ...s,
                                 payment_methods_allowed: current.filter(m => m !== method.id)
                               }));
                             } else {
-                              toast.error("At least one method required");
+                              setForm(s => ({
+                                ...s,
+                                payment_methods_allowed: [...current, method.id]
+                              }));
                             }
-                          } else {
-                            setForm(s => ({
-                              ...s,
-                              payment_methods_allowed: [...current, method.id]
-                            }));
-                          }
-                          setErrors(prev => ({ ...prev, payment_methods_allowed: undefined }));
-                        }}
-                        className={`flex items-center justify-between p-4 rounded-2xl border transition-all duration-300 ${
-                          isSelected 
-                            ? "bg-rose-500/10 border-rose-500/50 shadow-lg shadow-rose-900/10" 
-                            : "bg-white/5 border-white/10 hover:border-white/20"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`p-2 rounded-xl transition-colors ${
-                            isSelected ? "bg-rose-500/20 text-rose-400" : "bg-white/10 text-gray-500"
-                          }`}>
-                            {method.id === 'paystack' ? <CreditCard className="w-4 h-4" /> : <Banknote className="w-4 h-4" />}
+                            setErrors(prev => ({ ...prev, payment_methods_allowed: undefined }));
+                          }}
+                          className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all duration-300 ${
+                            isSelected 
+                              ? "bg-rose-500/10 border-rose-500/50 shadow-lg shadow-rose-900/10" 
+                              : "bg-white/5 border-white/10 hover:border-white/20"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded-xl transition-colors ${
+                              isSelected ? "bg-rose-500/20 text-rose-400" : "bg-white/10 text-gray-500"
+                            }`}>
+                              {method.id === 'paystack' ? <CreditCard className="w-4 h-4" /> : <Banknote className="w-4 h-4" />}
+                            </div>
+                            <div className="text-left">
+                              <p className="text-[11px] font-black uppercase tracking-wider text-white">
+                                {method.label}
+                              </p>
+                              <p className="text-[9px] font-bold text-gray-500 uppercase tracking-tight">
+                                {method.desc}
+                              </p>
+                            </div>
                           </div>
-                          <div className="text-left">
-                            <p className="text-[11px] font-black uppercase tracking-wider text-white">
-                              {method.label}
-                            </p>
-                            <p className="text-[9px] font-bold text-gray-500 uppercase tracking-tight">
-                              {method.desc}
-                            </p>
-                          </div>
-                        </div>
-                        {isSelected && <CheckCircle2 className="w-4 h-4 text-rose-500 animate-in zoom-in-0 duration-300" />}
-                      </button>
+                          {isSelected && <CheckCircle2 className="w-4 h-4 text-rose-500 animate-in zoom-in-0 duration-300" />}
+                        </button>
+
+                        <AnimatePresence>
+                          {isSelected && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                              animate={{ opacity: 1, height: "auto", marginTop: 8 }}
+                              exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                              className="overflow-hidden"
+                            >
+                              <div className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-2">
+                                <div className="flex items-center gap-2 text-[9px] font-black text-rose-500 uppercase tracking-[0.2em]">
+                                  <div className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                                  Details & Explanation
+                                </div>
+                                <p className="text-[11px] font-medium text-gray-400 leading-relaxed">
+                                  {method.id === 'paystack' 
+                                    ? "Payments are handled securely via our Paystack gateway. Attendees can pay via Card, USSD, or Bank Transfer, and tickets are issued immediately upon confirmation."
+                                    : "Attendees transfer to our company account. Due to the manual nature of verification, it may take some time to process, but all valid payments will be approved."
+                                  }
+                                </p>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
                     );
                   })}
                 </div>
@@ -1416,6 +1436,29 @@ export default function CreateEvent() {
                           : "Referral enabled"}
                       </span>
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Payment Methods Preview */}
+              {form.pricing_type !== "free" && form.payment_methods_allowed?.length > 0 && (
+                <div className="pt-4 border-t border-white/5">
+                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-3">
+                    Supported Payments
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {form.payment_methods_allowed.includes('paystack') && (
+                      <div className="px-3 py-1.5 bg-rose-500/10 border border-rose-500/20 rounded-lg flex items-center gap-2">
+                        <CreditCard className="w-3 h-3 text-rose-500" />
+                        <span className="text-[10px] font-bold text-gray-300 uppercase tracking-tight">Paystack</span>
+                      </div>
+                    )}
+                    {form.payment_methods_allowed.includes('manual_bank_transfer') && (
+                      <div className="px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-center gap-2">
+                        <Banknote className="w-3 h-3 text-amber-500" />
+                        <span className="text-[10px] font-bold text-gray-300 uppercase tracking-tight">Bank Transfer</span>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
