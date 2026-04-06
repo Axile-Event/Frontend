@@ -121,7 +121,10 @@ const MyEvent = () => {
 
         if (!matchesSearch) return false;
 
-        const isDraft = ev.status === "draft" || ev.save_as_draft === true || ev.is_draft === true;
+        const isDraft = 
+          String(ev.status || "").toLowerCase() === "draft" || 
+          String(ev.save_as_draft).toLowerCase() === "true" || 
+          String(ev.is_draft).toLowerCase() === "true";
         if (activeTab === "draft") return isDraft;
         return !isDraft;
       });
@@ -303,7 +306,17 @@ const MyEvent = () => {
             return (
               <article
                 key={key}
-                onClick={() => router.push(`/dashboard/org/my-event/${id}`)}
+                onClick={() => {
+                  const isDraftCard = 
+                    String(ev.status || "").toLowerCase() === "draft" || 
+                    String(ev.save_as_draft).toLowerCase() === "true" || 
+                    String(ev.is_draft).toLowerCase() === "true";
+                  
+                  router.push(isDraftCard
+                    ? `/dashboard/org/edit-event/${id}`
+                    : `/dashboard/org/my-event/${id}`
+                  );
+                }}
                 className="group relative bg-[#0A0A0A] border border-white/5 rounded-[2rem] overflow-hidden hover:border-rose-500/30 transition-all duration-500 shadow-xl hover:shadow-rose-600/5 cursor-pointer flex flex-col"
               >
                 {/* Image Section */}
@@ -332,14 +345,14 @@ const MyEvent = () => {
                   {/* Glass Overlays */}
                   <div className="absolute inset-x-3 top-3 flex items-center justify-between">
                     <div className={`px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest backdrop-blur-xl border flex items-center gap-1.5 ${
-                      ev.status === 'verified' 
+                      String(ev.status || "").toLowerCase() === 'verified' 
                       ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" 
-                      : (ev.status === 'draft' || ev.save_as_draft === true || ev.is_draft === true)
+                      : (String(ev.status || "").toLowerCase() === 'draft' || String(ev.save_as_draft).toLowerCase() === "true" || String(ev.is_draft).toLowerCase() === "true")
                       ? "text-rose-400 bg-rose-500/10 border-rose-500/20"
                       : "text-amber-400 bg-amber-500/10 border-amber-500/20"
                     }`}>
-                      {ev.status === 'verified' ? <Check className="w-2.5 h-2.5" /> : <Clock className="w-2.5 h-2.5" />}
-                      {ev.status === 'verified' ? 'Verified' : (ev.status === 'draft' || ev.save_as_draft === true || ev.is_draft === true) ? 'Draft' : (ev.status || 'Pending')}
+                      {String(ev.status || "").toLowerCase() === 'verified' ? <Check className="w-2.5 h-2.5" /> : <Clock className="w-2.5 h-2.5" />}
+                      {String(ev.status || "").toLowerCase() === 'verified' ? 'Verified' : (String(ev.status || "").toLowerCase() === 'draft' || String(ev.save_as_draft).toLowerCase() === "true" || String(ev.is_draft).toLowerCase() === "true") ? 'Draft' : (ev.status || 'Pending')}
                     </div>
                     
                     <div className="px-2.5 py-1 rounded-xl text-[9px] font-black uppercase tracking-widest backdrop-blur-xl bg-black/40 border border-white/10 text-white">
@@ -383,7 +396,7 @@ const MyEvent = () => {
                     {/* Referral Badge */}
                     <div className="mt-1">
                       <ReferralBadge
-                        useReferral={ev.use_referral}
+                        useReferral={ev.use_referral ?? ev.has_referral}
                         rewardType={ev.referral_reward_type}
                         rewardAmount={ev.referral_reward_amount}
                         rewardPercentage={ev.referral_reward_percentage}
@@ -417,23 +430,23 @@ const MyEvent = () => {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (ev.status === 'draft' || ev.save_as_draft === true || ev.is_draft === true) {
+                        if (String(ev.status || "").toLowerCase() === 'draft' || String(ev.save_as_draft).toLowerCase() === "true" || String(ev.is_draft).toLowerCase() === "true") {
                           router.push(`/dashboard/org/edit-event/${id}`);
-                        } else if (ev.status === 'verified') {
+                        } else if (String(ev.status || "").toLowerCase() === 'verified') {
                           handleCopyLink(e, ev);
                         }
                       }}
-                      disabled={ev.status !== 'verified' && ev.status !== 'draft' && !ev.save_as_draft && !ev.is_draft}
+                      disabled={String(ev.status || "").toLowerCase() !== 'verified' && String(ev.status || "").toLowerCase() !== 'draft' && String(ev.save_as_draft).toLowerCase() !== "true" && String(ev.is_draft).toLowerCase() !== "true"}
                       className={`flex items-center gap-1.5 px-2.5 py-1.5 border rounded-lg transition-all font-medium ${
-                        ev.status === 'verified'
+                        String(ev.status || "").toLowerCase() === 'verified'
                           ? 'bg-rose-500/5 hover:bg-rose-500/15 border-rose-500/30 hover:border-rose-500/50 group/copy cursor-pointer'
-                          : (ev.status === 'draft' || ev.save_as_draft === true || ev.is_draft === true)
+                          : (String(ev.status || "").toLowerCase() === 'draft' || String(ev.save_as_draft).toLowerCase() === "true" || String(ev.is_draft).toLowerCase() === "true")
                           ? 'bg-rose-600 hover:bg-rose-700 text-white border-rose-600 cursor-pointer'
                           : 'bg-gray-900/30 border-gray-700 cursor-not-allowed opacity-50'
                       }`}
-                      title={ev.status === 'verified' ? 'Copy Event Link' : (ev.status === 'draft' || ev.save_as_draft === true || ev.is_draft === true) ? 'Edit & Publish' : 'Event must be verified to share'}
+                      title={String(ev.status || "").toLowerCase() === 'verified' ? 'Copy Event Link' : (String(ev.status || "").toLowerCase() === 'draft' || String(ev.save_as_draft).toLowerCase() === "true" || String(ev.is_draft).toLowerCase() === "true") ? 'Edit & Publish' : 'Event must be verified to share'}
                     >
-                      {(ev.status === 'draft' || ev.save_as_draft === true || ev.is_draft === true) ? (
+                      {(String(ev.status || "").toLowerCase() === 'draft' || String(ev.save_as_draft).toLowerCase() === "true" || String(ev.is_draft).toLowerCase() === "true") ? (
                         <>
                           <Plus className="w-3.5 h-3.5" />
                           <span className="text-[10px] font-bold uppercase tracking-wider">Publish</span>
@@ -441,10 +454,10 @@ const MyEvent = () => {
                       ) : (
                         <>
                           <Copy className={`w-3.5 h-3.5 transition-colors ${
-                            ev.status === 'verified' ? 'text-rose-500 group-hover/copy:text-rose-400' : 'text-gray-600'
+                            String(ev.status || "").toLowerCase() === 'verified' ? 'text-rose-500 group-hover/copy:text-rose-400' : 'text-gray-600'
                           }`} />
                           <span className={`text-[10px] transition-colors font-bold uppercase tracking-wider ${
-                            ev.status === 'verified' ? 'text-rose-500 group-hover/copy:text-rose-400' : 'text-gray-600'
+                            String(ev.status || "").toLowerCase() === 'verified' ? 'text-rose-500 group-hover/copy:text-rose-400' : 'text-gray-600'
                           }`}>Copy Link</span>
                         </>
                       )}

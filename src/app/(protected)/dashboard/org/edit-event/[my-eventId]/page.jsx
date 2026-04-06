@@ -112,20 +112,44 @@ export default function EditEventPage() {
       try {
         // Primary source: organizer events list (includes draft events)
         const orgRes = await api.get("/organizer/events/");
-        const list = Array.isArray(orgRes.data) ? orgRes.data : (orgRes.data?.events ?? []);
-        let eventData = list.find((e) => String(e.event_id ?? e.id) === String(eventId)) || null;
+        const payload = orgRes.data;
+        let list = [];
+        if (Array.isArray(payload)) list = payload;
+        else if (Array.isArray(payload?.events)) list = payload.events;
+        else if (Array.isArray(payload?.data)) list = payload.data;
 
-        // Draft events are not published — the public /details/ endpoint will fail for them.
-        // For non-drafts, supplement with full public details to get all fields.
-        const isDraftEvent = eventData?.status === "draft" || eventData?.save_as_draft === true || eventData?.is_draft === true;
-        if (!isDraftEvent) {
+        // Normalize IDs — backend may return "EV-xxx" or "event:EV-xxx"; URL may use either
+        const normalizeId = (id) => String(id ?? "").replace(/^event:/i, "").toLowerCase();
+        const normalizedTarget = normalizeId(eventId);
+
+        // DEBUG — remove after confirming
+        console.log("[EditEvent] eventId from URL:", eventId);
+        console.log("[EditEvent] list length:", list.length);
+        console.log("[EditEvent] list IDs:", list.map(e => ({ event_id: e.event_id, id: e.id, status: e.status, save_as_draft: e.save_as_draft })));
+
+        let eventData = list.find((e) => {
+          const raw = String(e.event_id ?? e.id ?? "");
+          const match = raw === String(eventId) || normalizeId(raw) === normalizedTarget;
+          if (!match) console.log("[EditEvent] no match:", raw, "vs", eventId);
+          return match;
+        }) || null;
+
+        console.log("[EditEvent] found eventData:", eventData ? `${eventData.event_id ?? eventData.id} (${eventData.status})` : "NULL — not found in list");
+
+        // Case-insensitive status check and flexible flag detection
+        const isDraftEvent = 
+          String(eventData?.status).toLowerCase() === "draft" || 
+          String(eventData?.save_as_draft).toLowerCase() === "true" || 
+          String(eventData?.is_draft).toLowerCase() === "true";
+
+        if (!isDraftEvent && eventId) {
           try {
             const detailRes = await api.get(`/events/${eventId}/details/`);
             if (detailRes?.data) {
               eventData = eventData ? { ...eventData, ...detailRes.data } : detailRes.data;
             }
-          } catch {
-            // Non-fatal — organizer list data is sufficient fallback
+          } catch (err) {
+            // Public details fetch failed (expected for drafts)
           }
         }
 
@@ -171,7 +195,7 @@ export default function EditEventPage() {
 
           // Pre-fill referral config from event data
           setReferralConfig({
-            use_referral: eventData.use_referral || false,
+            use_referral: eventData.use_referral ?? eventData.has_referral ?? false,
             referral_reward_type: eventData.referral_reward_type || "",
             referral_reward_amount: eventData.referral_reward_amount ?? "",
             referral_reward_percentage: eventData.referral_reward_percentage ?? "",
@@ -182,13 +206,12 @@ export default function EditEventPage() {
           if (eventData.image) {
             setPreview(eventData.image);
           }
-        } else if (isMountedRef.current && !eventData) {
-          toast.error("Event not found");
         }
+        // No toast for not-found — the UI error state handles it gracefully
       } catch (err) {
         if (isMountedRef.current) {
           toast.error("Failed to load event details");
-          console.error(err);
+          console.error("[EditEvent] fetchEvent error:", err);
         }
       } finally {
         if (isMountedRef.current) {
@@ -199,7 +222,6 @@ export default function EditEventPage() {
 
     fetchEvent();
   }, [eventId]);
-
 
 
   const handleChange = (field) => (e) => {
@@ -377,11 +399,23 @@ export default function EditEventPage() {
         formData.append("max_quantity_per_booking", form.max_quantity_per_booking);
       }
 
-      // Add save_as_draft flag
-      // If we are publishing, send false. If we are saving as draft, send true.
-      // If it's not a draft, default to false.
-      const sendDraftFlag = isDraft ? !wantsToPublish : false;
-      formData.append("save_as_draft", sendDraftFlag ? "true" : "false");
+      // Only add save_as_draft flag if the event is currently in a draft state.
+      // Already LIVE or verified events should not send this flag as the backend
+      // rejects moving them back to the review queue.
+      if (isDraft) {
+        formData.append("save_as_draft", wantsToPublish ? "false" : "true");
+      }
+
+      // Add referral configuration
+      formData.append("use_referral", referralConfig.use_referral ? "true" : "false");
+      if (referralConfig.use_referral) {
+        formData.append("referral_reward_type", referralConfig.referral_reward_type || "flat");
+        if (referralConfig.referral_reward_type === "flat") {
+          formData.append("referral_reward_amount", referralConfig.referral_reward_amount || 0);
+        } else {
+          formData.append("referral_reward_percentage", referralConfig.referral_reward_percentage || 0);
+        }
+      }
 
       // Debug: log referral fields being sent
       console.log("[EditEvent] Referral config:", referralConfig);
@@ -815,7 +849,7 @@ export default function EditEventPage() {
                                 <span className="text-rose-500">*</span>
                               </label>
                               <input
-                                value={cat.name}
+                                value={cat.name ?? ""}
                                 onChange={(e) =>
                                   updateCategory(idx, "name", e.target.value)
                                 }
@@ -847,7 +881,7 @@ export default function EditEventPage() {
                               </label>
                               <input
                                 type="number"
-                                value={cat.max_tickets}
+                                value={cat.max_tickets ?? ""}
                                 onChange={(e) =>
                                   updateCategory(
                                     idx,
@@ -1053,16 +1087,8 @@ export default function EditEventPage() {
                 </AnimatePresence>
               </div>
 
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-rose-600 file:text-white hover:file:bg-rose-700 file:cursor-pointer"
-              />
-              <p className="text-xs text-gray-500">
-                Upload a new image to replace the current one (max 5MB)
-              </p>
             </div>
+
 
             <button
               type="submit"

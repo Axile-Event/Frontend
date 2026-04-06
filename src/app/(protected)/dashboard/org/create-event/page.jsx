@@ -444,6 +444,17 @@ if (/^\d*\.?\d*$/.test(numericValue)) {
       // Add save_as_draft flag
       formData.append("save_as_draft", isDraft ? "true" : "false");
 
+      // Add referral configuration
+      formData.append("use_referral", referralConfig.use_referral ? "true" : "false");
+      if (referralConfig.use_referral) {
+        formData.append("referral_reward_type", referralConfig.referral_reward_type || "flat");
+        if (referralConfig.referral_reward_type === "flat") {
+          formData.append("referral_reward_amount", referralConfig.referral_reward_amount || 0);
+        } else {
+          formData.append("referral_reward_percentage", referralConfig.referral_reward_percentage || 0);
+        }
+      }
+
       // Debug: log what we're sending
       console.log("[CreateEvent] FormData entries:", [...formData.entries()]);
 
@@ -1060,7 +1071,7 @@ if (/^\d*\.?\d*$/.test(numericValue)) {
                               <span className="text-rose-500">*</span>
                             </label>
                             <input
-                              value={cat.name}
+                              value={cat.name ?? ""}
                               onChange={(e) =>
                                 updateCategory(idx, "name", e.target.value)
                               }
@@ -1092,7 +1103,7 @@ if (/^\d*\.?\d*$/.test(numericValue)) {
                             </label>
                             <input
                               type="number"
-                              value={cat.max_tickets}
+                              value={cat.max_tickets ?? ""}
                               onChange={(e) =>
                                 updateCategory(
                                   idx,

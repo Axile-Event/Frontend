@@ -391,22 +391,36 @@ export default function EventDetailsPage() {
     queryKey: queryKeys.organizer.eventDetail(id),
     queryFn: async () => {
       const orgRes = await api.get("/organizer/events/");
-      const list = Array.isArray(orgRes.data) ? orgRes.data : (orgRes.data?.events ?? []);
-      let eventData = list.find((e) => String(e.event_id ?? e.id) === String(id));
+      const payload = orgRes.data;
+      let list = [];
+      if (Array.isArray(payload)) list = payload;
+      else if (Array.isArray(payload?.events)) list = payload.events;
+      else if (Array.isArray(payload?.data)) list = payload.data;
 
-      // Draft events are not published — skip the public details endpoint.
-      // The organizer list already contains all the data we need for draft detection.
-      const isDraftEvent = eventData?.status === "draft" || eventData?.save_as_draft === true || eventData?.is_draft === true;
+      // Normalize IDs — backend may return "EV-xxx" or "event:EV-xxx"; URL may use either
+      const normalizeId = (id) => String(id ?? "").replace(/^event:/i, "").toLowerCase();
+      const normalizedTarget = normalizeId(id);
 
-      if (!isDraftEvent) {
+      let eventData = list.find((e) => {
+        const raw = String(e.event_id ?? e.id ?? "");
+        return raw === String(id) || normalizeId(raw) === normalizedTarget;
+      }) || null;
+
+      // Case-insensitive status check and flexible flag detection
+      const isDraftEvent = 
+        String(eventData?.status || "").toLowerCase() === "draft" || 
+        String(eventData?.save_as_draft).toLowerCase() === "true" || 
+        String(eventData?.is_draft).toLowerCase() === "true";
+
+      if (!isDraftEvent && id) {
         // Only fetch full public details for non-draft events
         try {
           const publicRes = await api.get(`/events/${id}/details/`);
           if (publicRes?.data) {
             eventData = eventData ? { ...eventData, ...publicRes.data } : publicRes.data;
           }
-        } catch (err) {
-          if (!eventData) throw err;
+        } catch {
+          // Non-fatal
         }
       }
 
@@ -475,7 +489,11 @@ export default function EventDetailsPage() {
   });
 
   // Fetch referral stats specifically for the dashboard
-  const isReferralEnabled = event?.use_referral === true || String(event?.use_referral).toLowerCase() === 'true';
+  const isReferralEnabled = 
+    event?.use_referral === true || 
+    String(event?.use_referral).toLowerCase() === 'true' ||
+    event?.has_referral === true ||
+    String(event?.has_referral).toLowerCase() === 'true';
   const { data: referralData, isLoading: referralLoading } = useQuery({
     queryKey: queryKeys.organizer.referralStats(id),
     queryFn: async () => {
@@ -692,7 +710,10 @@ export default function EventDetailsPage() {
   if (!event) return null;
 
   // Draft events are not published — redirect to edit-event so the organizer can complete and publish.
-  const isCurrentDraft = event.status === "draft" || event.save_as_draft === true || event.is_draft === true;
+  const isCurrentDraft = 
+    String(event.status || "").toLowerCase() === "draft" || 
+    String(event.save_as_draft).toLowerCase() === "true" || 
+    String(event.is_draft).toLowerCase() === "true";
   if (isCurrentDraft) {
     router.replace(`/dashboard/org/edit-event/${id}`);
     return null;
