@@ -34,14 +34,19 @@ const ReferralDetailPage = () => {
   } = useQuery({
     queryKey: queryKeys.organizer.eventDetail(eventId),
     queryFn: async () => {
-      const decodedId = decodeURIComponent(eventId);
+      const rawId = decodeURIComponent(eventId);
+      const decodedId = rawId.replace("event:", "");
       
       // Try to get from organizer list first for quick availability
       let eventData = null;
       try {
         const orgRes = await api.get("/organizer/events/");
         const list = Array.isArray(orgRes.data) ? orgRes.data : (orgRes.data?.events ?? []);
-        eventData = list.find((e) => String(e.event_id ?? e.id) === String(decodedId));
+        // Match both with and without prefix for robustness
+        eventData = list.find((e) => {
+          const eId = String(e.event_id ?? e.id).replace("event:", "");
+          return eId === decodedId;
+        });
       } catch (err) {
         console.warn("Organizer events list non-critical failure");
       }
@@ -63,7 +68,7 @@ const ReferralDetailPage = () => {
   } = useQuery({
     queryKey: queryKeys.organizer.referralStats(eventId),
     queryFn: async () => {
-      const decodedId = decodeURIComponent(eventId);
+      const decodedId = decodeURIComponent(eventId).replace("event:", "");
       // Per instructions: Send an empty referrals array [] and check if the API returns all referees.
       // If it requires IDs, we show an empty table.
       const data = await postReferralStats(decodedId, []);
