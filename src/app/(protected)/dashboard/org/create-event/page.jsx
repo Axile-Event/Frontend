@@ -792,21 +792,30 @@ export default function CreateEvent() {
                   )}
                 </div>
               </div>
-
-              <CustomDropdown
-                value={form.event_type}
-                onChange={(val) => {
-                  setForm((s) => ({ ...s, event_type: val }));
-                  setErrors((p) => ({ ...p, event_type: undefined }));
-                }}
-                options={eventTypes.map((t) => ({
-                  value: t.value || t,
-                  label: t.label || t,
-                  icon: Zap,
-                }))}
-                placeholder="Select Type"
-                error={errors.event_type}
-              />
+              <div className="space-y-1.5 flex flex-col">
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                  Event Type <span className="text-rose-500">*</span>
+                </label>
+                <CustomDropdown
+                  value={form.event_type}
+                  onChange={(val) => {
+                    setForm((s) => ({ ...s, event_type: val }));
+                    setErrors((p) => ({ ...p, event_type: undefined }));
+                  }}
+                  options={eventTypes.map((t) => ({
+                    value: t.value || t,
+                    label: t.label || t,
+                    icon: Zap,
+                  }))}
+                  placeholder="Select Type"
+                  hasError={!!errors.event_type}
+                />
+                {errors.event_type && (
+                  <p className="text-[10px] text-rose-500 font-bold uppercase tracking-tight mt-1">
+                    {errors.event_type}
+                  </p>
+                )}
+              </div>
             </div>
 
             {/* Section: Logistics */}
@@ -874,43 +883,47 @@ export default function CreateEvent() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               {form.pricing_type === "free" && (
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                <div className="space-y-1.5 flex flex-col">
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-wider min-h-[1rem]">
                     Capacity <span className="text-rose-500">*</span>
                   </label>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={form.capacity}
-                    onChange={handleChange("capacity")}
-                    placeholder="e.g. 100"
-                    className={`w-full bg-white/5 border ${errors.capacity ? "border-rose-500/50 focus:border-rose-500" : "border-white/10 focus:border-rose-500"} rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-rose-500 transition-all`}
-                  />
-                  {errors.capacity && (
-                    <p className="text-[10px] text-rose-500 font-bold">
-                      {errors.capacity}
+                  <div className="mt-auto">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={form.capacity}
+                      onChange={handleChange("capacity")}
+                      placeholder="e.g. 100"
+                      className={`w-full bg-white/5 border ${errors.capacity ? "border-rose-500/50 focus:border-rose-500" : "border-white/10 focus:border-rose-500"} rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-rose-500 transition-all`}
+                    />
+                    {errors.capacity && (
+                      <p className="text-[10px] text-rose-500 font-bold mt-1">
+                        {errors.capacity}
+                      </p>
+                    )}
+                    <p className="text-[10px] text-gray-500 font-medium mt-1.5">
+                      Free events require a capacity. This becomes the max tickets for the default “General” category.
                     </p>
-                  )}
-                  <p className="text-[10px] text-gray-500 font-medium">
-                    Free events require a capacity. This becomes the max tickets for the default “General” category.
-                  </p>
+                  </div>
                 </div>
               )}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+              <div className="space-y-1.5 flex flex-col">
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider min-h-[1rem]">
                   Max Tickets Per Booking
                 </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={form.max_quantity_per_booking}
-                  onChange={handleChange("max_quantity_per_booking")}
-                  placeholder="Default: 3"
-                  className="w-full bg-white/5 border border-white/10 focus:border-rose-500 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-rose-500 transition-all"
-                />
-                <p className="text-[10px] text-gray-500 font-medium">
-                  Maximum number of tickets a user can purchase in a single booking. Defaults to 3 if not set.
-                </p>
+                <div className="mt-auto">
+                  <input
+                    type="number"
+                    min="1"
+                    value={form.max_quantity_per_booking}
+                    onChange={handleChange("max_quantity_per_booking")}
+                    placeholder="Default: 3"
+                    className="w-full bg-white/5 border border-white/10 focus:border-rose-500 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-rose-500 transition-all mt-auto"
+                  />
+                  <p className="text-[10px] text-gray-500 font-medium mt-1.5">
+                    Maximum number of tickets a user can purchase in a single booking. Defaults to 3 if not set.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
