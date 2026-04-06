@@ -59,34 +59,26 @@ const ReferralDetailPage = () => {
     }
   });
 
+  // DATA DISCOVERY: Look for usernames in the event object
+  const usernames = event?.referral?.usernames ?? [];
+
   // Fetch referral stats
   const { 
     data: statsData, 
     isLoading: statsLoading, 
     isError: statsError,
+    error: statsErrorInfo,
     refetch: refetchStats
   } = useQuery({
-    queryKey: queryKeys.organizer.referralStats(eventId),
-    queryFn: async () => {
-      // Pass the full eventId directly to the API (likely including 'event:' prefix)
-      // The getReferralStats utility will handle encoding
-      const data = await getReferralStats(eventId);
-      return data;
-    },
-    enabled: !!eventId
+    queryKey: ['referral-stats', eventId, usernames],
+    queryFn: () => getReferralStats(eventId, usernames),
+    enabled: !!eventId && !!event && usernames.length > 0,
+    retry: false
   });
 
-  // DEBUG REAL DATA
-  console.log('--- REAL API DATA ---');
-  console.log('STATS DATA:', statsData);
-  
   const referrals = useMemo(() => {
-    const list = Array.isArray(statsData) 
-      ? statsData 
-      : statsData?.stats ?? statsData?.referrals ?? statsData?.data ?? [];
-    
-    console.log('PROCESSED REFERRALS LIST:', list);
-    return [...list].sort((a, b) => (Number(b.tickets_sold) || 0) - (Number(a.tickets_sold) || 0));
+    const rows = statsData?.stats ?? [];
+    return [...rows].sort((a, b) => (Number(b.tickets_sold) || 0) - (Number(a.tickets_sold) || 0));
   }, [statsData]);
 
   const summary = useMemo(() => {
@@ -246,15 +238,21 @@ const ReferralDetailPage = () => {
                 <Skeleton key={i} className="h-12 w-full bg-white/5 rounded-xl" />
               ))}
             </div>
-          ) : referrals.length === 0 ? (
+          ) : (usernames.length === 0 || referrals.length === 0 || statsErrorInfo?.response?.status === 400) ? (
             <div className="p-20 text-center space-y-6">
               <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto">
                 <Users className="w-8 h-8 text-gray-700" />
               </div>
               <div className="space-y-2">
-                <h4 className="text-xl font-bold">No referral activity yet</h4>
+                <h4 className="text-xl font-bold">
+                  {statsErrorInfo?.response?.status === 400 
+                    ? "Listing not supported yet" 
+                    : "No referral activity yet"}
+                </h4>
                 <p className="text-gray-400 text-sm max-w-md mx-auto">
-                  Referral data will appear here as buyers use referral links for this event.
+                  {statsErrorInfo?.response?.status === 400 
+                    ? "The backend requires specific usernames to show stats. We are waiting for an update to support listing all referrers."
+                    : "Referral data will appear here as buyers use referral links for this event."}
                 </p>
               </div>
             </div>

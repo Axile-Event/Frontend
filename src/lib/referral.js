@@ -19,25 +19,20 @@ export async function fetchReferralRewardTypes() {
  * @param {string} eventId
  * @param {Array} referrals - Optional array of {username: string} to filter results
  */
-export async function getReferralStats(eventId, referrals = []) {
-  // USER UPDATED FORMAT: event:EV-XXXXX
-  const decoded = decodeURIComponent(eventId);
-  const prefixedId = decoded.startsWith("event:") ? decoded : `event:${decoded}`;
-  const safeId = encodeURIComponent(prefixedId);
+export async function getReferralStats(eventId, usernames = []) {
+  // USER UPDATED FORMAT: Use "event:EV-XXXXX" directly in path (no re-encoding)
+  const cleanId = decodeURIComponent(eventId);
   
-  const url = `/organizer/${safeId}/referral-stats/`;
+  const url = `/organizer/${cleanId}/referral-stats/`;
   
-  console.log('--- REFERRAL STATS FETCH ---');
-  console.log('Raw ID:', eventId);
-  console.log('Prefixed ID:', prefixedId);
-  console.log('Final URL:', url);
+  const body = {
+    referrals: usernames.map(u => typeof u === 'string' ? { username: u } : u)
+  };
 
   try {
-    const res = await api.post(url, { referrals });
-    console.log(`✅ SUCCESS: POST ${url}`, res.data);
-    return res.data;
+    const res = await api.post(url, body);
+    return res?.data;
   } catch (err) {
-    console.error(`❌ FAILED: POST ${url}`, err.response?.status || err.message);
     throw err;
   }
 }
