@@ -296,7 +296,7 @@ export default function CreateEvent() {
     // Remove commas to get raw number for storage
     const numericValue = rawValue.replace(/,/g, "");
     // Only allow digits and one decimal point
-    if (/^\d*\.?\d*$/.test(numericValue)) {
+if (/^\d*\.?\d*$/.test(numericValue)) {
       updateCategory(index, "price", numericValue);
     }
   };
@@ -670,9 +670,11 @@ export default function CreateEvent() {
             </div>
           </section>
         </div>
-      </div>
-    );
-  }
+</div>
+  );
+}
+
+
 
   return (
     <div className="min-h-screen p-4 md:p-8 space-y-10 max-w-7xl mx-auto text-white">
@@ -1537,7 +1539,6 @@ export default function CreateEvent() {
         action="create event"
         requireSetup={true}
       />
-    </div>
     </div>
   );
 }
