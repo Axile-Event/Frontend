@@ -346,7 +346,7 @@ const MyEvent = () => {
                     </div>
                   </div>
 
-                  <p className="text-gray-500 text-xs leading-relaxed line-clamp-2 italic opacity-80">
+                  <p className="text-gray-500 text-xs leading-relaxed line-clamp-2 opacity-80">
                     {ev.description || "No event description provided yet..."}
                   </p>
 

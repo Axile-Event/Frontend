@@ -246,7 +246,7 @@ export default function RefereeDetailsPage() {
                           <td className="px-8 py-6">
                              <div className="flex flex-col">
                                 <span className="text-sm font-bold text-white group-hover:text-rose-500 transition-colors">{t.student_full_name}</span>
-                                <span className="text-[10px] text-gray-500 font-medium lowercase italic opacity-60">{t.student_email}</span>
+                                <span className="text-[10px] text-gray-500 font-medium lowercase opacity-60">{t.student_email}</span>
                              </div>
                           </td>
                           <td className="px-8 py-6">
@@ -295,7 +295,7 @@ function StatCard({ label, value, icon, sub, highlight = false }) {
       <div>
         <p className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-1">{label}</p>
         <h3 className={`text-2xl font-black ${highlight ? 'text-rose-500' : 'text-white'}`}>{value}</h3>
-        <p className="text-[10px] text-gray-600 font-medium italic">{sub}</p>
+        <p className="text-[10px] text-gray-600 font-medium">{sub}</p>
       </div>
     </div>
   );

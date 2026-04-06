@@ -870,7 +870,7 @@ export default function EventDetailsPage() {
           <div className="bg-[#0A0A0A] border border-white/5 rounded-[2.5rem] p-10 space-y-6 shadow-xl">
             <div className="flex items-center gap-3">
               <FileText className="w-6 h-6 text-rose-500" />
-              <h2 className="text-2xl font-black uppercase tracking-tighter italic">About the event</h2>
+              <h2 className="text-2xl font-black uppercase tracking-tighter">About the event</h2>
             </div>
             <p className="text-gray-400 text-base leading-loose whitespace-pre-line font-medium opacity-80">
               {event.description || "No description provided for this event yet."}
@@ -883,7 +883,7 @@ export default function EventDetailsPage() {
               <div className="bg-[#0A0A0A] border border-white/5 rounded-2xl md:rounded-[2.5rem] p-5 md:p-10 space-y-4 md:space-y-6 shadow-xl">
                 <div className="flex items-center gap-2 md:gap-3">
                   <Ticket className="w-5 h-5 md:w-6 md:h-6 text-rose-500" />
-                  <h2 className="text-lg md:text-2xl font-black uppercase tracking-tighter italic">Ticket Categories</h2>
+                  <h2 className="text-lg md:text-2xl font-black uppercase tracking-tighter">Ticket Categories</h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                   {event.ticket_categories.map((category, idx) => (
@@ -929,7 +929,7 @@ export default function EventDetailsPage() {
             <div className="bg-[#0A0A0A] border border-white/5 rounded-2xl md:rounded-[2.5rem] p-5 md:p-10 space-y-4 md:space-y-6 shadow-xl">
               <div className="flex items-center gap-2 md:gap-3">
                 <Ticket className="w-5 h-5 md:w-6 md:h-6 text-rose-500" />
-                <h2 className="text-lg md:text-2xl font-black uppercase tracking-tighter italic">Ticket</h2>
+                <h2 className="text-lg md:text-2xl font-black uppercase tracking-tighter">Ticket</h2>
               </div>
               <div className="bg-white/5 border border-white/10 rounded-xl md:rounded-2xl p-4 md:p-6 hover:border-emerald-500/30 transition-colors">
                 <div className="flex items-center justify-between">
@@ -948,7 +948,7 @@ export default function EventDetailsPage() {
             <div className="space-y-6">
               <div className="flex items-center gap-3">
                 <Megaphone className="w-6 h-6 text-rose-500" />
-                <h2 className="text-2xl font-black uppercase tracking-tighter italic">Referral Performance</h2>
+                <h2 className="text-2xl font-black uppercase tracking-tighter">Referral Performance</h2>
               </div>
               <ReferralStatsTable 
                 stats={referralData || []} 
