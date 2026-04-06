@@ -848,6 +848,17 @@ export default function EditEventPage() {
                           </div>
                         </div>
                       ))}
+                    </div>
+                  )}
+
+                  {errors.categories && (
+                    <p className="text-[10px] text-rose-500 font-bold mt-2 ml-1">
+                      {errors.categories}
+                    </p>
+                  )}
+                </div>
+              )}
+
               {/* Payment Methods Section */}
               {form.pricing_type === "paid" && (
                 <div className="space-y-4 pt-4 border-t border-white/5">
