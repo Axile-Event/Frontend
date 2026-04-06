@@ -89,6 +89,7 @@ export default function CreateEvent() {
   const [showPinPrompt, setShowPinPrompt] = useState(false);
   const [pendingSubmit, setPendingSubmit] = useState(false);
   const [saveAsDraft, setSaveAsDraft] = useState(false);
+  const [pendingDraftMode, setPendingDraftMode] = useState(false);
   const DRAFT_KEY = "axile_event_creation_draft";
   const [hasLoadedDraft, setHasLoadedDraft] = useState(false);
 
@@ -384,6 +385,7 @@ if (/^\d*\.?\d*$/.test(numericValue)) {
   const submit = async (ev, isDraft = false) => {
     if (ev) ev.preventDefault();
     setSaveAsDraft(isDraft);
+    setPendingDraftMode(isDraft);
     
     // Only validate full requirements if not a draft
     // If it's a draft, we might allow some missing fields
@@ -405,7 +407,7 @@ if (/^\d*\.?\d*$/.test(numericValue)) {
     setShowPinPrompt(true);
   };
 
-  const executeCreateEvent = async () => {
+  const executeCreateEvent = async (isDraft = false) => {
     setLoading(true);
     setPendingSubmit(false);
 
@@ -442,7 +444,7 @@ if (/^\d*\.?\d*$/.test(numericValue)) {
       }
 
       // Add save_as_draft flag
-      formData.append("save_as_draft", saveAsDraft ? "true" : "false");
+      formData.append("save_as_draft", isDraft ? "true" : "false");
 
       // Debug: log what we're sending
       console.log("[CreateEvent] FormData entries:", [...formData.entries()]);
@@ -1314,7 +1316,7 @@ if (/^\d*\.?\d*$/.test(numericValue)) {
                   Creating Event...
                 </>
               ) : (
-                "Create Event"
+                "Publish Event"
               )}
             </button>
           </form>
@@ -1531,10 +1533,11 @@ if (/^\d*\.?\d*$/.test(numericValue)) {
         onClose={() => {
           setShowPinPrompt(false);
           setPendingSubmit(false);
+          setPendingDraftMode(false);
         }}
         onSuccess={() => {
           setShowPinPrompt(false);
-          executeCreateEvent();
+          executeCreateEvent(pendingDraftMode);
         }}
         action="create event"
         requireSetup={true}

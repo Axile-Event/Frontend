@@ -402,7 +402,13 @@ export default function EditEventPage() {
           }
         }
 
-        toast.success(wantsToPublish ? "Event published successfully!" : "Event updated successfully!");
+        toast.success(
+          wantsToPublish
+            ? "Event published successfully!"
+            : isDraft
+            ? "Draft saved successfully!"
+            : "Event updated successfully!"
+        );
         queryClient.invalidateQueries({ queryKey: queryKeys.organizer.events });
         queryClient.invalidateQueries({ queryKey: queryKeys.organizer.dashboard });
         queryClient.invalidateQueries({ queryKey: queryKeys.organizer.eventDetail(eventId) });
@@ -1017,10 +1023,14 @@ export default function EditEventPage() {
               {submitting ? (
                 <>
                   <span className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                  Updating Event...
+                  {wantsToPublish
+                    ? "Publishing Event..."
+                    : isDraft
+                    ? "Saving Draft..."
+                    : "Updating Event..."}
                 </>
               ) : (
-                "Update Event"
+                isDraft ? "Save Draft Changes" : "Save Changes"
               )}
             </button>
           </form>

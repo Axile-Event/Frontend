@@ -223,7 +223,7 @@ const MyEvent = () => {
             activeTab === "live" ? "text-rose-500" : "text-gray-500 hover:text-gray-300"
           }`}
         >
-          Live Events
+          Live
           {activeTab === "live" && (
             <motion.div
               layoutId="activeTab"
