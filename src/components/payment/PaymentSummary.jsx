@@ -4,7 +4,13 @@ import { Separator } from "@/components/ui/separator";
 import { Ticket, Info, Loader2, Lock, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const PaymentSummary = ({ summary, onPay, loading = false }) => {
+const PaymentSummary = ({ 
+  summary, 
+  onPay, 
+  loading = false, 
+  paymentMethod = 'paystack',
+  showActionButton = true 
+}) => {
   const { 
     ticketNumber, 
     event_name,
@@ -14,9 +20,12 @@ const PaymentSummary = ({ summary, onPay, loading = false }) => {
     serviceFee = 0, // Platform service fee (₦80)
     paystackFee = 0, // Paystack processing fee
     totalPaystack = 0,
+    totalManual = subtotal + serviceFee,
   } = summary || {};
 
-  const currentTotal = totalPaystack || (subtotal + serviceFee + paystackFee);
+  const isManual = paymentMethod === 'manual_bank_transfer';
+  const currentTotal = isManual ? totalManual : (totalPaystack || (subtotal + serviceFee + paystackFee));
+  const processingFee = isManual ? 0 : paystackFee;
 
   return (
     <Card className="border-border/70 bg-card/90 shadow-xl overflow-hidden">
@@ -37,12 +46,20 @@ const PaymentSummary = ({ summary, onPay, loading = false }) => {
 
         <Separator className="bg-border/50" />
 
-        {/* Booking Reference */}
-        <div className="flex justify-between items-center text-sm">
-          <span className="text-muted-foreground font-medium">Booking Reference</span>
-          <span className="font-mono font-black text-rose-500 text-xs tracking-wider bg-rose-500/5 px-2 py-1 rounded">
-            {ticketNumber || "N/A"}
-          </span>
+        {/* Booking & Method Details */}
+        <div className="grid grid-cols-1 gap-3">
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-muted-foreground font-medium">Booking Reference</span>
+            <span className="font-mono font-black text-rose-500 text-xs tracking-wider bg-rose-500/5 px-2 py-1 rounded">
+              {ticketNumber || "N/A"}
+            </span>
+          </div>
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-muted-foreground font-medium">Payment Method</span>
+            <span className="text-foreground font-bold uppercase text-[10px] tracking-widest bg-muted px-2 py-1 rounded">
+              {isManual ? "Bank Transfer" : "Paystack"}
+            </span>
+          </div>
         </div>
         
         <Separator className="bg-border/50" />
@@ -95,7 +112,7 @@ const PaymentSummary = ({ summary, onPay, loading = false }) => {
             </div>
           )}
           
-          {paystackFee > 0 && (
+          {processingFee > 0 && (
             <div className="flex justify-between items-center text-sm">
               <div className="flex items-center gap-2">
                 <span className="text-muted-foreground font-medium">Processing Fee</span>
@@ -103,7 +120,7 @@ const PaymentSummary = ({ summary, onPay, loading = false }) => {
                   Paystack
                 </span>
               </div>
-              <span className="text-foreground font-mono font-medium">₦{paystackFee?.toLocaleString()}</span>
+              <span className="text-foreground font-mono font-medium">₦{processingFee?.toLocaleString()}</span>
             </div>
           )}
         </div>
@@ -118,37 +135,39 @@ const PaymentSummary = ({ summary, onPay, loading = false }) => {
               ₦{currentTotal?.toLocaleString()}
             </span>
             <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-tighter mt-1">
-              Includes ₦{(serviceFee + paystackFee).toLocaleString()} in fees
+              Includes ₦{(serviceFee + processingFee).toLocaleString()} in fees
             </p>
           </div>
         </div>
 
         {/* Action Button - Desktop Only */}
-        <div className="hidden lg:block pt-2 space-y-3">
-          <Button 
-            onClick={onPay}
-            disabled={loading}
-            className="w-full h-14 text-sm font-black uppercase tracking-widest shadow-xl shadow-rose-600/20 bg-rose-600 hover:bg-rose-700 active:scale-[0.98] transition-all"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                Redirecting...
-              </>
-            ) : (
-              <>
-                <Lock className="mr-2 h-4 w-4" />
-                Complete Order
-              </>
-            )}
-          </Button>
-          <div className="flex items-center justify-center gap-4 text-[10px] text-muted-foreground font-bold uppercase tracking-tight">
-            <div className="flex items-center gap-1">
-              <ShieldCheck size={12} className="text-emerald-500" />
-              Secured by Paystack
+        {showActionButton && (
+          <div className="hidden lg:block pt-2 space-y-3">
+            <Button 
+              onClick={onPay}
+              disabled={loading}
+              className="w-full h-14 text-sm font-black uppercase tracking-widest shadow-xl shadow-rose-600/20 bg-rose-600 hover:bg-rose-700 active:scale-[0.98] transition-all"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Redirecting...
+                </>
+              ) : (
+                <>
+                  <Lock className="mr-2 h-4 w-4" />
+                  Complete Order
+                </>
+              )}
+            </Button>
+            <div className="flex items-center justify-center gap-4 text-[10px] text-muted-foreground font-bold uppercase tracking-tight">
+              <div className="flex items-center gap-1">
+                <ShieldCheck size={12} className="text-emerald-500" />
+                Secured by {isManual ? "Manual Verification" : "Paystack"}
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </CardContent>
     </Card>
   );

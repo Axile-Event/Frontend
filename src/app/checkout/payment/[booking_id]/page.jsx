@@ -17,6 +17,9 @@ import toast from "react-hot-toast";
 
 // Custom Components
 import PaymentSummary from "@/components/payment/PaymentSummary";
+import PaymentTabs from "@/components/payment/PaymentTabs";
+import PaystackTab from "@/components/payment/PaystackTab";
+import ManualTransferTab from "@/components/payment/ManualTransferTab";
 
 // Platform service fee (charged to customer)
 const PLATFORM_FEE = 80;
@@ -40,6 +43,7 @@ export default function CheckoutPaymentPage() {
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [bookingData, setBookingData] = useState(null);
   const [error, setError] = useState(null);
+  const [activeTab, setActiveTab] = useState("paystack");
 
   useEffect(() => {
     const fetchBookingData = async () => {
@@ -79,6 +83,12 @@ export default function CheckoutPaymentPage() {
           const serviceFee = subtotal > 0 ? PLATFORM_FEE : 0;
           const paystackFee = calculatePaystackFee(subtotal + serviceFee);
           const totalPaystack = subtotal + serviceFee + paystackFee;
+          const totalManual = subtotal + serviceFee;
+
+          const allowedMethodsRaw = parsed.payment_methods_allowed || ["paystack"];
+          const allowedMethods = Array.isArray(allowedMethodsRaw) 
+            ? allowedMethodsRaw 
+            : (typeof allowedMethodsRaw === 'string' ? allowedMethodsRaw.split(',') : ["paystack"]);
 
           setBookingData({
             booking_id: parsed.booking_id,
@@ -90,12 +100,18 @@ export default function CheckoutPaymentPage() {
             serviceFee,
             paystackFee,
             totalPaystack,
+            totalManual,
             payment_url: parsed.payment_url,
             payment_reference: parsed.payment_reference,
-            allowedMethods: parsed.payment_methods_allowed || ["paystack"],
+            allowedMethods,
             pricing_type: parsed.pricing_type || "paid"
           });
           
+          // Set active tab to the first allowed method if paystack is not available
+          if (!allowedMethods.includes("paystack") && allowedMethods.length > 0) {
+            setActiveTab(allowedMethods[0]);
+          }
+
           setLoading(false);
           return;
         }
@@ -138,30 +154,23 @@ export default function CheckoutPaymentPage() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <Loader2 className="w-10 h-10 text-rose-500 animate-spin mx-auto" />
-          <p className="text-muted-foreground">Preparing your checkout...</p>
-        </div>
-      </div>
-    );
+    return <Loading />;
   }
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center space-y-4 max-w-md mx-auto px-4">
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="text-center space-y-4 max-w-md mx-auto">
           <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto">
             <AlertCircle className="w-8 h-8 text-red-500" />
           </div>
-          <h2 className="text-xl font-semibold">Unable to Load Booking</h2>
-          <p className="text-muted-foreground">{error}</p>
+          <h2 className="text-xl font-bold text-white uppercase tracking-tight">Unable to Load Booking</h2>
+          <p className="text-sm text-muted-foreground font-medium">{error}</p>
           <div className="flex gap-3 justify-center pt-4">
-            <Button variant="outline" onClick={() => router.back()}>
+            <Button variant="outline" onClick={() => router.back()} className="rounded-xl border-white/10 text-white hover:bg-white/5 uppercase text-xs font-bold px-6 h-12">
               Go Back
             </Button>
-            <Button onClick={() => router.push("/dashboard/student/events")}>
+            <Button onClick={() => router.push("/dashboard/student/events")} className="rounded-xl bg-rose-600 hover:bg-rose-700 text-white uppercase text-xs font-bold px-6 h-12">
               Browse Events
             </Button>
           </div>
@@ -170,55 +179,95 @@ export default function CheckoutPaymentPage() {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-background">
+  const currentTotal = activeTab === 'manual_bank_transfer' ? bookingData.totalManual : bookingData.totalPaystack;
 
-      <div className="container mx-auto px-4 py-4 md:py-8">
-          <div className="max-w-xl mx-auto">
-            {/* Page Header */}
-            <div className="text-center mb-8">
-              <div className="w-16 h-16 rounded-full bg-rose-500/10 flex items-center justify-center mx-auto mb-4">
-                <ShieldCheck className="w-8 h-8 text-rose-500" />
+  return (
+    <div className="min-h-screen bg-[#050505] text-white">
+      <div className="container mx-auto px-4 py-8 md:py-12">
+          <div className="max-w-4xl mx-auto flex flex-col lg:flex-row gap-8 lg:gap-12">
+            
+            {/* Left Side: Payment Details */}
+            <div className="flex-1 space-y-8 order-2 lg:order-1">
+              {/* Header */}
+              <div className="hidden lg:block space-y-2">
+                <h1 className="text-4xl font-black tracking-tight text-white uppercase italic">Complete Payment</h1>
+                <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg inline-block">
+                  Ref: {bookingData.ticketNumber}
+                </p>
               </div>
-              <h1 className="text-3xl font-black tracking-tight mb-2">Secure your tickets</h1>
-              <p className="text-sm text-muted-foreground font-medium uppercase tracking-widest bg-muted/30 inline-block px-3 py-1 rounded-full border border-border/50">
-                {bookingData?.event_name}
+
+              {/* Tabs Section */}
+              {bookingData?.allowedMethods?.length > 1 && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Zap className="w-4 h-4 text-rose-500" />
+                    <h3 className="text-xs font-black text-gray-500 uppercase tracking-[0.2em]">Select Payment Method</h3>
+                  </div>
+                  <PaymentTabs 
+                    activeTab={activeTab} 
+                    onChange={setActiveTab} 
+                    allowedMethods={bookingData.allowedMethods} 
+                  />
+                </div>
+              )}
+
+              {/* Tab Content */}
+              <div className="min-h-[300px]">
+                {activeTab === 'paystack' ? (
+                  <PaystackTab 
+                    summary={bookingData} 
+                    onPay={handlePayWithPaystack} 
+                    loading={paymentLoading} 
+                  />
+                ) : (
+                  <ManualTransferTab 
+                    summary={bookingData} 
+                    bookingId={booking_id} 
+                    paymentReference={bookingData.payment_reference} 
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* Right Side: Order Summary Card (Sticky on desktop) */}
+            <div className="lg:w-[380px] order-1 lg:order-2">
+              <div className="lg:sticky lg:top-8">
+                <PaymentSummary 
+                  summary={bookingData} 
+                  onPay={handlePayWithPaystack}
+                  loading={paymentLoading}
+                  paymentMethod={activeTab}
+                  showActionButton={activeTab === 'paystack'}
+                />
+              </div>
+            </div>
+          </div>
+      </div>
+
+      {/* Mobile: Sticky Bottom Action for Paystack only */}
+      {activeTab === 'paystack' && (
+        <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-md border-t border-border/50 p-4 z-40">
+          <div className="flex items-center justify-between gap-4 max-w-md mx-auto">
+            <div>
+              <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Total Amount</p>
+              <p className="text-xl font-black text-rose-500 italic">
+                ₦{currentTotal?.toLocaleString()}
               </p>
             </div>
-
-            {/* Main Content: Just Order Summary */}
-            <div className="space-y-4">
-              <PaymentSummary 
-                summary={bookingData} 
-                onPay={handlePayWithPaystack}
-                loading={paymentLoading}
-              />
-            </div>
+            <Button
+              onClick={handlePayWithPaystack}
+              disabled={paymentLoading}
+              className="h-14 px-10 text-sm font-black uppercase italic bg-rose-600 hover:bg-rose-700 shadow-xl shadow-rose-600/20 active:scale-95 transition-all rounded-2xl"
+            >
+              {paymentLoading ? (
+                <Loader2 className="h-5 w-5 animate-spin text-white" />
+              ) : (
+                "Pay Now"
+              )}
+            </Button>
           </div>
-      </div>
-
-      {/* Mobile: Sticky Bottom Summary */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-md border-t border-border/50 p-4 z-40">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Total Amount</p>
-            <p className="text-lg font-bold text-rose-500">
-              ₦{bookingData?.totalPaystack?.toLocaleString()}
-            </p>
-          </div>
-          <Button
-            onClick={handlePayWithPaystack}
-            disabled={paymentLoading}
-            className="h-12 px-8 text-sm font-bold bg-rose-600 hover:bg-rose-700 shadow-lg shadow-rose-600/20"
-          >
-            {paymentLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin text-white" />
-            ) : (
-              "Pay Now"
-            )}
-          </Button>
         </div>
-      </div>
+      )}
 
       <div className="lg:hidden h-24" />
     </div>
