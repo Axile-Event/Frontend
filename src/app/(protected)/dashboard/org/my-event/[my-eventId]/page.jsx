@@ -393,15 +393,21 @@ export default function EventDetailsPage() {
       const orgRes = await api.get("/organizer/events/");
       const list = Array.isArray(orgRes.data) ? orgRes.data : (orgRes.data?.events ?? []);
       let eventData = list.find((e) => String(e.event_id ?? e.id) === String(id));
-      
-      // Always fetch full details to ensure we get all fields like use_referral, referral_reward_type, etc.
-      try {
-        const publicRes = await api.get(`/events/${id}/details/`);
-        if (publicRes?.data) {
-          eventData = eventData ? { ...eventData, ...publicRes.data } : publicRes.data;
+
+      // Draft events are not published — skip the public details endpoint.
+      // The organizer list already contains all the data we need for draft detection.
+      const isDraftEvent = eventData?.status === "draft" || eventData?.save_as_draft === true || eventData?.is_draft === true;
+
+      if (!isDraftEvent) {
+        // Only fetch full public details for non-draft events
+        try {
+          const publicRes = await api.get(`/events/${id}/details/`);
+          if (publicRes?.data) {
+            eventData = eventData ? { ...eventData, ...publicRes.data } : publicRes.data;
+          }
+        } catch (err) {
+          if (!eventData) throw err;
         }
-      } catch (err) {
-        if (!eventData) throw err;
       }
 
       if (eventData) {
@@ -684,6 +690,13 @@ export default function EventDetailsPage() {
   }
 
   if (!event) return null;
+
+  // Draft events are not published — redirect to edit-event so the organizer can complete and publish.
+  const isCurrentDraft = event.status === "draft" || event.save_as_draft === true || event.is_draft === true;
+  if (isCurrentDraft) {
+    router.replace(`/dashboard/org/edit-event/${id}`);
+    return null;
+  }
 
   const eventName = event?.name ?? "";
   const showCover = Boolean(coverSrc) && !coverBroken;

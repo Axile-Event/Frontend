@@ -110,15 +110,44 @@ export default function EditEventPage() {
       }
 
       try {
-        const res = await api.get(`/events/${eventId}/details/`);
-        const eventData = res?.data;
+        // Primary source: organizer events list (includes draft events)
+        const orgRes = await api.get("/organizer/events/");
+        const list = Array.isArray(orgRes.data) ? orgRes.data : (orgRes.data?.events ?? []);
+        let eventData = list.find((e) => String(e.event_id ?? e.id) === String(eventId)) || null;
+
+        // Draft events are not published — the public /details/ endpoint will fail for them.
+        // For non-drafts, supplement with full public details to get all fields.
+        const isDraftEvent = eventData?.status === "draft" || eventData?.save_as_draft === true || eventData?.is_draft === true;
+        if (!isDraftEvent) {
+          try {
+            const detailRes = await api.get(`/events/${eventId}/details/`);
+            if (detailRes?.data) {
+              eventData = eventData ? { ...eventData, ...detailRes.data } : detailRes.data;
+            }
+          } catch {
+            // Non-fatal — organizer list data is sufficient fallback
+          }
+        }
+
+        // Fetch ticket categories separately if needed
+        if (eventData) {
+          try {
+            const catRes = await api.get(`/tickets/categories/?event_id=${eventId}`);
+            const cats = Array.isArray(catRes.data) ? catRes.data : (catRes.data?.categories || []);
+            if (cats.length > 0) {
+              eventData = { ...eventData, ticket_categories: cats };
+            }
+          } catch {
+            // Use ticket_categories from eventData if already present
+          }
+        }
 
         if (isMountedRef.current && eventData) {
           setEvent(eventData);
-          
+
           // Parse date correctly for DateTimePicker
           const dateObj = eventData.date ? new Date(eventData.date) : null;
-          
+
           setForm({
             name: eventData.name || "",
             description: eventData.description || "",
@@ -127,16 +156,17 @@ export default function EditEventPage() {
             event_type: eventData.event_type || "",
             pricing_type: eventData.pricing_type || "free",
             max_quantity_per_booking: eventData.max_quantity_per_booking || "",
-            payment_methods_allowed: Array.isArray(eventData.payment_methods_allowed) 
-              ? eventData.payment_methods_allowed 
-              : (typeof eventData.payment_methods_allowed === 'string' 
-                  ? eventData.payment_methods_allowed.split(',').filter(Boolean) 
+            payment_methods_allowed: Array.isArray(eventData.payment_methods_allowed)
+              ? eventData.payment_methods_allowed
+              : (typeof eventData.payment_methods_allowed === 'string'
+                  ? eventData.payment_methods_allowed.split(',').filter(Boolean)
                   : ["paystack"]),
           });
 
           // Load ticket categories if paid event
-          if (eventData.pricing_type === "paid" && eventData.ticket_categories) {
-            setCategories(eventData.ticket_categories || []);
+          const cats = eventData.ticket_categories || [];
+          if (eventData.pricing_type === "paid" && cats.length > 0) {
+            setCategories(cats);
           }
 
           // Pre-fill referral config from event data
@@ -147,11 +177,13 @@ export default function EditEventPage() {
             referral_reward_percentage: eventData.referral_reward_percentage ?? "",
           });
 
-          setIsDraft(eventData.status === "draft" || eventData.save_as_draft === true || eventData.is_draft === true);
+          setIsDraft(isDraftEvent);
 
           if (eventData.image) {
             setPreview(eventData.image);
           }
+        } else if (isMountedRef.current && !eventData) {
+          toast.error("Event not found");
         }
       } catch (err) {
         if (isMountedRef.current) {
@@ -167,6 +199,8 @@ export default function EditEventPage() {
 
     fetchEvent();
   }, [eventId]);
+
+
 
   const handleChange = (field) => (e) => {
     const value = e.target.type === "checkbox" ? e.target.checked : e.target.value;
@@ -298,13 +332,11 @@ export default function EditEventPage() {
     if (e) e.preventDefault();
     setWantsToPublish(shouldPublish);
     
-    // Only validate full requirements if publishing
-    // If saving as draft, we might allow some missing fields
-    if (shouldPublish || !isDraft) {
-      if (!validate()) {
-        toast.error("Please fill in all required fields correctly.");
-        return;
-      }
+    // Always validate full requirements, even for drafts.
+    // A draft is a complete event that simply hasn't been published yet.
+    if (!validate()) {
+      toast.error("Please fill in all required fields correctly.");
+      return;
     }
 
     setPendingSubmit(true);

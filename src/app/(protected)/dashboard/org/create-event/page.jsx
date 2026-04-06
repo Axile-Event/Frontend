@@ -387,9 +387,9 @@ if (/^\d*\.?\d*$/.test(numericValue)) {
     setSaveAsDraft(isDraft);
     setPendingDraftMode(isDraft);
     
-    // Only validate full requirements if not a draft
-    // If it's a draft, we might allow some missing fields
-    const localErrors = isDraft ? {} : validate();
+    // Always validate full requirements, even for drafts.
+    // A draft is a complete event that simply hasn't been published yet.
+    const localErrors = validate();
     if (Object.keys(localErrors).length > 0) {
       const firstError = Object.values(localErrors)[0] || "Please fill in all required fields correctly.";
       toast.error(firstError);
@@ -691,15 +691,12 @@ if (/^\d*\.?\d*$/.test(numericValue)) {
           </p>
         </div>
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-full border border-white/5 shadow-inner">
-             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-             <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Draft Saved</span>
-          </div>
           <button
             type="button"
             disabled={loading}
             onClick={(e) => submit(e, true)}
             className="px-6 py-2.5 rounded-xl border border-rose-500/30 text-xs font-bold text-rose-500 hover:bg-rose-500/10 transition-all active:scale-95 disabled:opacity-50"
+            title="All fields must be filled to save a draft"
           >
             {loading && saveAsDraft ? (
                <span className="w-3 h-3 border-2 border-rose-500/20 border-t-rose-500 rounded-full animate-spin" />
@@ -713,6 +710,7 @@ if (/^\d*\.?\d*$/.test(numericValue)) {
             Cancel
           </button>
         </div>
+
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
