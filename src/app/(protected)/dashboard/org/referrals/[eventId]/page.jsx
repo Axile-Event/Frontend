@@ -71,18 +71,10 @@ const ReferralDetailPage = () => {
       const decodedId = decodeURIComponent(eventId);
       const cleanId = decodedId.replace("event:", "");
       
-      const testBody = { referrals: [{ username: "samkiel" }] };
       const attempts = [
-        // Pattern 1: Directly under organiser/ (from docs)
-        { method: 'POST', url: `/organiser/${cleanId}/referral-stats/`, body: testBody },
-        { method: 'POST', url: `/organiser/${decodedId}/referral-stats/`, body: testBody },
+        { method: 'POST', url: `/organiser/${cleanId}/referral-stats/`, body: { referrals: [] } },
         { method: 'GET', url: `/organiser/${cleanId}/referral-stats/` },
-        { method: 'GET', url: `/organiser/${cleanId}/stats/` },
-        // Pattern 2: Under organizer/ (common in this project)
-        { method: 'POST', url: `/organizer/events/${cleanId}/referral-stats/`, body: testBody },
-        { method: 'POST', url: `/organizer/${cleanId}/referral-stats/`, body: testBody },
-        { method: 'GET', url: `/organizer/events/${cleanId}/referrals/` },
-        { method: 'GET', url: `/organizer/${cleanId}/stats/` }
+        { method: 'GET', url: `/organizer/${cleanId}/referrals/` }
       ];
 
       for (const attempt of attempts) {
@@ -96,8 +88,7 @@ const ReferralDetailPage = () => {
           continue; 
         }
       }
-      console.log("🔴 All referral stats endpoints failed (404/405/400).");
-      return []; 
+      return null; 
     },
     enabled: !!eventId
   });
@@ -111,19 +102,23 @@ const ReferralDetailPage = () => {
   }, [statsData]);
 
   const summary = useMemo(() => {
+    // Reward configuration can now be bundled in the stats response
+    const rewardConfig = statsData?.referral_reward ?? event;
+    
     return {
       totalReferrers: referrals.length,
       totalTickets: referrals.reduce((sum, r) => sum + (Number(r.tickets_sold) || 0), 0),
-      totalRevenue: referrals.reduce((sum, r) => sum + (Number(r.referral_revenue) || 0), 0)
+      totalNetRevenue: referrals.reduce((sum, r) => sum + (Number(r.organizer_net_revenue) || 0), 0),
+      totalGrossSales: referrals.reduce((sum, r) => sum + (Number(r.referred_sales_total) || 0), 0),
+      rewardConfig
     };
-  }, [referrals]);
+  }, [referrals, statsData, event]);
 
   const formattedDate = (iso) => {
     if (!iso) return "TBD";
     try {
       return new Date(iso).toLocaleDateString('en-GB', {
         day: 'numeric',
-        short: 'short',
         month: 'short',
         year: 'numeric'
       });
@@ -172,9 +167,9 @@ const ReferralDetailPage = () => {
     );
   }
 
-  const rewardText = event?.referral_reward_type === "flat"
-    ? `₦${Number(event?.referral_reward_amount).toLocaleString()}`
-    : `${event?.referral_reward_percentage}% of ticket price`;
+  const rewardText = summary.rewardConfig?.referral_reward_type === "flat"
+    ? `₦${Number(summary.rewardConfig?.referral_reward_amount).toLocaleString()}`
+    : `${summary.rewardConfig?.referral_reward_percentage}% of ticket price`;
 
   return (
     <div className="min-h-screen p-4 md:p-8 space-y-8 max-w-7xl mx-auto text-white pb-32">
@@ -219,11 +214,12 @@ const ReferralDetailPage = () => {
       </div>
 
       {/* Stats Summary */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {[
           { label: "Total Referrers", value: summary.totalReferrers, icon: Users, color: "text-blue-400" },
           { label: "Tickets via Referrals", value: summary.totalTickets, icon: Ticket, color: "text-amber-400" },
-          { label: "Referral Revenue", value: formatCurrency(summary.totalRevenue), icon: DollarSign, color: "text-emerald-400" },
+          { label: "Gross Referral Sales", value: formatCurrency(summary.totalGrossSales), icon: DollarSign, color: "text-gray-400" },
+          { label: "Net Organizer Revenue", value: formatCurrency(summary.totalNetRevenue), icon: TrendingUp, color: "text-emerald-400" },
         ].map((stat, i) => (
           <Card key={i} className="bg-[#0A0A0A] border-white/5 rounded-3xl overflow-hidden shadow-2xl group hover:border-rose-500/20 transition-all duration-300">
             <CardContent className="p-6">
@@ -233,7 +229,7 @@ const ReferralDetailPage = () => {
                 </div>
                 <div>
                   <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest">{stat.label}</p>
-                  <p className="text-2xl font-bold">{stat.value}</p>
+                  <p className={`text-xl font-bold ${stat.color === 'text-emerald-400' ? 'text-emerald-400' : ''}`}>{stat.value}</p>
                 </div>
               </div>
             </CardContent>
@@ -245,8 +241,8 @@ const ReferralDetailPage = () => {
       <Card className="bg-[#0A0A0A] border-white/5 rounded-[2.5rem] overflow-hidden shadow-2xl">
         <div className="p-8 border-b border-white/5 flex items-center justify-between">
           <h3 className="text-lg font-bold flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-rose-500" />
-            Performance Detail
+            <Users className="w-5 h-5 text-rose-500" />
+            Referrer Performance
           </h3>
           <Button variant="ghost" size="sm" onClick={() => refetchStats()} className="text-gray-500 hover:text-white">
             <RefreshCw className={`w-4 h-4 mr-2 ${statsLoading ? 'animate-spin' : ''}`} />
@@ -278,8 +274,10 @@ const ReferralDetailPage = () => {
               <thead>
                 <tr className="border-b border-white/5 bg-white/[0.02]">
                   <th className="px-8 py-5 text-gray-400 font-bold uppercase text-[10px] tracking-widest">Referrer</th>
-                  <th className="px-6 py-5 text-gray-400 font-bold uppercase text-[10px] tracking-widest">Tickets Sold</th>
-                  <th className="px-8 py-5 text-gray-400 font-bold uppercase text-[10px] tracking-widest text-right">Revenue Generated</th>
+                  <th className="px-6 py-5 text-gray-400 font-bold uppercase text-[10px] tracking-widest">Tickets</th>
+                  <th className="px-6 py-5 text-gray-400 font-bold uppercase text-[10px] tracking-widest text-right">Gross Sales</th>
+                  <th className="px-6 py-5 text-gray-400 font-bold uppercase text-[10px] tracking-widest text-right">Commission</th>
+                  <th className="px-8 py-5 text-gray-400 font-bold uppercase text-[10px] tracking-widest text-right">Net Revenue</th>
                 </tr>
               </thead>
               <tbody>
@@ -288,20 +286,29 @@ const ReferralDetailPage = () => {
                     <td className="py-6 px-8">
                        <div className="flex items-center gap-3">
                          <div className="w-10 h-10 rounded-full bg-linear-to-br from-rose-500/20 to-purple-500/20 flex items-center justify-center text-[11px] font-black text-rose-500 border border-rose-500/20 uppercase">
-                           {(row.referral_name || "Unknown")[0].toUpperCase()}
+                           {(row.referral_name || row.username || "U")[0].toUpperCase()}
                          </div>
                          <div>
-                            <p className="text-sm font-bold">{row.referral_name || "Unknown Referrer"}</p>
+                            <p className="text-sm font-bold">{row.referral_name || row.username || "Unknown Referrer"}</p>
                          </div>
                        </div>
                     </td>
                     <td className="py-6 px-6">
-                      <span className="text-lg font-bold">{row.tickets_sold}</span>
+                      <span className="text-sm font-bold">{row.tickets_sold || 0}</span>
+                    </td>
+                    <td className="py-6 px-6 text-right">
+                      <span className="text-sm font-bold text-gray-400">{formatCurrency(row.referred_sales_total)}</span>
+                    </td>
+                    <td className="py-6 px-6 text-right text-rose-400/80">
+                      <div className="flex flex-col items-end">
+                        <span className="text-sm font-bold">-{formatCurrency(row.referral_revenue)}</span>
+                        <span className="text-[10px] font-medium opacity-60">Referee Cut</span>
+                      </div>
                     </td>
                     <td className="py-6 px-8 text-right">
                       <div className="flex flex-col items-end">
-                        <span className="font-bold text-emerald-400 text-lg">{formatCurrency(row.referral_revenue)}</span>
-                        <span className="text-[10px] text-gray-500 font-medium">Earned by Referrer</span>
+                        <span className="font-bold text-emerald-400 text-lg">{formatCurrency(row.organizer_net_revenue)}</span>
+                        <span className="text-[10px] text-gray-500 font-medium">Your Earnings</span>
                       </div>
                     </td>
                   </tr>
@@ -316,3 +323,4 @@ const ReferralDetailPage = () => {
 };
 
 export default ReferralDetailPage;
+
