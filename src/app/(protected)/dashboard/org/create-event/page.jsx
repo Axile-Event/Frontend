@@ -32,6 +32,8 @@ import {
   FileText,
   Clock,
   Layers,
+  CreditCard,
+  Banknote,
 } from "lucide-react";
 import DateTimePicker from "@/components/ui/DateTimePicker";
 
@@ -331,8 +333,11 @@ export default function CreateEvent() {
           e.categories = "Each category must have a price greater than 0";
         }
       }
+
+      if (!Array.isArray(form.payment_methods_allowed) || form.payment_methods_allowed.length === 0) {
+        e.payment_methods_allowed = "At least one payment method is required for paid events";
+      }
     }
-    
 
     // Referral validation
     const referralErrors = validateReferralConfig(referralConfig, form.pricing_type, categories);
@@ -408,7 +413,11 @@ export default function CreateEvent() {
       formData.append("location", form.location.trim());
       
       if (form.pricing_type === "paid") {
-        formData.append("payment_methods_allowed", "paystack");
+        // Backend expects it exactly as an array or comma-separated string based on existing patterns
+        const methods = Array.isArray(form.payment_methods_allowed) 
+          ? form.payment_methods_allowed.join(",") 
+          : (form.payment_methods_allowed || "paystack");
+        formData.append("payment_methods_allowed", methods);
       }
 
       // convert local datetime input to ISO with Z
@@ -1106,6 +1115,81 @@ export default function CreateEvent() {
                     {errors.categories}
                   </p>
                 )}
+
+                {/* Payment Methods Section */}
+                <div className="space-y-4 pt-4 border-t border-white/5">
+                <div className="flex items-center gap-2 mb-2">
+                  <CreditCard className="w-4 h-4 text-rose-500" />
+                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">
+                    Payment Methods
+                  </h3>
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {[
+                    { id: 'paystack', label: 'Paystack', desc: 'Auto-confirmed' },
+                    { id: 'manual_bank_transfer', label: 'Bank Transfer', desc: 'Manual confirm' }
+                  ].map((method) => {
+                    const isSelected = (form.payment_methods_allowed || []).includes(method.id);
+                    return (
+                      <button
+                        key={method.id}
+                        type="button"
+                        onClick={() => {
+                          const current = Array.isArray(form.payment_methods_allowed) 
+                            ? form.payment_methods_allowed 
+                            : (form.payment_methods_allowed ? [form.payment_methods_allowed] : []);
+                          
+                          if (isSelected) {
+                            // Don't allow empty selection for paid events
+                            if (current.length > 1) {
+                              setForm(s => ({
+                                ...s,
+                                payment_methods_allowed: current.filter(m => m !== method.id)
+                              }));
+                            } else {
+                              toast.error("At least one method required");
+                            }
+                          } else {
+                            setForm(s => ({
+                              ...s,
+                              payment_methods_allowed: [...current, method.id]
+                            }));
+                          }
+                          setErrors(prev => ({ ...prev, payment_methods_allowed: undefined }));
+                        }}
+                        className={`flex items-center justify-between p-4 rounded-2xl border transition-all duration-300 ${
+                          isSelected 
+                            ? "bg-rose-500/10 border-rose-500/50 shadow-lg shadow-rose-900/10" 
+                            : "bg-white/5 border-white/10 hover:border-white/20"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`p-2 rounded-xl transition-colors ${
+                            isSelected ? "bg-rose-500/20 text-rose-400" : "bg-white/10 text-gray-500"
+                          }`}>
+                            {method.id === 'paystack' ? <CreditCard className="w-4 h-4" /> : <Banknote className="w-4 h-4" />}
+                          </div>
+                          <div className="text-left">
+                            <p className="text-[11px] font-black uppercase tracking-wider text-white">
+                              {method.label}
+                            </p>
+                            <p className="text-[9px] font-bold text-gray-500 uppercase tracking-tight">
+                              {method.desc}
+                            </p>
+                          </div>
+                        </div>
+                        {isSelected && <CheckCircle2 className="w-4 h-4 text-rose-500 animate-in zoom-in-0 duration-300" />}
+                      </button>
+                    );
+                  })}
+                </div>
+                {errors.payment_methods_allowed && (
+                  <p className="text-[10px] text-rose-500 font-bold mt-2 ml-1 uppercase">
+                    {errors.payment_methods_allowed}
+                  </p>
+                )}
+                </div>
               </div>
               )}
 
