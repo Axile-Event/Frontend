@@ -118,23 +118,22 @@ export default function EditEventPage() {
         else if (Array.isArray(payload?.events)) list = payload.events;
         else if (Array.isArray(payload?.data)) list = payload.data;
 
-        // Normalize IDs — backend may return "EV-xxx" or "event:EV-xxx"; URL may use either
+        const decodedEventId = decodeURIComponent(String(eventId || ""));
         const normalizeId = (id) => String(id ?? "").replace(/^event:/i, "").toLowerCase();
-        const normalizedTarget = normalizeId(eventId);
+        const normalizedTarget = normalizeId(decodedEventId);
 
-        // DEBUG — remove after confirming
-        console.log("[EditEvent] eventId from URL:", eventId);
-        console.log("[EditEvent] list length:", list.length);
-        console.log("[EditEvent] list IDs:", list.map(e => ({ event_id: e.event_id, id: e.id, status: e.status, save_as_draft: e.save_as_draft })));
+        console.log("[EditEvent] Param eventId:", eventId);
+        console.log("[EditEvent] Decoded eventId:", decodedEventId);
+        console.log("[EditEvent] Normalized target:", normalizedTarget);
 
         let eventData = list.find((e) => {
-          const raw = String(e.event_id ?? e.id ?? "");
-          const match = raw === String(eventId) || normalizeId(raw) === normalizedTarget;
-          if (!match) console.log("[EditEvent] no match:", raw, "vs", eventId);
+          const rawId = String(e.event_id ?? e.id ?? "");
+          const match = rawId === decodedEventId || normalizeId(rawId) === normalizedTarget;
+          if (!match) console.log(`[EditEvent] Mismatch: raw="${rawId}" vs decoded="${decodedEventId}" (normalized: "${normalizeId(rawId)}" vs "${normalizedTarget}")`);
           return match;
         }) || null;
 
-        console.log("[EditEvent] found eventData:", eventData ? `${eventData.event_id ?? eventData.id} (${eventData.status})` : "NULL — not found in list");
+        console.log("[EditEvent] Found eventData:", eventData ? `${eventData.event_id ?? eventData.id} (Status: ${eventData.status})` : "NULL - no match in list");
 
         // Case-insensitive status check and flexible flag detection
         const isDraftEvent = String(eventData?.status).toLowerCase() === "draft";
