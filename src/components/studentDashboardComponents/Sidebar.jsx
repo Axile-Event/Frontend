@@ -15,7 +15,7 @@ import { useRouter } from "next/navigation";
 import Logo from "@/components/Logo";
 
 const StudentDashboardNavLinks = [
-  { name: "Overview", link: "/dashboard/student", icon: <Home className="h-5 w-5 md:h-7 md:w-7" /> },
+  { name: "Dashboard", link: "/dashboard/student", icon: <Home className="h-5 w-5 md:h-7 md:w-7" /> },
   {
     name: "Events",
     link: "/dashboard/student/events",
