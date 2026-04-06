@@ -14,29 +14,15 @@ export async function fetchReferralRewardTypes() {
 
 /**
  * Fetch referral stats for an event (organizer).
- * POST /organiser/<event_id>/referral-stats/
+ * Returns all referrers for the event with their usernames and stats.
+ * No longer requires referee_ids.
  * @param {string} eventId
- * @param {Array<{username: string}>} referrals
  */
-export async function fetchReferralStats(eventId, referrals = []) {
-  const res = await api.post(`/organiser/${eventId}/referral-stats/`, {
-    referrals,
-  });
-  return res?.data;
-}
-
-/**
- * Fetch referral stats using referee IDs.
- * POST /organiser/<event_id>/referral-stats/
- * @param {string} eventId
- * @param {Array<string>} referralIds
- */
-export async function postReferralStats(eventId, referralIds = []) {
-  const referrals = Array.isArray(referralIds) 
-    ? referralIds.map(id => ({ referee_id: id }))
-    : [];
-  const res = await api.post(`/organiser/${eventId}/referral-stats/`, {
-    referrals,
+export async function getReferralStats(eventId) {
+  // Use POST with an empty body to fetch all stats for the event
+  // as per the new simplified backend flow.
+  const res = await api.post(`/organizer/${eventId}/referral-stats/`, {
+    referrals: [],
   });
   return res?.data;
 }

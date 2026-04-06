@@ -16,7 +16,7 @@ import {
   RefreshCw
 } from "lucide-react";
 import { queryKeys } from "@/lib/query-keys";
-import { postReferralStats } from "@/lib/referral";
+import { getReferralStats } from "@/lib/referral";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -70,15 +70,20 @@ const ReferralDetailPage = () => {
     queryFn: async () => {
       const decodedId = decodeURIComponent(eventId);
       const cleanId = decodedId.replace("event:", "");
-      // Send an empty referrals array [] to fetch all available referral data for this event.
-      const data = await postReferralStats(cleanId, []);
+      // Fetch all referral data for this event (no IDs required)
+      const data = await getReferralStats(cleanId);
       return data;
     },
     enabled: !!eventId
   });
 
   const referrals = useMemo(() => {
-    return (statsData?.referrals || []).sort((a, b) => b.tickets_sold - a.tickets_sold);
+    // Normalize response — handle both array and {referrals: [...]} shape
+    const list = Array.isArray(statsData) 
+      ? statsData 
+      : statsData?.referrals ?? statsData?.stats ?? statsData?.data ?? [];
+    
+    return [...list].sort((a, b) => (b.tickets_sold || 0) - (a.tickets_sold || 0));
   }, [statsData]);
 
   const summary = useMemo(() => {
@@ -263,7 +268,6 @@ const ReferralDetailPage = () => {
                          </div>
                          <div>
                             <p className="text-sm font-bold">{row.referral_name || "Unknown Referrer"}</p>
-                            <p className="text-[10px] text-gray-500 font-medium">#{row.referee_id?.slice(0, 8) || "N/A"}</p>
                          </div>
                        </div>
                     </td>
