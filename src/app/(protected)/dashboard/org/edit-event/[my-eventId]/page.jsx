@@ -327,11 +327,9 @@ export default function EditEventPage() {
         const methods = Array.isArray(form.payment_methods_allowed) 
           ? form.payment_methods_allowed 
           : (form.payment_methods_allowed ? [form.payment_methods_allowed] : ["paystack"]);
-        
-        // Append each method individually so the backend receives a list
-        methods.forEach(method => {
-          formData.append("payment_methods_allowed", method);
-        });
+
+        // Backend expects a JSON array string for this multipart field.
+        formData.append("payment_methods_allowed", JSON.stringify(methods));
       }
 
       // convert local datetime input to ISO with Z
@@ -906,6 +904,14 @@ export default function EditEventPage() {
                                 payment_methods_allowed: [...current, method.id],
                               }));
                             }
+                            setErrors((prev) => ({ ...prev, payment_methods_allowed: undefined }));
+                          }}
+                          className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all duration-300 ${
+                            isSelected
+                              ? "bg-rose-500/10 border-rose-500/50 shadow-lg shadow-rose-900/10"
+                              : "bg-white/5 border-white/10 hover:border-white/20"
+                          }`}
+                        >
                         <div className="flex items-center gap-3">
                           <div className={`p-2 rounded-xl transition-colors ${
                             isSelected ? "bg-rose-500/20 text-rose-400" : "bg-white/10 text-gray-500"

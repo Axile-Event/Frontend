@@ -423,11 +423,9 @@ if (/^\d*\.?\d*$/.test(numericValue)) {
         const methods = Array.isArray(form.payment_methods_allowed) 
           ? form.payment_methods_allowed 
           : (form.payment_methods_allowed ? [form.payment_methods_allowed] : ["paystack"]);
-        
-        // Append each method individually so the backend receives a list
-        methods.forEach(method => {
-          formData.append("payment_methods_allowed", method);
-        });
+
+        // Backend expects a JSON array string for this multipart field.
+        formData.append("payment_methods_allowed", JSON.stringify(methods));
       }
 
       // convert local datetime input to ISO with Z
