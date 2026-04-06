@@ -4,7 +4,7 @@ import { Separator } from "@/components/ui/separator";
 import { Ticket, Info, Loader2, Lock, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const PaymentSummary = ({ summary, activeTab, onPay, loading = false }) => {
+const PaymentSummary = ({ summary, onPay, loading = false }) => {
   const { 
     ticketNumber, 
     event_name,
@@ -16,9 +16,7 @@ const PaymentSummary = ({ summary, activeTab, onPay, loading = false }) => {
     totalPaystack = 0,
   } = summary || {};
 
-  // Determine which fees and total to show based on active tab
-  const isPaystack = activeTab === "paystack";
-  const currentTotal = isPaystack ? totalPaystack : (subtotal + serviceFee);
+  const currentTotal = totalPaystack || (subtotal + serviceFee + paystackFee);
 
   return (
     <Card className="border-border/70 bg-card/90 shadow-xl overflow-hidden">
@@ -79,8 +77,10 @@ const PaymentSummary = ({ summary, activeTab, onPay, loading = false }) => {
         {/* Fee Breakdown Section */}
         <div className="space-y-3">
           <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground uppercase font-black tracking-widest mb-1">
-            <Info className="h-3 w-3" />
-            <span>Fee Breakdown</span>
+            <span className="flex items-center gap-1">
+              <Info className="h-3 w-3" />
+              Fee Breakdown
+            </span>
           </div>
           
           {serviceFee > 0 && (
@@ -95,7 +95,7 @@ const PaymentSummary = ({ summary, activeTab, onPay, loading = false }) => {
             </div>
           )}
           
-          {isPaystack && paystackFee > 0 && (
+          {paystackFee > 0 && (
             <div className="flex justify-between items-center text-sm">
               <div className="flex items-center gap-2">
                 <span className="text-muted-foreground font-medium">Processing Fee</span>
@@ -104,15 +104,6 @@ const PaymentSummary = ({ summary, activeTab, onPay, loading = false }) => {
                 </span>
               </div>
               <span className="text-foreground font-mono font-medium">₦{paystackFee?.toLocaleString()}</span>
-            </div>
-          )}
-
-          {!isPaystack && (
-            <div className="bg-amber-500/5 border border-amber-500/10 rounded-xl p-3 flex gap-2">
-              <Info size={14} className="text-amber-500 shrink-0 mt-0.5" />
-              <p className="text-[10px] text-amber-200/70 leading-relaxed font-bold">
-                Note: An additional 6% processing fee will be calculated during manual verification by the admin.
-              </p>
             </div>
           )}
         </div>
@@ -127,39 +118,37 @@ const PaymentSummary = ({ summary, activeTab, onPay, loading = false }) => {
               ₦{currentTotal?.toLocaleString()}
             </span>
             <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-tighter mt-1">
-              Includes ₦{(isPaystack ? (serviceFee + paystackFee) : serviceFee).toLocaleString()} in fees
+              Includes ₦{(serviceFee + paystackFee).toLocaleString()} in fees
             </p>
           </div>
         </div>
 
         {/* Action Button - Desktop Only */}
-        {isPaystack && (
-           <div className="hidden lg:block pt-2 space-y-3">
-              <Button 
-                onClick={onPay}
-                disabled={loading}
-                className="w-full h-14 text-sm font-black uppercase tracking-widest shadow-xl shadow-rose-600/20 bg-rose-600 hover:bg-rose-700 active:scale-[0.98] transition-all"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                    Redirecting to Paystack...
-                  </>
-                ) : (
-                  <>
-                    <Lock className="mr-2 h-4 w-4" />
-                    Complete Order
-                  </>
-                )}
-              </Button>
-              <div className="flex items-center justify-center gap-4 text-[10px] text-muted-foreground font-bold uppercase tracking-tight">
-                <div className="flex items-center gap-1">
-                  <ShieldCheck size={12} className="text-emerald-500" />
-                  Secured by Paystack
-                </div>
-              </div>
-           </div>
-        )}
+        <div className="hidden lg:block pt-2 space-y-3">
+          <Button 
+            onClick={onPay}
+            disabled={loading}
+            className="w-full h-14 text-sm font-black uppercase tracking-widest shadow-xl shadow-rose-600/20 bg-rose-600 hover:bg-rose-700 active:scale-[0.98] transition-all"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Redirecting...
+              </>
+            ) : (
+              <>
+                <Lock className="mr-2 h-4 w-4" />
+                Complete Order
+              </>
+            )}
+          </Button>
+          <div className="flex items-center justify-center gap-4 text-[10px] text-muted-foreground font-bold uppercase tracking-tight">
+            <div className="flex items-center gap-1">
+              <ShieldCheck size={12} className="text-emerald-500" />
+              Secured by Paystack
+            </div>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );

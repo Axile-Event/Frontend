@@ -1,6 +1,4 @@
-import React from 'react';
-import { Button } from "@/components/ui/button";
-import { CreditCard, ShieldCheck, Loader2, Lock, Receipt } from 'lucide-react';
+import { CreditCard, ShieldCheck, Lock, Zap, CheckCircle2 } from 'lucide-react';
 
 const PaystackTab = ({ summary, onPay, loading = false }) => {
   // Extract fee values
