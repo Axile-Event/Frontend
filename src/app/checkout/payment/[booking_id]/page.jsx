@@ -16,6 +16,7 @@ import api from "@/lib/axios";
 import toast from "react-hot-toast";
 
 // Custom Components
+import Loading from "@/components/ui/Loading";
 import PaymentSummary from "@/components/payment/PaymentSummary";
 import PaymentTabs from "@/components/payment/PaymentTabs";
 import PaystackTab from "@/components/payment/PaystackTab";
@@ -190,7 +191,7 @@ export default function CheckoutPaymentPage() {
             <div className="flex-1 space-y-8 order-2 lg:order-1">
               {/* Header */}
               <div className="hidden lg:block space-y-2">
-                <h1 className="text-4xl font-black tracking-tight text-white uppercase italic">Complete Payment</h1>
+                <h1 className="text-4xl font-black tracking-tight text-white uppercase">Complete Payment</h1>
                 <p className="text-xs text-muted-foreground font-bold uppercase tracking-widest bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg inline-block">
                   Ref: {bookingData.ticketNumber}
                 </p>

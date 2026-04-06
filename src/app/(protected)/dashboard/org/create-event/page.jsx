@@ -88,6 +88,7 @@ export default function CreateEvent() {
   const [createdEventId, setCreatedEventId] = useState(null);
   const [showPinPrompt, setShowPinPrompt] = useState(false);
   const [pendingSubmit, setPendingSubmit] = useState(false);
+  const [saveAsDraft, setSaveAsDraft] = useState(false);
   const DRAFT_KEY = "axile_event_creation_draft";
   const [hasLoadedDraft, setHasLoadedDraft] = useState(false);
 
@@ -380,9 +381,13 @@ export default function CreateEvent() {
 
 
 
-  const submit = async (ev) => {
-    ev.preventDefault();
-    const localErrors = validate();
+  const submit = async (ev, isDraft = false) => {
+    if (ev) ev.preventDefault();
+    setSaveAsDraft(isDraft);
+    
+    // Only validate full requirements if not a draft
+    // If it's a draft, we might allow some missing fields
+    const localErrors = isDraft ? {} : validate();
     if (Object.keys(localErrors).length > 0) {
       const firstError = Object.values(localErrors)[0] || "Please fill in all required fields correctly.";
       toast.error(firstError);
@@ -413,11 +418,14 @@ export default function CreateEvent() {
       formData.append("location", form.location.trim());
       
       if (form.pricing_type === "paid") {
-        // Backend expects it exactly as an array or comma-separated string based on existing patterns
         const methods = Array.isArray(form.payment_methods_allowed) 
-          ? form.payment_methods_allowed.join(",") 
-          : (form.payment_methods_allowed || "paystack");
-        formData.append("payment_methods_allowed", methods);
+          ? form.payment_methods_allowed 
+          : (form.payment_methods_allowed ? [form.payment_methods_allowed] : ["paystack"]);
+        
+        // Append each method individually so the backend receives a list
+        methods.forEach(method => {
+          formData.append("payment_methods_allowed", method);
+        });
       }
 
       // convert local datetime input to ISO with Z
@@ -433,11 +441,10 @@ export default function CreateEvent() {
         formData.append("max_quantity_per_booking", form.max_quantity_per_booking);
       }
 
-      // Append referral config to FormData
-      appendReferralFields(formData, referralConfig);
+      // Add save_as_draft flag
+      formData.append("save_as_draft", saveAsDraft ? "true" : "false");
 
       // Debug: log what we're sending
-      console.log("[CreateEvent] Referral config:", referralConfig);
       console.log("[CreateEvent] FormData entries:", [...formData.entries()]);
 
       // IMPORTANT: don't set Content-Type for FormData; the browser will add the correct boundary.
@@ -524,6 +531,7 @@ export default function CreateEvent() {
         console.error("[CreateEvent] Response Data:", err.response.data);
         console.error("[CreateEvent] Response Status:", err.response.status);
         console.error("[CreateEvent] Response Headers:", err.response.headers);
+        console.error("[CreateEvent] Full Error Response:", err.response);
       } else if (err.request) {
         console.error("[CreateEvent] No response received. Request details:", err.request);
       } else {
@@ -685,6 +693,16 @@ export default function CreateEvent() {
              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
              <span className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Draft Saved</span>
           </div>
+          <button
+            type="button"
+            disabled={loading}
+            onClick={(e) => submit(e, true)}
+            className="px-6 py-2.5 rounded-xl border border-rose-500/30 text-xs font-bold text-rose-500 hover:bg-rose-500/10 transition-all active:scale-95 disabled:opacity-50"
+          >
+            {loading && saveAsDraft ? (
+               <span className="w-3 h-3 border-2 border-rose-500/20 border-t-rose-500 rounded-full animate-spin" />
+            ) : "Save as Draft"}
+          </button>
           <button
             type="button"
             onClick={() => router.back()}
@@ -1115,103 +1133,105 @@ export default function CreateEvent() {
                     {errors.categories}
                   </p>
                 )}
+                </div>
+              )}
 
                 {/* Payment Methods Section */}
-                <div className="space-y-4 pt-4 border-t border-white/5">
-                <div className="flex items-center gap-2 mb-2">
-                  <CreditCard className="w-4 h-4 text-rose-500" />
-                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">
-                    Payment Methods
-                  </h3>
-                </div>
-                
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {[
-                    { id: 'paystack', label: 'Paystack', desc: 'Auto-confirmed' },
-                    { id: 'manual_bank_transfer', label: 'Bank Transfer', desc: 'Manual confirm' }
-                  ].map((method) => {
-                    const isSelected = (form.payment_methods_allowed || []).includes(method.id);
-                    return (
-                      <div key={method.id} className="space-y-3">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const current = Array.isArray(form.payment_methods_allowed) 
-                              ? form.payment_methods_allowed 
-                              : (form.payment_methods_allowed ? [form.payment_methods_allowed] : []);
-                            
-                            if (isSelected) {
-                              setForm(s => ({
-                                ...s,
-                                payment_methods_allowed: current.filter(m => m !== method.id)
-                              }));
-                            } else {
-                              setForm(s => ({
-                                ...s,
-                                payment_methods_allowed: [...current, method.id]
-                              }));
-                            }
-                            setErrors(prev => ({ ...prev, payment_methods_allowed: undefined }));
-                          }}
-                          className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all duration-300 ${
-                            isSelected 
-                              ? "bg-rose-500/10 border-rose-500/50 shadow-lg shadow-rose-900/10" 
-                              : "bg-white/5 border-white/10 hover:border-white/20"
-                          }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className={`p-2 rounded-xl transition-colors ${
-                              isSelected ? "bg-rose-500/20 text-rose-400" : "bg-white/10 text-gray-500"
-                            }`}>
-                              {method.id === 'paystack' ? <CreditCard className="w-4 h-4" /> : <Banknote className="w-4 h-4" />}
-                            </div>
-                            <div className="text-left">
-                              <p className="text-[11px] font-black uppercase tracking-wider text-white">
-                                {method.label}
-                              </p>
-                              <p className="text-[9px] font-bold text-gray-500 uppercase tracking-tight">
-                                {method.desc}
-                              </p>
-                            </div>
-                          </div>
-                          {isSelected && <CheckCircle2 className="w-4 h-4 text-rose-500 animate-in zoom-in-0 duration-300" />}
-                        </button>
-
-                        <AnimatePresence>
-                          {isSelected && (
-                            <motion.div
-                              initial={{ opacity: 0, height: 0, marginTop: 0 }}
-                              animate={{ opacity: 1, height: "auto", marginTop: 8 }}
-                              exit={{ opacity: 0, height: 0, marginTop: 0 }}
-                              className="overflow-hidden"
+                {form.pricing_type === "paid" && (
+                  <div className="space-y-4 pt-4 border-t border-white/5">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CreditCard className="w-4 h-4 text-rose-500" />
+                      <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">
+                        Payment Methods
+                      </h3>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {[
+                        { id: 'paystack', label: 'Paystack', desc: 'Auto-confirmed' },
+                        { id: 'manual_bank_transfer', label: 'Bank Transfer', desc: 'Manual confirm' }
+                      ].map((method) => {
+                        const isSelected = (form.payment_methods_allowed || []).includes(method.id);
+                        return (
+                          <div key={method.id} className="space-y-3">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const current = Array.isArray(form.payment_methods_allowed) 
+                                  ? form.payment_methods_allowed 
+                                  : (form.payment_methods_allowed ? [form.payment_methods_allowed] : []);
+                                
+                                if (isSelected) {
+                                  setForm(s => ({
+                                    ...s,
+                                    payment_methods_allowed: current.filter(m => m !== method.id)
+                                  }));
+                                } else {
+                                  setForm(s => ({
+                                    ...s,
+                                    payment_methods_allowed: [...current, method.id]
+                                  }));
+                                }
+                                setErrors(prev => ({ ...prev, payment_methods_allowed: undefined }));
+                              }}
+                              className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all duration-300 ${
+                                isSelected 
+                                  ? "bg-rose-500/10 border-rose-500/50 shadow-lg shadow-rose-900/10" 
+                                  : "bg-white/5 border-white/10 hover:border-white/20"
+                              }`}
                             >
-                              <div className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-2">
-                                <div className="flex items-center gap-2 text-[9px] font-black text-rose-500 uppercase tracking-[0.2em]">
-                                  <div className="w-1.5 h-1.5 rounded-full bg-rose-500" />
-                                  Details & Explanation
+                              <div className="flex items-center gap-3">
+                                <div className={`p-2 rounded-xl transition-colors ${
+                                  isSelected ? "bg-rose-500/20 text-rose-400" : "bg-white/10 text-gray-500"
+                                }`}>
+                                  {method.id === 'paystack' ? <CreditCard className="w-4 h-4" /> : <Banknote className="w-4 h-4" />}
                                 </div>
-                                <p className="text-[11px] font-medium text-gray-400 leading-relaxed">
-                                  {method.id === 'paystack' 
-                                    ? "Payments are handled securely via our Paystack gateway. Attendees can pay via Card, USSD, or Bank Transfer, and tickets are issued immediately upon confirmation."
-                                    : "Attendees transfer to our company account. Due to the manual nature of verification, it may take some time to process, but all valid payments will be approved."
-                                  }
-                                </p>
+                                <div className="text-left">
+                                  <p className="text-[11px] font-black uppercase tracking-wider text-white">
+                                    {method.label}
+                                  </p>
+                                  <p className="text-[9px] font-bold text-gray-500 uppercase tracking-tight">
+                                    {method.desc}
+                                  </p>
+                                </div>
                               </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
-                    );
-                  })}
-                </div>
-                {errors.payment_methods_allowed && (
-                  <p className="text-[10px] text-rose-500 font-bold mt-2 ml-1 uppercase">
-                    {errors.payment_methods_allowed}
-                  </p>
+                              {isSelected && <CheckCircle2 className="w-4 h-4 text-rose-500 animate-in zoom-in-0 duration-300" />}
+                            </button>
+
+                            <AnimatePresence>
+                              {isSelected && (
+                                <motion.div
+                                  initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                                  animate={{ opacity: 1, height: "auto", marginTop: 8 }}
+                                  exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                                  className="overflow-hidden"
+                                >
+                                  <div className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-2">
+                                    <div className="flex items-center gap-2 text-[9px] font-black text-rose-500 uppercase tracking-[0.2em]">
+                                      <div className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                                      Details & Explanation
+                                    </div>
+                                    <p className="text-[11px] font-medium text-gray-400 leading-relaxed">
+                                      {method.id === 'paystack' 
+                                        ? "Payments are handled securely via our Paystack gateway. Attendees can pay via Card, USSD, or Bank Transfer, and tickets are issued immediately upon confirmation."
+                                        : "Attendees transfer to our company account. Due to the manual nature of verification, it may take some time to process, but all valid payments will be approved."
+                                      }
+                                    </p>
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {errors.payment_methods_allowed && (
+                      <p className="text-[10px] text-rose-500 font-bold mt-2 ml-1 uppercase">
+                        {errors.payment_methods_allowed}
+                      </p>
+                    )}
+                  </div>
                 )}
-                </div>
-              </div>
-              )}
 
               {/* Referral Rewards Section */}
               <div className="space-y-4 pt-4 border-t border-white/5">
@@ -1478,9 +1498,13 @@ export default function CreateEvent() {
               <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mb-2">
                 <CheckCircle2 className="w-16 h-16 text-emerald-500 mb-4" />
               </div>
-              <h2 className="text-2xl font-bold text-white">Event Created & Pending</h2>
+              <h2 className="text-2xl font-bold text-white">
+                {saveAsDraft ? "Draft Saved" : "Event Created & Pending"}
+              </h2>
               <p className="text-gray-400 text-center max-w-md">
-                Your event has been successfully created and is currently pending approval. An email will be delivered to you once your event is approved and is live.
+                {saveAsDraft 
+                  ? "Your event has been saved as a draft. You can access it anytime from 'My Events' and publish it later."
+                  : "Your event has been successfully created and is currently pending approval. An email will be delivered to you once your event is approved and is live."}
               </p>
             </div>
 
@@ -1500,7 +1524,6 @@ export default function CreateEvent() {
         </div>
       )}
 
-      {/* PIN Prompt Modal */}
       <PinPromptModal
         isOpen={showPinPrompt}
         onClose={() => {
@@ -1515,5 +1538,7 @@ export default function CreateEvent() {
         requireSetup={true}
       />
     </div>
+    </div>
   );
 }
+
