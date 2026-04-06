@@ -9,7 +9,7 @@ import toast from "react-hot-toast";
 import { motion } from "framer-motion";
 import { ProfileSkeleton } from "@/components/skeletons";
 
-const StudentSettings = () => {
+const UserSettings = () => {
   const [profile, setProfile] = useState({
     firstname: "",
     lastname: "",
@@ -126,7 +126,7 @@ const StudentSettings = () => {
               </div>
               <div className="text-center">
                 <h4 className="text-white font-bold text-sm tracking-tight">{profile?.firstname} {profile?.lastname}</h4>
-                <p className="text-gray-500 text-[10px] uppercase font-black tracking-widest mt-1">Student Account</p>
+                <p className="text-gray-500 text-[10px] uppercase font-black tracking-widest mt-1">User Account</p>
               </div>
             </div>
 
@@ -265,4 +265,4 @@ const StudentSettings = () => {
   );
 };
 
-export default StudentSettings;
+export default UserSettings;
