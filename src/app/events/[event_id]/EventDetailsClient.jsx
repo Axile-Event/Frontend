@@ -1,20 +1,20 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import api from "@/lib/axios";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Loader2, MapPin, Calendar, Clock, Ticket, Info, Share2, Copy, Check, X, Maximize2, Plus, Minus, ShoppingCart } from "lucide-react";
+import { Loader2, MapPin, Calendar, Clock, Ticket, Info, Share2, Copy, Check, X, Maximize2, Plus, Minus, ShoppingCart, Zap } from "lucide-react";
+import PaymentTabs from "@/components/payment/PaymentTabs";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import useAuthStore from "@/store/authStore";
-import { getImageUrl, getCookie, formatRewardLabel } from "@/lib/utils";
+import { getImageUrl } from "@/lib/utils";
 import { EventDetailsSkeleton } from "@/components/skeletons";
 import useTempBookingStore from "@/store/tempBookingStore";
-import { useReferral, cleanEventId } from "@/hooks/useReferral";
 
 // Platform fee constants
 const PLATFORM_FEE = 80;
@@ -29,7 +29,6 @@ const calculatePaystackFee = (amount) => {
 
 const EventDetailsClient = ({ event_id, initialEvent }) => {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const eventId = event_id;
   const { token, hydrated } = useAuthStore();
 
@@ -54,28 +53,33 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
   const [referralSource, setReferralSource] = useState("");
   const [otherReferral, setOtherReferral] = useState("");
 
-  // Referral tracking
-  const { referralCode, setReferral, getValidReferral, clearReferral } = useReferral();
-  const [refUsername, setRefUsername] = useState(null);
+  const [checkoutPaymentMethod, setCheckoutPaymentMethod] = useState(null);
 
-  // Read referral username from cookie on mount
+  const allowedPaymentMethods = useMemo(() => {
+    if (!event || event.pricing_type !== "paid") return [];
+    const raw = event.payment_methods_allowed;
+    const list = Array.isArray(raw)
+      ? raw
+      : typeof raw === "string"
+        ? raw.split(",").map((s) => s.trim()).filter(Boolean)
+        : [];
+    const normalized = list.filter(
+      (m) => m === "paystack" || m === "manual_bank_transfer",
+    );
+    return normalized.length ? normalized : ["paystack"];
+  }, [event]);
+
   useEffect(() => {
-    const username = getCookie("ref_username");
-    if (username) {
-      setRefUsername(username);
+    if (!allowedPaymentMethods.length) {
+      setCheckoutPaymentMethod(null);
+      return;
     }
-  }, []);
-
-  // Capture referral from URL query param (?ref=abc123)
-  useEffect(() => {
-    const ref = searchParams.get("ref");
-    const id = event?.event_id || eventId;
-    const cleaned = cleanEventId(id);
-
-    if (ref && cleaned) {
-      setReferral(ref, cleaned);
-    }
-  }, [searchParams, event?.event_id, eventId, setReferral]);
+    setCheckoutPaymentMethod((prev) =>
+      prev && allowedPaymentMethods.includes(prev)
+        ? prev
+        : allowedPaymentMethods[0],
+    );
+  }, [event?.event_id, allowedPaymentMethods]);
 
   // Restore ticket selections from localStorage after login redirect
   useEffect(() => {
@@ -260,6 +264,17 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
       return;
     }
 
+    const isPaidCheckout =
+      event.pricing_type === "paid" && orderSummary.subtotal > 0;
+    if (
+      isPaidCheckout &&
+      (!checkoutPaymentMethod ||
+        !allowedPaymentMethods.includes(checkoutPaymentMethod))
+    ) {
+      toast.error("Choose how you want to pay for this event");
+      return;
+    }
+
     setBookingLoading(true);
     const toastId = toast.loading("Processing booking...");
 
@@ -279,28 +294,15 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
         quantity: item.quantity,
       }));
       
-      // Get valid referral for this specific event
-      const validReferral = getValidReferral(eventIdToUse);
-
-      // Determine final referral identity
-      let finalReferral = refUsername || validReferral;
-      
-      // Override with scoped source if it matches specific tracking event and choice was made
-      if (eventIdToUse === "event:TO-56363" && referralSource) {
-         finalReferral = referralSource === "Other" ? `Other: ${otherReferral}` : referralSource;
-      }
-
       const payload = {
         event_id: eventIdToUse,
         items: items,
-        // Send referral username/ID in standard 'referral' field
-        ...(finalReferral && { referral: finalReferral }),
-        // For maximum compatibility with all backend endpoints
-        ...(finalReferral && { referral_code: finalReferral }),
-        // Also send referral_username if we have the cookie-based identity
-        ...(refUsername && { referral_username: refUsername }),
-        redirect_url: `${window.location.origin}/payment`,
-        callback_url: `${window.location.origin}/payment`,
+        ...(isPaidCheckout && { payment_method: checkoutPaymentMethod }),
+        // Scoped referral source for event:TO-56363
+        ...(eventIdToUse === "event:TO-56363" && {
+          referral_source: referralSource === "Other" ? `Other: ${otherReferral}` : referralSource,
+          referral: referralSource === "Other" ? `Other: ${otherReferral}` : referralSource
+        })
       };
       
       console.log("Booking payload:", payload);
@@ -323,15 +325,14 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
           subtotal: orderSummary.subtotal,
           payment_url: response.data.payment_url,
           payment_reference: response.data.payment_reference,
+          payment_method: response.data.payment_method || checkoutPaymentMethod,
+          payment_methods_allowed:
+            response.data.allowed_payment_methods || allowedPaymentMethods,
+          total_manual_amount: response.data.total_amount,
           tickets: tickets,
           created_at: new Date().toISOString()
         };
         localStorage.setItem(`booking_${bookingId}`, JSON.stringify(bookingDataForCheckout));
-
-        // Clear referral after successful booking
-        if (validReferral) {
-          clearReferral();
-        }
         
         toast.success("Booking created! Redirecting to payment...", { id: toastId });
         router.push(`/checkout/payment/${bookingId}`);
@@ -436,27 +437,6 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
               {/* Event Title & Info */}
               <div>
                 <h1 className="text-2xl md:text-4xl font-bold mb-3">{event.name}</h1>
-
-                {/* Subtle referral indicator - only show if valid for this event */}
-                {getValidReferral(event?.event_id || eventId) && (
-                  <motion.div 
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.5, ease: "easeOut" }}
-                    className="inline-flex items-center gap-1.5 px-3 py-1 mb-4 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[11px] font-semibold tracking-wide uppercase"
-                  >
-                    <div className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                    </div>
-                    {refUsername ? `Referred by ${refUsername}` : "You were referred"}
-                    {event && formatRewardLabel(event) && (
-                      <span className="ml-1 opacity-80">
-                        • {formatRewardLabel(event)}
-                      </span>
-                    )}
-                  </motion.div>
-                )}
                 <div className="flex flex-wrap gap-4 text-muted-foreground text-sm md:text-base">
                   <div className="flex items-center gap-2 bg-muted/30 px-3 py-1.5 rounded-full">
                     <Calendar className="h-4 w-4 text-rose-500" />
@@ -511,8 +491,8 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
                           key={cat.category_id}
                           className={`p-4 rounded-2xl border-2 transition-all duration-200 ${
                             qty > 0
-                              ? "border-rose-500/30 bg-card/90 shadow-sm ring-1 ring-rose-500/10"
-                              : "border-border bg-card hover:border-border/80 hover:bg-card/90"
+                              ? "border-rose-500 bg-rose-500/5 shadow-lg shadow-rose-500/10"
+                              : "border-border bg-card hover:border-border/80 hover:bg-card/80"
                           } ${isCatSoldOut ? "opacity-50" : ""}`}
                         >
                           <div className="flex items-start justify-between gap-4">
@@ -659,8 +639,8 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
                 {/* Order Summary Card */}
                 <Card className={`border-2 transition-all duration-300 ${
                   orderSummary.totalQuantity > 0 
-                    ? "border-rose-500/30 bg-card/95 shadow-sm shadow-rose-500/5" 
-                    : "border-border/50 bg-card/90"
+                    ? "border-rose-500/50 bg-gradient-to-b from-rose-500/10 to-card shadow-xl shadow-rose-500/10" 
+                    : "border-border/50 bg-card/80"
                 }`}>
                   <CardHeader className="p-5 pb-4">
                     <CardTitle className="text-lg flex items-center gap-2">
@@ -684,6 +664,37 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
                             </div>
                           ))}
                         </div>
+
+                        {event.pricing_type === "paid" &&
+                          orderSummary.subtotal > 0 &&
+                          allowedPaymentMethods.length > 1 && (
+                          <div className="space-y-3 pb-2">
+                            <div className="flex items-center gap-2">
+                              <Zap className="h-4 w-4 text-rose-500" />
+                              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                                Payment method
+                              </span>
+                            </div>
+                            <PaymentTabs
+                              activeTab={checkoutPaymentMethod || allowedPaymentMethods[0]}
+                              onChange={setCheckoutPaymentMethod}
+                              allowedMethods={allowedPaymentMethods}
+                            />
+                          </div>
+                        )}
+
+                        {event.pricing_type === "paid" &&
+                          orderSummary.subtotal > 0 &&
+                          allowedPaymentMethods.length === 1 && (
+                          <p className="text-xs text-muted-foreground pb-2">
+                            Payment:{" "}
+                            <span className="font-medium text-foreground">
+                              {allowedPaymentMethods[0] === "manual_bank_transfer"
+                                ? "Bank transfer"
+                                : "Paystack (card)"}
+                            </span>
+                          </p>
+                        )}
 
                         <div className="border-t border-border/50 pt-4 space-y-2">
                           <div className="flex justify-between text-sm">
