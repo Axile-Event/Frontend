@@ -103,6 +103,14 @@ export default function CheckoutPaymentPage() {
           const allowedMethods = Array.isArray(allowedMethodsRaw) 
             ? allowedMethodsRaw 
             : (typeof allowedMethodsRaw === 'string' ? allowedMethodsRaw.split(',') : ["paystack"]);
+          
+          // DEBUG: Log to help verify
+          console.log('🔍 DEBUG - Booking Payment Methods:', {
+            allowedMethodsRaw,
+            allowedMethods,
+            willShowTabs: allowedMethods.length > 1,
+            bookingId: parsed.booking_id
+          });
 
           const resolvedMethod = parsed.payment_method;
           if (
@@ -157,6 +165,7 @@ export default function CheckoutPaymentPage() {
       }
       const response = await api.post("/tickets/initialize-payment/", {
         booking_id: booking_id,
+        payment_method: activeTab,
         redirect_url: `${window.location.origin}/payment`,
         callback_url: `${window.location.origin}/payment`,
       });
