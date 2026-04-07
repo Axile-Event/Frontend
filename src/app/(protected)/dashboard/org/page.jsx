@@ -534,7 +534,7 @@ export default function Overview() {
            </div>
 
            {/* Organization Stats */}
-           <div className="bg-[#0A0A0A] border border-white/5 p-6 rounded-3xl shadow-lg">
+           <div className="bg-[#0A0A0A] border border-white/5 p-6 rounded-3xl shadow-lg shrink-0">
               <h2 className="text-sm font-black uppercase tracking-widest text-gray-500 mb-6 flex items-center gap-2">
                  <MapPin className="w-4 h-4" />
                  Organization Balance

@@ -390,85 +390,39 @@ export default function EventDetailsPage() {
   const { data: event, isLoading: loading, isError, error } = useQuery({
     queryKey: queryKeys.organizer.eventDetail(id),
     queryFn: async () => {
-      const orgRes = await api.get("/organizer/events/");
-      const payload = orgRes.data;
-      let list = [];
-      if (Array.isArray(payload)) list = payload;
-      else if (Array.isArray(payload?.events)) list = payload.events;
-      else if (Array.isArray(payload?.data)) list = payload.data;
-
-      // Normalize IDs — backend may return "EV-xxx" or "event:EV-xxx"; URL may use either
-      const normalizeId = (id) => String(id ?? "").replace(/^event:/i, "").toLowerCase();
-      const normalizedTarget = normalizeId(id);
-
-      let eventData = list.find((e) => {
-        const raw = String(e.event_id ?? e.id ?? "");
-        return raw === String(id) || normalizeId(raw) === normalizedTarget;
-      }) || null;
-
-      // Case-insensitive status check and flexible flag detection
-      const isDraftEvent = 
-        String(eventData?.status || "").toLowerCase() === "draft" || 
-        String(eventData?.save_as_draft).toLowerCase() === "true" || 
-        String(eventData?.is_draft).toLowerCase() === "true";
-
-      if (!isDraftEvent && id) {
-        // Only fetch full public details for non-draft events
-        try {
-          const publicRes = await api.get(`/events/${id}/details/`);
-          if (publicRes?.data) {
-            eventData = eventData ? { ...eventData, ...publicRes.data } : publicRes.data;
-          }
-        } catch {
-          // Non-fatal
-        }
-      }
-
-      if (eventData) {
-        // Fetch tickets and revenue (Analytics is the source of truth for Net Revenue)
-        try {
-          const [ticketsRes, analyticsRes] = await Promise.allSettled([
-            api.get(`/tickets/organizer/${id}/tickets/`),
-            api.get(`/analytics/event/${id}/`)
-          ]);
-
-          const stats = (ticketsRes.status === 'fulfilled' ? ticketsRes.value.data?.statistics : null) || {};
-          let analyticsRevenue = 0;
-
-          if (analyticsRes.status === 'fulfilled') {
-            const aData = analyticsRes.value.data.analytics || analyticsRes.value.data;
-            const aStats = aData.statistics || {};
-            const aRevenueSource = analyticsRes.value.data.event?.revenue;
-
-            if (aRevenueSource && typeof aRevenueSource === "object") {
-              analyticsRevenue = aRevenueSource.organizer_revenue ?? 
-                                 aRevenueSource.net_revenue ?? 
-                                 aRevenueSource.earnings ?? 
-                                 aRevenueSource.organizer_share ?? 
-                                 aRevenueSource.net ?? 
-                                 aRevenueSource.total_revenue ?? 0;
-            } else {
-              analyticsRevenue = aRevenueSource ?? aStats.net_revenue ?? aStats.total_revenue ?? stats.total_revenue ?? 0;
+      try {
+        // Endpoint 3: GET /organizer/events/<event_id>/ - Dedicated detail endpoint
+        const res = await api.get(`/organizer/events/${id}/`);
+        let eventData = res.data;
+        
+        if (eventData) {
+          // Map ticket_stats and metrics from response
+          const metrics = eventData.metrics || {};
+          const ticketStats = eventData.ticket_stats || {};
+          
+          eventData = {
+            ...eventData,
+            ticket_stats: {
+              tickets_sold: ticketStats.tickets_sold ?? metrics.tickets_sold ?? 0,
+              sales_gross: ticketStats.sales_gross ?? metrics.sales_gross ?? 0,
+              organizer_revenue: ticketStats.organizer_revenue ?? metrics.organizer_revenue ?? eventData.organizer_revenue ?? 0,
+              available_spots: ticketStats.available_spots ?? metrics.capacity_total ?? "∞",
+              capacity_total: ticketStats.capacity_total ?? metrics.capacity_total,
+              confirmed_tickets: ticketStats.confirmed_tickets ?? 0,
+              pending_tickets: ticketStats.pending_tickets ?? 0
             }
-          } else {
-            analyticsRevenue = stats.total_revenue || 0;
-          }
-
-          eventData = { 
-            ...eventData, 
-            ticket_stats: { 
-              confirmed_tickets: stats.confirmed || 0, 
-              tickets_sold: stats.sold ?? (stats.confirmed || 0) + (stats.used || 0), 
-              pending_tickets: stats.pending || 0, 
-              total_revenue: analyticsRevenue, // Use correct net revenue
-              available_spots: stats.available_spots ?? "∞" 
-            } 
           };
-        } catch (err) {
-          console.error("Failed to fetch event stats:", err);
-          if (!eventData.ticket_stats) eventData = { ...eventData, ticket_stats: { confirmed_tickets: 0, tickets_sold: 0, pending_tickets: 0, total_revenue: 0, available_spots: "∞" } };
+          
+          // ticket_categories already in response
+          if (!eventData.ticket_categories) {
+            eventData.ticket_categories = [];
+          }
         }
-
+        
+        return eventData;
+      } catch (err) {
+        console.error("Failed to fetch event detail:", err);
+        // Fallback to public endpoint
         try {
           const publicRes = await api.get(`/events/${id}/details/`);
           return publicRes.data;

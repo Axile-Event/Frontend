@@ -32,75 +32,22 @@ const MyEvent = () => {
       else if (Array.isArray(payload?.data)) list = payload.data;
       else list = [];
 
-      // Debug: log first event to see if referral fields exist
-      if (list.length > 0) {
-        console.log("[MyEvents] Sample event keys:", Object.keys(list[0]));
-        console.log("[MyEvents] First event referral fields:", {
-          use_referral: list[0].use_referral,
-          referral_reward_type: list[0].referral_reward_type,
-          referral_reward_amount: list[0].referral_reward_amount,
-          referral_reward_percentage: list[0].referral_reward_percentage,
-        });
-      }
-
-      const eventsWithStats = await Promise.all(
-        list.map(async (event) => {
-          const eventId = event.event_id ?? event.id;
-          try {
-            const [ticketsRes, analyticsRes] = await Promise.allSettled([
-              api.get(`/tickets/organizer/${eventId}/tickets/`),
-              api.get(`/analytics/event/${eventId}/`)
-            ]);
-
-            const stats = (ticketsRes.status === 'fulfilled' ? ticketsRes.value.data?.statistics : null) || {};
-            let analyticsRevenue = 0;
-
-            if (analyticsRes.status === 'fulfilled') {
-              const aData = analyticsRes.value.data.analytics || analyticsRes.value.data;
-              const aStats = aData.statistics || {};
-              const aRevenueSource = analyticsRes.value.data.event?.revenue;
-
-              if (aRevenueSource && typeof aRevenueSource === "object") {
-                analyticsRevenue = aRevenueSource.organizer_revenue ?? 
-                                   aRevenueSource.net_revenue ?? 
-                                   aRevenueSource.earnings ?? 
-                                   aRevenueSource.organizer_share ?? 
-                                   aRevenueSource.net ?? 
-                                   aRevenueSource.total_revenue ?? 0;
-              } else {
-                analyticsRevenue = aRevenueSource ?? aStats.net_revenue ?? aStats.total_revenue ?? stats.total_revenue ?? 0;
-              }
-            } else {
-              analyticsRevenue = stats.total_revenue || 0;
-            }
-
-            return {
-              ...event,
-              ticket_stats: {
-                confirmed_tickets: stats.confirmed || 0,
-                tickets_sold: stats.sold ?? (stats.confirmed || 0) + (stats.used || 0),
-                pending_tickets: stats.pending || 0,
-                total_revenue: analyticsRevenue, // Use correct net revenue
-                available_spots: stats.available_spots ?? "∞"
-              }
-            };
-          } catch (ticketErr) {
-            console.warn(`Could not fetch ticket stats for event ${eventId}:`, ticketErr);
-            return {
-              ...event,
-              ticket_stats: event.ticket_stats || {
-                confirmed_tickets: 0,
-                tickets_sold: 0,
-                pending_tickets: 0,
-                total_revenue: 0,
-                available_spots: "∞"
-              }
-            };
+      // Endpoint 2: GET /organizer/events/ - Use metrics from response directly, no N+1 calls
+      const eventsWithStats = list.map((event) => {
+        const metrics = event.metrics || {};
+        return {
+          ...event,
+          ticket_stats: {
+            tickets_sold: metrics.tickets_sold ?? 0,
+            sales_gross: metrics.sales_gross ?? 0,
+            organizer_revenue: metrics.organizer_revenue ?? 0,
+            available_spots: metrics.capacity_total ?? "∞",
+            capacity_total: metrics.capacity_total
           }
         };
       });
 
-      return [...eventsWithMappedStats].sort((a, b) => {
+      return [...eventsWithStats].sort((a, b) => {
         const dateA = new Date(a.created_at || a.date);
         const dateB = new Date(b.created_at || b.date);
         return dateB - dateA;
