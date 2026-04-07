@@ -84,12 +84,37 @@ export default function CheckoutPaymentPage() {
           const serviceFee = subtotal > 0 ? PLATFORM_FEE : 0;
           const paystackFee = calculatePaystackFee(subtotal + serviceFee);
           const totalPaystack = subtotal + serviceFee + paystackFee;
-          const totalManual = subtotal + serviceFee;
+          let totalManual = subtotal + serviceFee;
+          const serverManualRaw =
+            parsed.total_manual_amount ?? parsed.total_amount;
+          if (
+            parsed.payment_method === "manual_bank_transfer" &&
+            serverManualRaw != null &&
+            serverManualRaw !== ""
+          ) {
+            const n = parseFloat(serverManualRaw);
+            if (!Number.isNaN(n)) totalManual = n;
+          }
 
-          const allowedMethodsRaw = parsed.payment_methods_allowed || ["paystack"];
+          // Determine allowed methods - prioritize the specific method selected on the event page
+          const selectedMethod = parsed.payment_method;
+          const allowedMethodsRaw = selectedMethod 
+            ? [selectedMethod] 
+            : (parsed.payment_methods_allowed || parsed.allowed_payment_methods || ["paystack"]);
+            
           const allowedMethods = Array.isArray(allowedMethodsRaw) 
             ? allowedMethodsRaw 
             : (typeof allowedMethodsRaw === 'string' ? allowedMethodsRaw.split(',') : ["paystack"]);
+          
+          const resolvedMethod = parsed.payment_method;
+          if (
+            resolvedMethod &&
+            allowedMethods.includes(resolvedMethod)
+          ) {
+            setActiveTab(resolvedMethod);
+          } else if (!allowedMethods.includes("paystack") && allowedMethods.length > 0) {
+            setActiveTab(allowedMethods[0]);
+          }
 
           setBookingData({
             booking_id: parsed.booking_id,
@@ -107,11 +132,6 @@ export default function CheckoutPaymentPage() {
             allowedMethods,
             pricing_type: parsed.pricing_type || "paid"
           });
-          
-          // Set active tab to the first allowed method if paystack is not available
-          if (!allowedMethods.includes("paystack") && allowedMethods.length > 0) {
-            setActiveTab(allowedMethods[0]);
-          }
 
           setLoading(false);
           return;
@@ -139,6 +159,7 @@ export default function CheckoutPaymentPage() {
       }
       const response = await api.post("/tickets/initialize-payment/", {
         booking_id: booking_id,
+        payment_method: activeTab,
         redirect_url: `${window.location.origin}/payment`,
         callback_url: `${window.location.origin}/payment`,
       });
