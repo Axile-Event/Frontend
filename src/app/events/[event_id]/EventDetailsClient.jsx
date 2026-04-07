@@ -221,12 +221,13 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
     });
 
     // Paystack calculates fee on total amount INCLUDING platform service fee
-    const paystackFee = subtotal > 0 ? calculatePaystackFee(subtotal + PLATFORM_FEE) : 0;
+    const isPaystack = !checkoutPaymentMethod || checkoutPaymentMethod === "paystack";
+    const paystackFee = (subtotal > 0 && isPaystack) ? calculatePaystackFee(subtotal + PLATFORM_FEE) : 0;
     const platformFee = subtotal > 0 ? PLATFORM_FEE + paystackFee : 0;
     const total = subtotal + platformFee;
 
-    return { selectedItems, subtotal, platformFee, total, totalQuantity };
-  }, [ticketSelections, categories]);
+    return { selectedItems, subtotal, platformFee, total, totalQuantity, paystackFee };
+  }, [ticketSelections, categories, checkoutPaymentMethod]);
 
   // Handle quantity change for a category
   const handleQuantityChange = (categoryId, delta) => {

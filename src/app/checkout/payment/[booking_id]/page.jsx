@@ -96,22 +96,16 @@ export default function CheckoutPaymentPage() {
             if (!Number.isNaN(n)) totalManual = n;
           }
 
-          const allowedMethodsRaw =
-            parsed.payment_methods_allowed ||
-            parsed.allowed_payment_methods ||
-            ["paystack"];
+          // Determine allowed methods - prioritize the specific method selected on the event page
+          const selectedMethod = parsed.payment_method;
+          const allowedMethodsRaw = selectedMethod 
+            ? [selectedMethod] 
+            : (parsed.payment_methods_allowed || parsed.allowed_payment_methods || ["paystack"]);
+            
           const allowedMethods = Array.isArray(allowedMethodsRaw) 
             ? allowedMethodsRaw 
             : (typeof allowedMethodsRaw === 'string' ? allowedMethodsRaw.split(',') : ["paystack"]);
           
-          // DEBUG: Log to help verify
-          console.log('🔍 DEBUG - Booking Payment Methods:', {
-            allowedMethodsRaw,
-            allowedMethods,
-            willShowTabs: allowedMethods.length > 1,
-            bookingId: parsed.booking_id
-          });
-
           const resolvedMethod = parsed.payment_method;
           if (
             resolvedMethod &&
