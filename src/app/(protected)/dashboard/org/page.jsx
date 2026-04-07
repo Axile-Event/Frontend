@@ -38,42 +38,60 @@ export default function Overview() {
         api.get("/organizer/events/"),
         api.get("/organizer/profile/"),
       ]);
-      let totalTicketsFromEvents = 0;
       let eventsData = [];
       if (eventsRes.status === "fulfilled") {
-        eventsData = eventsRes.value.data.events || [];
-        totalTicketsFromEvents = eventsData.reduce((t, e) => t + (e.ticket_stats?.tickets_sold ?? e.ticket_stats?.confirmed_tickets ?? 0), 0);
+        const payload = eventsRes.value.data;
+        if (Array.isArray(payload?.events)) {
+          eventsData = payload.events;
+        } else if (Array.isArray(payload)) {
+          eventsData = payload;
+        }
       }
-      const recentEvents = [...eventsData].sort((a, b) =>
-        new Date(b.created_at || b.date) - new Date(a.created_at || a.date)
-      ).slice(0, 3);
-      const eventStatusStats = eventsData.reduce((acc, e) => {
-        acc.total_events_created++;
-        if (e.status === 'verified') acc.verified_events++;
-        else if (e.status === 'pending') acc.pending_events++;
-        else if (e.status === 'denied') acc.denied_events++;
-        return acc;
-      }, { total_events_created: 0, verified_events: 0, pending_events: 0, denied_events: 0 });
+
+      const recentEvents = [...eventsData]
+        .sort((a, b) => new Date(b.created_at || b.date) - new Date(a.created_at || a.date))
+        .slice(0, 3);
+
+      const eventStatusStats = eventsData.reduce(
+        (acc, e) => {
+          acc.total_events_created++;
+          if (e.status === 'verified') acc.verified_events++;
+          else if (e.status === 'pending') acc.pending_events++;
+          else if (e.status === 'denied') acc.denied_events++;
+          return acc;
+        },
+        { total_events_created: 0, verified_events: 0, pending_events: 0, denied_events: 0 }
+      );
 
       let analytics = null;
       if (analyticsRes.status === "fulfilled") {
         const analyticsData = analyticsRes.value.data.analytics || analyticsRes.value.data;
-        analytics = { ...analyticsData, total_tickets_sold: totalTicketsFromEvents, total_events: eventsData.length };
+        // Use organizer_revenue from backend (net across all events)
+        analytics = {
+          ...analyticsData,
+          total_events: eventStatusStats.total_events_created,
+          verified_events: eventStatusStats.verified_events,
+          pending_events: eventStatusStats.pending_events,
+          denied_events: eventStatusStats.denied_events
+        };
       } else if (eventsRes.status === "fulfilled") {
-        const totalPendingTickets = eventsData.reduce((t, e) => t + (e.ticket_stats?.pending_tickets || 0), 0);
-        const totalRevenue = eventsData.reduce((t, e) => t + (e.ticket_stats?.total_revenue || 0), 0);
+        // Fallback: calculate from events if analytics call fails
+        const totalTickets = eventsData.reduce((t, e) => t + (e.metrics?.tickets_sold ?? 0), 0);
         analytics = {
           total_events: eventsData.length,
-          total_tickets_sold: totalTicketsFromEvents,
-          total_tickets_pending: totalPendingTickets,
-          total_revenue: totalRevenue,
-          revenue_by_event: [],
-          average_revenue_per_event: eventsData.length > 0 ? totalRevenue / eventsData.length : 0
+          organizer_revenue: 0,
+          total_tickets_sold: totalTickets,
+          total_pending_tickets: 0,
+          total_cancelled_tickets: 0,
+          total_used_tickets: 0,
+          ...eventStatusStats
         };
       }
+
       const organization = orgRes.status === "fulfilled"
         ? (orgRes.value.data.Org_profile || orgRes.value.data)
         : null;
+
       return { analytics, eventsData, organization, recentEvents, eventStatusStats };
     },
     enabled: !!hydrated,
@@ -225,57 +243,11 @@ export default function Overview() {
     // Update ref to current value to track subsequent changes
     initialLastUpdateRef.current = lastUpdate;
     
-    async function refetchData() {
-      try {
-        const [analyticsRes, eventsRes] = await Promise.allSettled([
-          api.get("/analytics/global/"),
-          api.get("/organizer/events/")
-        ]);
-
-        // Calculate correct ticket count from events
-        let totalTicketsFromEvents = 0;
-        let eventsData = [];
-        if (eventsRes.status === 'fulfilled') {
-          eventsData = eventsRes.value.data.events || [];
-          totalTicketsFromEvents = eventsData.reduce((total, event) => {
-            return total + (event.ticket_stats?.tickets_sold ?? event.ticket_stats?.confirmed_tickets ?? 0);
-          }, 0);
-        }
-
-        if (analyticsRes.status === 'fulfilled') {
-          const analyticsData = analyticsRes.value.data.analytics || analyticsRes.value.data;
-          setAnalytics({
-            ...analyticsData,
-            total_tickets_sold: totalTicketsFromEvents,
-            total_events: eventsData.length
-          });
-        } else if (eventsRes.status === 'fulfilled') {
-          // Fallback if analytics endpoint fails
-          const eventsData = eventsRes.value.data.events || [];
-          const totalPendingTickets = eventsData.reduce((total, event) => {
-            return total + (event.ticket_stats?.pending_tickets || 0);
-          }, 0);
-          const totalRevenue = eventsData.reduce((total, event) => {
-            return total + (event.ticket_stats?.total_revenue || 0);
-          }, 0);
-          
-          setAnalytics({
-            total_events: eventsData.length,
-            total_tickets_sold: totalTicketsFromEvents,
-            total_tickets_pending: totalPendingTickets,
-            total_revenue: totalRevenue
-          });
-        }
-      } catch (err) {
-        console.error("Failed to refetch data:", err);
-      }
-    }
-    
     console.log("Refetch effect fired", lastUpdate);
 
-    // refetch data so that the overview stats are always up to date
-    refetchData();
-  }, [lastUpdate]);
+    // Invalidate dashboard query so it refetches with latest data
+    queryClient.invalidateQueries({ queryKey: queryKeys.organizer.dashboard });
+  }, [lastUpdate, queryClient]);
 
   if (loading) {
     return <OrganizerDashboardSkeleton />;
@@ -426,9 +398,9 @@ export default function Overview() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           icon={<DollarSign className="w-5 h-5 text-emerald-500" />}
-          label="Total revenue"
-          value={`₦${analytics.total_revenue?.toLocaleString() || 0}`}
-          description="Gross earnings from all events"
+          label="Your revenue"
+          value={`₦${analytics.organizer_revenue?.toLocaleString() || 0}`}
+          description="Net earnings after platform fees"
           trend="Live"
           hideBalances={hideBalances}
           onToggleVisibility={() => setHideBalances(!hideBalances)}
@@ -550,12 +522,12 @@ export default function Overview() {
                      <div className="flex flex-col gap-3 flex-1">
                         {event.pricing_type !== 'free' && (
                           <div>
-                             <p className="text-rose-500 font-bold text-sm">₦{(event.ticket_stats?.total_revenue || 0).toLocaleString()}</p>
-                             <p className="text-[10px] text-gray-500 font-bold">Revenue</p>
+                             <p className="text-rose-500 font-bold text-sm">₦{(event.metrics?.organizer_revenue || 0).toLocaleString()}</p>
+                             <p className="text-[10px] text-gray-500 font-bold">Your Revenue</p>
                           </div>
                         )}
                         <div>
-                           <p className="text-blue-500 font-bold text-sm">{event.ticket_stats?.tickets_sold ?? event.ticket_stats?.confirmed_tickets ?? 0}</p>
+                           <p className="text-blue-500 font-bold text-sm">{event.metrics?.tickets_sold ?? 0}</p>
                            <p className="text-[10px] text-gray-500 font-bold">Sold</p>
                         </div>
                      </div>

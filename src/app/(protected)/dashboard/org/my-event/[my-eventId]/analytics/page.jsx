@@ -43,17 +43,19 @@ export default function AnalyticsPage() {
           tickets: analyticsData.tickets_list || [],
           count: analyticsData.tickets_list?.length || 0,
           statistics: {
-            confirmed: analyticsData.statistics?.total_tickets_sold || 0,
+            total_tickets_sold: analyticsData.statistics?.total_tickets_sold || 0,
             pending: analyticsData.statistics?.pending_tickets || 0,
             cancelled: analyticsData.statistics?.cancelled_tickets || 0,
             used: analyticsData.statistics?.used_tickets || 0,
-            total_revenue: analyticsData.statistics?.total_revenue || 0,
-            available_spots: analyticsData.statistics?.available_spots ?? "∞"
+            sales_gross: analyticsData.statistics?.sales_gross || 0,
+            organizer_revenue: analyticsData.statistics?.organizer_revenue || 0,
+            available_spots: analyticsData.statistics?.available_spots ?? "∞",
+            attendance_rate: analyticsData.statistics?.attendance_rate || 0
           }
         };
       } catch (err) {
-        const fallbackRes = await api.get(`/tickets/organizer/${id}/tickets/`);
-        return fallbackRes.data;
+        console.error("Failed to fetch event analytics:", err);
+        throw err;
       }
     },
     enabled: !!id,
@@ -149,7 +151,7 @@ export default function AnalyticsPage() {
     { label: "Checked In", value: usedTickets, icon: <UserCheck className="w-5 h-5 text-emerald-500" />, sub: "Attended" },
     // Only show revenue for paid events
     ...(isPaidEvent 
-      ? [{ label: "Revenue", value: `₦${Number(data.statistics?.total_revenue || 0).toLocaleString()}`, icon: <TrendingUp className="w-5 h-5 text-blue-500" />, sub: "Gross Earnings" }]
+      ? [{ label: "Your Revenue", value: `₦${Number(data.statistics?.organizer_revenue || 0).toLocaleString()}`, icon: <TrendingUp className="w-5 h-5 text-blue-500" />, sub: "Net Earnings" }]
       : []),
     { label: "Pending", value: pendingTickets, icon: <CreditCard className="w-5 h-5 text-amber-500" />, sub: isPaidEvent ? "Awaiting Payment" : "Awaiting Confirmation" },
   ];

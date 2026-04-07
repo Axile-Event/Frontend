@@ -386,35 +386,42 @@ export default function EventDetailsPage() {
   const { data: event, isLoading: loading, isError, error } = useQuery({
     queryKey: queryKeys.organizer.eventDetail(id),
     queryFn: async () => {
-      const orgRes = await api.get("/organizer/events/");
-      const list = Array.isArray(orgRes.data) ? orgRes.data : (orgRes.data?.events ?? []);
-      let eventData = list.find((e) => String(e.event_id ?? e.id) === String(id));
-      if (!eventData) {
-        const publicRes = await api.get(`/events/${id}/details/`);
-        eventData = publicRes?.data;
-      }
-      if (eventData) {
-        try {
-          const ticketsRes = await api.get(`/tickets/organizer/${id}/tickets/`);
-          const stats = ticketsRes.data?.statistics || {};
-          eventData = { ...eventData, ticket_stats: { confirmed_tickets: stats.confirmed || 0, tickets_sold: stats.sold ?? (stats.confirmed || 0) + (stats.used || 0), pending_tickets: stats.pending || 0, total_revenue: stats.total_revenue || 0, available_spots: stats.available_spots ?? "∞" } };
-        } catch {
-          if (!eventData.ticket_stats) eventData = { ...eventData, ticket_stats: { confirmed_tickets: 0, tickets_sold: 0, pending_tickets: 0, total_revenue: 0, available_spots: "∞" } };
-        }
-        try {
-          const catRes = await api.get(`/tickets/categories/?event_id=${id}`);
-          const categoriesData = Array.isArray(catRes.data) ? catRes.data : (catRes.data?.categories || []);
-          eventData = { ...eventData, ticket_categories: categoriesData };
-        } catch {
-          try {
-            const detailsRes = await api.get(`/events/${id}/details/`);
-            eventData = { ...eventData, ticket_categories: detailsRes.data?.ticket_categories || [] };
-          } catch {
-            eventData = { ...eventData, ticket_categories: [] };
+      try {
+        // Call dedicated organizer event detail endpoint
+        const res = await api.get(`/organizer/events/${id}/`);
+        let eventData = res.data;
+        
+        if (eventData) {
+          // Map new metrics structure to ticket_stats for display
+          const metrics = eventData.metrics || {};
+          const ticketStats = eventData.ticket_stats || {};
+          eventData = {
+            ...eventData,
+            ticket_stats: {
+              tickets_sold: ticketStats.tickets_sold ?? metrics.tickets_sold ?? 0,
+              sales_gross: ticketStats.sales_gross ?? metrics.sales_gross ?? 0,
+              organizer_revenue: ticketStats.organizer_revenue ?? metrics.organizer_revenue ?? 0,
+              available_spots: ticketStats.available_spots ?? metrics.capacity_total ?? "∞",
+              capacity_total: ticketStats.capacity_total ?? metrics.capacity_total
+            }
+          };
+          
+          // Ensure ticket_categories exists (already in detail endpoint response)
+          if (!eventData.ticket_categories) {
+            eventData.ticket_categories = [];
           }
         }
+        
+        return eventData;
+      } catch (err) {
+        // Fallback: try to fetch from public endpoint
+        try {
+          const publicRes = await api.get(`/events/${id}/details/`);
+          return publicRes.data;
+        } catch {
+          throw err;
+        }
       }
-      return eventData;
     },
     enabled: !!id,
     refetchOnWindowFocus: true
@@ -626,10 +633,10 @@ export default function EventDetailsPage() {
   const freeEventCategoryName = categories.length > 0 ? categories[0].name : "General Admission";
 
   const stats = [
-    { label: "Bookings", value: event.ticket_stats?.tickets_sold ?? event.ticket_stats?.confirmed_tickets ?? 0, icon: <Ticket className="w-5 h-5 text-rose-500" />, color: "rose" },
-    { label: "Available", value: event.ticket_stats?.available_spots ?? "∞", icon: <Users className="w-5 h-5 text-emerald-500" />, color: "emerald" },
+    { label: "Bookings", value: event.ticket_stats?.tickets_sold ?? 0, icon: <Ticket className="w-5 h-5 text-rose-500" />, color: "rose" },
+    { label: "Available", value: event.ticket_stats?.capacity_total ?? "∞", icon: <Users className="w-5 h-5 text-emerald-500" />, color: "emerald" },
     // Only show revenue for paid events
-    ...(isPaidEvent ? [{ label: "Revenue", value: `₦${(event.ticket_stats?.total_revenue ?? 0).toLocaleString()}`, icon: <CreditCard className="w-5 h-5 text-blue-500" />, color: "blue" }] : []),
+    ...(isPaidEvent ? [{ label: "Your Revenue", value: `₦${(event.ticket_stats?.organizer_revenue ?? 0).toLocaleString()}`, icon: <CreditCard className="w-5 h-5 text-blue-500" />, color: "blue" }] : []),
   ];
 
   return (

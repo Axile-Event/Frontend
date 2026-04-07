@@ -29,39 +29,22 @@ const MyEvent = () => {
       else if (Array.isArray(payload?.data)) list = payload.data;
       else list = [];
 
-      const eventsWithStats = await Promise.all(
-        list.map(async (event) => {
-          const eventId = event.event_id ?? event.id;
-          try {
-            const ticketsRes = await api.get(`/tickets/organizer/${eventId}/tickets/`);
-            const stats = ticketsRes.data?.statistics || {};
-            return {
-              ...event,
-              ticket_stats: {
-                confirmed_tickets: stats.confirmed || 0,
-                tickets_sold: stats.sold ?? (stats.confirmed || 0) + (stats.used || 0),
-                pending_tickets: stats.pending || 0,
-                total_revenue: stats.total_revenue || 0,
-                available_spots: stats.available_spots ?? "∞"
-              }
-            };
-          } catch (ticketErr) {
-            console.warn(`Could not fetch ticket stats for event ${eventId}:`, ticketErr);
-            return {
-              ...event,
-              ticket_stats: event.ticket_stats || {
-                confirmed_tickets: 0,
-                tickets_sold: 0,
-                pending_tickets: 0,
-                total_revenue: 0,
-                available_spots: "∞"
-              }
-            };
+      // Map new API response structure to display fields
+      const eventsWithMappedStats = list.map((event) => {
+        const metrics = event.metrics || {};
+        return {
+          ...event,
+          ticket_stats: {
+            tickets_sold: metrics.tickets_sold ?? 0,
+            sales_gross: metrics.sales_gross ?? 0,
+            organizer_revenue: metrics.organizer_revenue ?? 0,
+            available_spots: metrics.capacity_total ?? "∞",
+            capacity_total: metrics.capacity_total
           }
-        })
-      );
+        };
+      });
 
-      return [...eventsWithStats].sort((a, b) => {
+      return [...eventsWithMappedStats].sort((a, b) => {
         const dateA = new Date(a.created_at || a.date);
         const dateB = new Date(b.created_at || b.date);
         return dateB - dateA;
@@ -309,15 +292,15 @@ const MyEvent = () => {
                       <div>
                         <p className="text-[9px] text-gray-600 font-black uppercase tracking-widest mb-0.5">Bookings</p>
                         <p className="text-base font-bold text-white leading-none">
-                          {(ev.ticket_stats?.tickets_sold ?? ev.ticket_stats?.confirmed_tickets ?? 0).toLocaleString()}
-                          <span className="text-[9px] text-gray-500 font-medium ml-1">/ {typeof ev.ticket_stats?.available_spots === 'number' ? ev.ticket_stats.available_spots.toLocaleString() : (ev.ticket_stats?.available_spots ?? '∞')}</span>
+                          {(ev.ticket_stats?.tickets_sold ?? 0).toLocaleString()}
+                          <span className="text-[9px] text-gray-500 font-medium ml-1">/ {typeof ev.ticket_stats?.capacity_total === 'number' ? ev.ticket_stats.capacity_total.toLocaleString() : (ev.ticket_stats?.available_spots ?? '∞')}</span>
                         </p>
                       </div>
                       {ev.pricing_type === "paid" && (
                         <div>
-                          <p className="text-[9px] text-gray-600 font-black uppercase tracking-widest mb-0.5">Revenue</p>
+                          <p className="text-[9px] text-gray-600 font-black uppercase tracking-widest mb-0.5">Your Revenue</p>
                           <p className="text-base font-bold text-emerald-400 leading-none">
-                            ₦{(ev.ticket_stats?.total_revenue ?? 0).toLocaleString()}
+                            ₦{(ev.ticket_stats?.organizer_revenue ?? 0).toLocaleString()}
                           </p>
                         </div>
                       )}
