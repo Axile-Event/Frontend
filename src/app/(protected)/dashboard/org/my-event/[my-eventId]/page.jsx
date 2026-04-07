@@ -26,7 +26,8 @@ import {
   Mail,
   User,
   Minus,
-  Plus
+  Plus,
+  Megaphone
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { getImageUrl, getErrorMessage } from "../../../../../../lib/utils";
@@ -34,6 +35,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import CustomDropdown from "@/components/ui/CustomDropdown";
 import BulkBookForAttendeeModal from "@/components/organizer/BulkBookForAttendeeModal";
 import ManualConfirmationModal from "@/components/payment/ManualConfirmationModal";
+import ReferralBadge from "@/components/organizer/ReferralBadge";
+import ReferralStatsTable from "@/components/organizer/ReferralStatsTable";
+import { getReferralStats } from "@/lib/referral";
 import useTempBookingStore from "@/store/tempBookingStore";
 
 // Book for Attendee Modal Component
@@ -386,35 +390,85 @@ export default function EventDetailsPage() {
   const { data: event, isLoading: loading, isError, error } = useQuery({
     queryKey: queryKeys.organizer.eventDetail(id),
     queryFn: async () => {
-      try {
-        // Call dedicated organizer event detail endpoint
-        const res = await api.get(`/organizer/events/${id}/`);
-        let eventData = res.data;
-        
-        if (eventData) {
-          // Map new metrics structure to ticket_stats for display
-          const metrics = eventData.metrics || {};
-          const ticketStats = eventData.ticket_stats || {};
-          eventData = {
-            ...eventData,
-            ticket_stats: {
-              tickets_sold: ticketStats.tickets_sold ?? metrics.tickets_sold ?? 0,
-              sales_gross: ticketStats.sales_gross ?? metrics.sales_gross ?? 0,
-              organizer_revenue: ticketStats.organizer_revenue ?? metrics.organizer_revenue ?? 0,
-              available_spots: ticketStats.available_spots ?? metrics.capacity_total ?? "∞",
-              capacity_total: ticketStats.capacity_total ?? metrics.capacity_total
-            }
-          };
-          
-          // Ensure ticket_categories exists (already in detail endpoint response)
-          if (!eventData.ticket_categories) {
-            eventData.ticket_categories = [];
+      const orgRes = await api.get("/organizer/events/");
+      const payload = orgRes.data;
+      let list = [];
+      if (Array.isArray(payload)) list = payload;
+      else if (Array.isArray(payload?.events)) list = payload.events;
+      else if (Array.isArray(payload?.data)) list = payload.data;
+
+      // Normalize IDs — backend may return "EV-xxx" or "event:EV-xxx"; URL may use either
+      const normalizeId = (id) => String(id ?? "").replace(/^event:/i, "").toLowerCase();
+      const normalizedTarget = normalizeId(id);
+
+      let eventData = list.find((e) => {
+        const raw = String(e.event_id ?? e.id ?? "");
+        return raw === String(id) || normalizeId(raw) === normalizedTarget;
+      }) || null;
+
+      // Case-insensitive status check and flexible flag detection
+      const isDraftEvent = 
+        String(eventData?.status || "").toLowerCase() === "draft" || 
+        String(eventData?.save_as_draft).toLowerCase() === "true" || 
+        String(eventData?.is_draft).toLowerCase() === "true";
+
+      if (!isDraftEvent && id) {
+        // Only fetch full public details for non-draft events
+        try {
+          const publicRes = await api.get(`/events/${id}/details/`);
+          if (publicRes?.data) {
+            eventData = eventData ? { ...eventData, ...publicRes.data } : publicRes.data;
           }
+        } catch {
+          // Non-fatal
         }
-        
-        return eventData;
-      } catch (err) {
-        // Fallback: try to fetch from public endpoint
+      }
+
+      if (eventData) {
+        // Fetch tickets and revenue (Analytics is the source of truth for Net Revenue)
+        try {
+          const [ticketsRes, analyticsRes] = await Promise.allSettled([
+            api.get(`/tickets/organizer/${id}/tickets/`),
+            api.get(`/analytics/event/${id}/`)
+          ]);
+
+          const stats = (ticketsRes.status === 'fulfilled' ? ticketsRes.value.data?.statistics : null) || {};
+          let analyticsRevenue = 0;
+
+          if (analyticsRes.status === 'fulfilled') {
+            const aData = analyticsRes.value.data.analytics || analyticsRes.value.data;
+            const aStats = aData.statistics || {};
+            const aRevenueSource = analyticsRes.value.data.event?.revenue;
+
+            if (aRevenueSource && typeof aRevenueSource === "object") {
+              analyticsRevenue = aRevenueSource.organizer_revenue ?? 
+                                 aRevenueSource.net_revenue ?? 
+                                 aRevenueSource.earnings ?? 
+                                 aRevenueSource.organizer_share ?? 
+                                 aRevenueSource.net ?? 
+                                 aRevenueSource.total_revenue ?? 0;
+            } else {
+              analyticsRevenue = aRevenueSource ?? aStats.net_revenue ?? aStats.total_revenue ?? stats.total_revenue ?? 0;
+            }
+          } else {
+            analyticsRevenue = stats.total_revenue || 0;
+          }
+
+          eventData = { 
+            ...eventData, 
+            ticket_stats: { 
+              confirmed_tickets: stats.confirmed || 0, 
+              tickets_sold: stats.sold ?? (stats.confirmed || 0) + (stats.used || 0), 
+              pending_tickets: stats.pending || 0, 
+              total_revenue: analyticsRevenue, // Use correct net revenue
+              available_spots: stats.available_spots ?? "∞" 
+            } 
+          };
+        } catch (err) {
+          console.error("Failed to fetch event stats:", err);
+          if (!eventData.ticket_stats) eventData = { ...eventData, ticket_stats: { confirmed_tickets: 0, tickets_sold: 0, pending_tickets: 0, total_revenue: 0, available_spots: "∞" } };
+        }
+
         try {
           const publicRes = await api.get(`/events/${id}/details/`);
           return publicRes.data;
@@ -424,6 +478,28 @@ export default function EventDetailsPage() {
       }
     },
     enabled: !!id,
+    refetchOnWindowFocus: true
+  });
+
+  // Fetch referral stats specifically for the dashboard
+  const isReferralEnabled = 
+    event?.use_referral === true || 
+    String(event?.use_referral).toLowerCase() === 'true' ||
+    event?.has_referral === true ||
+    String(event?.has_referral).toLowerCase() === 'true';
+  const { data: referralData, isLoading: referralLoading } = useQuery({
+    queryKey: queryKeys.organizer.referralStats(id),
+    queryFn: async () => {
+      if (!isReferralEnabled) return [];
+      try {
+        const stats = await getReferralStats(id);
+        return Array.isArray(stats) ? stats : (stats?.referrals || stats?.stats || stats?.data || []);
+      } catch (err) {
+        console.error("Referral stats error:", err);
+        return [];
+      }
+    },
+    enabled: !!id && !!event,
     refetchOnWindowFocus: true
   });
 
@@ -626,6 +702,16 @@ export default function EventDetailsPage() {
 
   if (!event) return null;
 
+  // Draft events are not published — redirect to edit-event so the organizer can complete and publish.
+  const isCurrentDraft = 
+    String(event.status || "").toLowerCase() === "draft" || 
+    String(event.save_as_draft).toLowerCase() === "true" || 
+    String(event.is_draft).toLowerCase() === "true";
+  if (isCurrentDraft) {
+    router.replace(`/dashboard/org/edit-event/${id}`);
+    return null;
+  }
+
   const eventName = event?.name ?? "";
   const showCover = Boolean(coverSrc) && !coverBroken;
   const isPaidEvent = event.pricing_type === "paid";
@@ -811,7 +897,7 @@ export default function EventDetailsPage() {
           <div className="bg-[#0A0A0A] border border-white/5 rounded-[2.5rem] p-10 space-y-6 shadow-xl">
             <div className="flex items-center gap-3">
               <FileText className="w-6 h-6 text-rose-500" />
-              <h2 className="text-2xl font-black uppercase tracking-tighter italic">About the event</h2>
+              <h2 className="text-2xl font-black uppercase tracking-tighter">About the event</h2>
             </div>
             <p className="text-gray-400 text-base leading-loose whitespace-pre-line font-medium opacity-80">
               {event.description || "No description provided for this event yet."}
@@ -824,7 +910,7 @@ export default function EventDetailsPage() {
               <div className="bg-[#0A0A0A] border border-white/5 rounded-2xl md:rounded-[2.5rem] p-5 md:p-10 space-y-4 md:space-y-6 shadow-xl">
                 <div className="flex items-center gap-2 md:gap-3">
                   <Ticket className="w-5 h-5 md:w-6 md:h-6 text-rose-500" />
-                  <h2 className="text-lg md:text-2xl font-black uppercase tracking-tighter italic">Ticket Categories</h2>
+                  <h2 className="text-lg md:text-2xl font-black uppercase tracking-tighter">Ticket Categories</h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                   {event.ticket_categories.map((category, idx) => (
@@ -857,7 +943,7 @@ export default function EventDetailsPage() {
                 </div>
                 <div className="pt-4 border-t border-white/5">
                   <button
-                    onClick={() => router.push(`/dashboard/org/my-event/${event.event_id ?? event.id}/tickets`)}
+                    onClick={() => router.push(`/dashboard/org/my-event/${id}/tickets`)}
                     className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-rose-600/20 hover:bg-rose-600/30 border border-rose-500/30 hover:border-rose-500/50 text-rose-400 hover:text-rose-300 font-bold text-xs md:text-sm transition-all"
                     title="Manage ticket categories"
                   >
@@ -870,7 +956,7 @@ export default function EventDetailsPage() {
             <div className="bg-[#0A0A0A] border border-white/5 rounded-2xl md:rounded-[2.5rem] p-5 md:p-10 space-y-4 md:space-y-6 shadow-xl">
               <div className="flex items-center gap-2 md:gap-3">
                 <Ticket className="w-5 h-5 md:w-6 md:h-6 text-rose-500" />
-                <h2 className="text-lg md:text-2xl font-black uppercase tracking-tighter italic">Ticket</h2>
+                <h2 className="text-lg md:text-2xl font-black uppercase tracking-tighter">Ticket</h2>
               </div>
               <div className="bg-white/5 border border-white/10 rounded-xl md:rounded-2xl p-4 md:p-6 hover:border-emerald-500/30 transition-colors">
                 <div className="flex items-center justify-between">
@@ -881,6 +967,21 @@ export default function EventDetailsPage() {
                   <span className="text-emerald-500 font-black text-base md:text-xl">FREE</span>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Referral Performance Section */}
+          {isReferralEnabled && (
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <Megaphone className="w-6 h-6 text-rose-500" />
+                <h2 className="text-2xl font-black uppercase tracking-tighter">Referral Performance</h2>
+              </div>
+              <ReferralStatsTable 
+                stats={referralData || []} 
+                loading={referralLoading} 
+                eventName={eventName} 
+              />
             </div>
           )}
         </div>
@@ -914,15 +1015,25 @@ export default function EventDetailsPage() {
 
             <div className="space-y-3 pt-6 border-t border-white/5">
               <button 
-                onClick={() => router.push(`/dashboard/org/my-event/${event.event_id ?? event.id}/analytics`)}
+                onClick={() => router.push(`/dashboard/org/my-event/${id}/analytics`)}
                 className="w-full py-3 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm transition-all shadow-lg shadow-rose-600/20 active:scale-95 flex items-center justify-center gap-2 group"
               >
                 Detailed Analytics <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </button>
+
+              {/* Referral Analytics Button */}
+              {isReferralEnabled && (
+                <button
+                  onClick={() => router.push(`/dashboard/org/my-event/${id}/referral-analytics`)}
+                  className="w-full py-3 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 hover:border-rose-500/40 text-rose-400 font-bold text-sm transition-all active:scale-95 flex items-center justify-center gap-2"
+                >
+                  <Megaphone className="w-4 h-4" /> Referral Analytics
+                </button>
+              )}
               
               {isPaidEvent ? (
                 <button 
-                  onClick={() => router.push(`/dashboard/org/my-event/${event.event_id ?? event.id}/tickets`)}
+                  onClick={() => router.push(`/dashboard/org/my-event/${id}/tickets`)}
                   className="w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 font-bold text-sm transition-all active:scale-95 flex items-center justify-center gap-2"
                 >
                   <Ticket className="w-4 h-4" /> Manage Categories
@@ -934,6 +1045,29 @@ export default function EventDetailsPage() {
               )}
             </div>
           </div>
+
+          {/* Referral Config Info */}
+          {isReferralEnabled && (
+            <div className="bg-[#0A0A0A] border border-rose-500/10 rounded-3xl p-6 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Megaphone className="w-4 h-4 text-rose-500" />
+                  <h4 className="text-sm font-bold text-white">Referral Rewards</h4>
+                </div>
+                <ReferralBadge
+                  useReferral={isReferralEnabled}
+                  rewardType={event.referral_reward_type}
+                  rewardAmount={event.referral_reward_amount}
+                  rewardPercentage={event.referral_reward_percentage}
+                />
+              </div>
+              <p className="text-[10px] text-gray-500 font-medium leading-relaxed">
+                {event.referral_reward_type === "flat"
+                  ? `Referees earn ₦${Number(event.referral_reward_amount || 0).toLocaleString()} for each ticket sold through their link.`
+                  : `Referees earn ${event.referral_reward_percentage || 0}% of each ticket price sold through their link.`}
+              </p>
+            </div>
+          )}
 
           <div className="bg-linear-to-br from-rose-500/10 to-transparent border border-white/5 rounded-3xl p-6 text-center">
             <p className="text-xs text-gray-400 font-medium">Need help managing your event?</p>

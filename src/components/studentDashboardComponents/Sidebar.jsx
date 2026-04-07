@@ -14,8 +14,8 @@ import useAuthStore from "@/store/authStore";
 import { useRouter } from "next/navigation";
 import Logo from "@/components/Logo";
 
-const StudentDashboardNavLinks = [
-  { name: "Overview", link: "/dashboard/student", icon: <Home className="h-5 w-5 md:h-7 md:w-7" /> },
+const UserDashboardNavLinks = [
+  { name: "Dashboard", link: "/dashboard/student", icon: <Home className="h-5 w-5 md:h-7 md:w-7" /> },
   {
     name: "Events",
     link: "/dashboard/student/events",
@@ -39,14 +39,14 @@ const Sidebar = ({ mobile }) => {
     router.push("/login");
   };
 
-  const active = StudentDashboardNavLinks.find(
+  const active = UserDashboardNavLinks.find(
     (link) => location === `${link.link}`
   );
 
   if (mobile) {
     return (
       <div className="flex flex-row justify-around bg-black border-t border-gray-800 py-2 w-full">
-        {StudentDashboardNavLinks.map((link) => (
+        {UserDashboardNavLinks.map((link) => (
           <Link
             href={link.link}
             key={link.name}
@@ -69,7 +69,7 @@ const Sidebar = ({ mobile }) => {
 
       
       <div className="flex flex-col gap-2 w-full">
-        {StudentDashboardNavLinks.map((link) => (
+        {UserDashboardNavLinks.map((link) => (
           <Link
             href={link.link}
             key={link.name}

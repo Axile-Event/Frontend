@@ -1,5 +1,5 @@
 export default function sitemap() {
-  const baseUrl = "https://axile.ng";
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://www.axile.ng";
 
   // These would ideally be fetched from your database/CMS
   // For now, these are the core static routes

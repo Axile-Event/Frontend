@@ -143,3 +143,31 @@ export function formatNumber(value) {
 export function getEventUrl(eventId) {
   return `/events/${eventId}`;
 }
+
+/**
+ * Reads a cookie by name from the browser.
+ * @param {string} name - The cookie name.
+ * @returns {string|null} - The cookie value or null if not found.
+ */
+export function getCookie(name) {
+  if (typeof document === "undefined") return null;
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(";").shift();
+  return null;
+}
+
+/**
+ * Formats the reward label from event data.
+ * Goal: Every number comes directly from API with no transformation except formatting.
+ */
+export function formatRewardLabel(event) {
+  if (!event) return "";
+  if (event.referral_reward_type === "flat") {
+    return `₦${(event.referral_reward_amount || 0).toLocaleString()} per ticket`;
+  }
+  if (event.referral_reward_type === "percentage") {
+    return `${event.referral_reward_percentage || 0}% per ticket`;
+  }
+  return "";
+}

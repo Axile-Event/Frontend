@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import api from "@/lib/axios";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,8 +17,9 @@ import {
 import { Loader2, MapPin, Calendar, Clock, Ticket, Info, CheckCircle2, Share2, Copy, Check, X, Maximize2, Plus, Minus, ShoppingCart } from "lucide-react";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
-import { getImageUrl } from "@/lib/utils";
+import { getImageUrl, getCookie } from "@/lib/utils";
 import { EventDetailsSkeleton } from "@/components/skeletons";
+import { useReferral, cleanEventId } from "@/hooks/useReferral";
 
 // Platform fee constants
 const PLATFORM_SERVICE_FEE = 80; // ₦80 service fee
@@ -52,6 +53,28 @@ const EventDetailsPage = () => {
   // Temporary referral source state for event:TO-56363
   const [referralSource, setReferralSource] = useState("");
   const [otherReferral, setOtherReferral] = useState("");
+
+  const { setReferral, getValidReferral, clearReferral } = useReferral();
+  const [refUsername, setRefUsername] = useState(null);
+  const searchParams = useSearchParams();
+
+  // Read referral username from cookie on mount
+  useEffect(() => {
+    const username = getCookie("ref_username");
+    if (username) {
+      setRefUsername(username);
+    }
+  }, []);
+
+  // Capture referral from URL query param (?ref=abc123)
+  useEffect(() => {
+    const ref = searchParams.get("ref");
+    const id = event?.event_id || eventId || slug;
+    
+    if (ref && id) {
+      setReferral(ref, cleanEventId(id));
+    }
+  }, [searchParams, event?.event_id, eventId, slug, setReferral]);
 
   // Set share URL on client side only to avoid hydration mismatch
   useEffect(() => {
@@ -180,14 +203,25 @@ const EventDetailsPage = () => {
         quantity: item.quantity,
       }));
       
+      const validReferral = getValidReferral(eventIdToUse);
+
+      // Determine final referral identity
+      let finalReferral = refUsername || validReferral;
+      
+      // Override with scoped source if it matches specific tracking event and choice was made
+      if (eventIdToUse === "event:TO-56363" && referralSource) {
+         finalReferral = referralSource === "Other" ? `Other: ${otherReferral}` : referralSource;
+      }
+
       const payload = {
         event_id: eventIdToUse,
         items: items,
-        // Scoped referral source for event:TO-56363
-        ...(eventIdToUse === "event:TO-56363" && {
-          referral_source: referralSource === "Other" ? `Other: ${otherReferral}` : referralSource,
-          referral: referralSource === "Other" ? `Other: ${otherReferral}` : referralSource
-        })
+        // Send referral username/ID in standard 'referral' field
+        ...(finalReferral && { referral: finalReferral }),
+        // For maximum compatibility with all backend endpoints
+        ...(finalReferral && { referral_code: finalReferral }),
+        // Also send referral_username if we have the cookie-based identity
+        ...(refUsername && { referral_username: refUsername }),
       };
       
       console.log("Booking payload:", payload);
@@ -210,10 +244,14 @@ const EventDetailsPage = () => {
           subtotal: orderSummary.subtotal,
           payment_url: response.data.payment_url,
           payment_reference: response.data.payment_reference,
+          payment_methods_allowed: event.payment_methods_allowed || event.payment_method_allowed || ["paystack"],
+          pricing_type: event.pricing_type,
           tickets: tickets,
           created_at: new Date().toISOString()
         };
         localStorage.setItem(`booking_${bookingId}`, JSON.stringify(bookingData));
+
+        if (validReferral) clearReferral();
         
         toast.success("Booking created! Redirecting to checkout...", { id: toastId });
         router.push(`/checkout/payment/${bookingId}`);
@@ -228,6 +266,7 @@ const EventDetailsPage = () => {
       }
 
       // Handle Free Event (Success)
+      if (validReferral) clearReferral();
       toast.success("Ticket booked successfully!", { id: toastId });
       if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("tickets-updated"));
       router.push("/dashboard/student/my-tickets");
@@ -318,6 +357,23 @@ const EventDetailsPage = () => {
           {/* Event Title & Info */}
           <div>
             <h1 className="text-2xl md:text-4xl font-bold mb-3">{event.name}</h1>
+
+            {/* Subtle referral indicator - only show if valid for this event */}
+            {getValidReferral(event?.event_id || eventId) && (
+              <motion.div 
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
+                className="inline-flex items-center gap-1.5 px-3 py-1 mb-4 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[11px] font-semibold tracking-wide uppercase"
+              >
+                <div className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </div>
+                {refUsername ? `Referred by ${refUsername}` : "You were referred"}
+              </motion.div>
+            )}
+
             <div className="flex flex-wrap gap-4 text-muted-foreground text-sm md:text-base">
               <div className="flex items-center gap-2 bg-muted/30 px-3 py-1.5 rounded-full">
                 <Calendar className="h-4 w-4 text-rose-500" />

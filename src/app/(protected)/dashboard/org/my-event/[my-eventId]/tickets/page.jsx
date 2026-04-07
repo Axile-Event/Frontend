@@ -361,7 +361,7 @@ export default function ManageTicketsPage() {
 
                 {categories.length === 0 ? (
                     <div className="bg-[#0A0A0A] border border-white/5 rounded-2xl p-12 text-center">
-                        <p className="text-gray-500 italic">No ticket categories created yet. Users will use the default event price if no categories are active.</p>
+                        <p className="text-gray-500">No ticket categories created yet. Users will use the default event price if no categories are active.</p>
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 gap-4">
