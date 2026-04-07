@@ -97,10 +97,10 @@ const MyEvent = () => {
               }
             };
           }
-        })
-      );
+        };
+      });
 
-      return [...eventsWithStats].sort((a, b) => {
+      return [...eventsWithMappedStats].sort((a, b) => {
         const dateA = new Date(a.created_at || a.date);
         const dateB = new Date(b.created_at || b.date);
         return dateB - dateA;
@@ -407,15 +407,15 @@ const MyEvent = () => {
                       <div>
                         <p className="text-[9px] text-gray-600 font-black uppercase tracking-widest mb-0.5">Bookings</p>
                         <p className="text-base font-bold text-white leading-none">
-                          {(ev.ticket_stats?.tickets_sold ?? ev.ticket_stats?.confirmed_tickets ?? 0).toLocaleString()}
-                          <span className="text-[9px] text-gray-500 font-medium ml-1">/ {typeof ev.ticket_stats?.available_spots === 'number' ? ev.ticket_stats.available_spots.toLocaleString() : (ev.ticket_stats?.available_spots ?? '∞')}</span>
+                          {(ev.ticket_stats?.tickets_sold ?? 0).toLocaleString()}
+                          <span className="text-[9px] text-gray-500 font-medium ml-1">/ {typeof ev.ticket_stats?.capacity_total === 'number' ? ev.ticket_stats.capacity_total.toLocaleString() : (ev.ticket_stats?.available_spots ?? '∞')}</span>
                         </p>
                       </div>
                       {ev.pricing_type === "paid" && (
                         <div>
-                          <p className="text-[9px] text-gray-600 font-black uppercase tracking-widest mb-0.5">Revenue</p>
+                          <p className="text-[9px] text-gray-600 font-black uppercase tracking-widest mb-0.5">Your Revenue</p>
                           <p className="text-base font-bold text-emerald-400 leading-none">
-                            ₦{(ev.ticket_stats?.total_revenue ?? 0).toLocaleString()}
+                            ₦{(ev.ticket_stats?.organizer_revenue ?? 0).toLocaleString()}
                           </p>
                         </div>
                       )}

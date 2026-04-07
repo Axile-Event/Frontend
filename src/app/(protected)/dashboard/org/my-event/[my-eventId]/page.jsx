@@ -470,19 +470,12 @@ export default function EventDetailsPage() {
         }
 
         try {
-          const catRes = await api.get(`/tickets/categories/?event_id=${id}`);
-          const categoriesData = Array.isArray(catRes.data) ? catRes.data : (catRes.data?.categories || []);
-          eventData = { ...eventData, ticket_categories: categoriesData };
+          const publicRes = await api.get(`/events/${id}/details/`);
+          return publicRes.data;
         } catch {
-          try {
-            const detailsRes = await api.get(`/events/${id}/details/`);
-            eventData = { ...eventData, ticket_categories: detailsRes.data?.ticket_categories || [] };
-          } catch {
-            eventData = { ...eventData, ticket_categories: [] };
-          }
+          throw err;
         }
       }
-      return eventData;
     },
     enabled: !!id,
     refetchOnWindowFocus: true
@@ -726,10 +719,10 @@ export default function EventDetailsPage() {
   const freeEventCategoryName = categories.length > 0 ? categories[0].name : "General Admission";
 
   const stats = [
-    { label: "Bookings", value: event.ticket_stats?.tickets_sold ?? event.ticket_stats?.confirmed_tickets ?? 0, icon: <Ticket className="w-5 h-5 text-rose-500" />, color: "rose" },
-    { label: "Available", value: event.ticket_stats?.available_spots ?? "∞", icon: <Users className="w-5 h-5 text-emerald-500" />, color: "emerald" },
+    { label: "Bookings", value: event.ticket_stats?.tickets_sold ?? 0, icon: <Ticket className="w-5 h-5 text-rose-500" />, color: "rose" },
+    { label: "Available", value: event.ticket_stats?.capacity_total ?? "∞", icon: <Users className="w-5 h-5 text-emerald-500" />, color: "emerald" },
     // Only show revenue for paid events
-    ...(isPaidEvent ? [{ label: "Revenue", value: `₦${(event.ticket_stats?.total_revenue ?? 0).toLocaleString()}`, icon: <CreditCard className="w-5 h-5 text-blue-500" />, color: "blue" }] : []),
+    ...(isPaidEvent ? [{ label: "Your Revenue", value: `₦${(event.ticket_stats?.organizer_revenue ?? 0).toLocaleString()}`, icon: <CreditCard className="w-5 h-5 text-blue-500" />, color: "blue" }] : []),
   ];
 
   return (
