@@ -461,7 +461,7 @@ export default function PayoutPage() {
             {activeTab === 'withdrawals' && (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
-                  <thead className="bg-white/[0.02] text-gray-400 text-[10px] font-bold">
+                  <thead className="bg-white/2 text-gray-400 text-[10px] font-bold">
                     <tr>
                       <th className="px-5 py-3">Withdrawal ID</th>
                       <th className="px-5 py-3">Bank Details</th>
@@ -473,7 +473,7 @@ export default function PayoutPage() {
                   <tbody className="divide-y divide-white/5">
                     {withdrawals.filter(w => w.status === 'completed').length > 0 ? (
                       withdrawals.filter(w => w.status === 'completed').map((withdrawal, index) => (
-                        <tr key={withdrawal.withdrawal_id || withdrawal.id || index} className="hover:bg-white/[0.02] transition-colors">
+                        <tr key={withdrawal.withdrawal_id || withdrawal.id || index} className="hover:bg-white/2 transition-colors">
                           <td className="px-6 py-4">
                             <span className="text-xs font-mono text-gray-500">{withdrawal.withdrawal_id || withdrawal.id}</span>
                           </td>
