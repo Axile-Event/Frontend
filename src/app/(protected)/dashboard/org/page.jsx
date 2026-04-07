@@ -51,19 +51,15 @@ export default function Overview() {
           eventsData.map(async (event) => {
             const eventId = event.event_id ?? event.id;
             try {
+              // Endpoint 6: GET /analytics/event/<event_id>/
               const res = await api.get(`/analytics/event/${eventId}/`);
               const aData = res.data.analytics || res.data;
               const aStats = aData.statistics || {};
-              const aRevenueSource = res.data.event?.revenue;
               
-              let netRevenue = 0;
-              if (aRevenueSource && typeof aRevenueSource === "object") {
-                netRevenue = aRevenueSource.organizer_revenue ?? aRevenueSource.net_revenue ?? aRevenueSource.earnings ?? aRevenueSource.organizer_share ?? 0;
-              } else {
-                netRevenue = aRevenueSource ?? aStats.net_revenue ?? aStats.total_revenue ?? 0;
-              }
+              // organizer_revenue is in statistics, not in a nested event.revenue object
+              const netRevenue = aStats.organizer_revenue ?? aStats.net_revenue ?? 0;
               
-              const confirmedCount = aStats.total_tickets_sold || event.ticket_stats?.confirmed_tickets || 0;
+              const confirmedCount = aStats.total_tickets_sold || event.metrics?.tickets_sold || event.ticket_stats?.confirmed_tickets || 0;
               totalTicketsFromEvents += confirmedCount;
               totalNetRevenueFromEvents += netRevenue;
 
@@ -72,7 +68,7 @@ export default function Overview() {
                 ticket_stats: {
                   ...event.ticket_stats,
                   tickets_sold: confirmedCount,
-                  total_revenue: netRevenue // Store net revenue
+                  organizer_revenue: netRevenue // Use correct field name
                 }
               };
             } catch {
@@ -294,7 +290,7 @@ export default function Overview() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="relative overflow-hidden bg-gradient-to-r from-rose-900/40 via-rose-900/20 to-black/40 border border-rose-500/30 p-5 rounded-2xl shadow-xl backdrop-blur-md"
+            className="relative overflow-hidden bg-linear-to-r from-rose-900/40 via-rose-900/20 to-black/40 border border-rose-500/30 p-5 rounded-2xl shadow-xl backdrop-blur-md"
           >
              <div className="flex flex-col md:flex-row items-center justify-between gap-5 relative z-1">
                <div className="flex items-center gap-4">
@@ -467,7 +463,7 @@ export default function Overview() {
                           alt={event.name} 
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60" />
+                        <div className="absolute inset-0 bg-linear-to-t from-black/80 via-transparent to-transparent opacity-60" />
                         <div className="absolute top-2 right-2">
                            <span className="px-2 py-1 bg-blue-600/80 backdrop-blur-md rounded-lg text-[8px] font-black uppercase tracking-widest text-white shadow-lg">
                               {event.pricing_type}
@@ -495,12 +491,12 @@ export default function Overview() {
                             <div className="flex flex-col gap-3 flex-1">
                                {event.pricing_type !== 'free' && (
                                  <div>
-                                    <p className="text-rose-500 font-black text-xl leading-none">₦{(event.ticket_stats?.total_revenue || 0).toLocaleString()}</p>
+                                    <p className="text-rose-500 font-black text-xl leading-none">₦{(event.ticket_stats?.organizer_revenue ?? event.metrics?.organizer_revenue ?? 0).toLocaleString()}</p>
                                     <p className="text-[10px] text-gray-500 font-bold mt-1">Net Revenue</p>
                                  </div>
                                )}
                                <div>
-                                  <p className="text-blue-500 font-black text-xl leading-none">{event.ticket_stats?.tickets_sold ?? event.ticket_stats?.confirmed_tickets ?? 0}</p>
+                                  <p className="text-blue-500 font-black text-xl leading-none">{event.ticket_stats?.tickets_sold ?? event.metrics?.tickets_sold ?? event.ticket_stats?.confirmed_tickets ?? 0}</p>
                                   <p className="text-[10px] text-gray-500 font-bold mt-1">Sold</p>
                                </div>
                             </div>
@@ -517,7 +513,7 @@ export default function Overview() {
         {/* Action Sidebar */}
         <div className="space-y-8">
            {/* QR Code Quick Access */}
-           <div className="bg-gradient-to-br from-rose-500 to-rose-700 p-6 rounded-3xl shadow-xl shadow-rose-900/20 relative overflow-hidden group">
+           <div className="bg-linear-to-br from-rose-500 to-rose-700 p-6 rounded-3xl shadow-xl shadow-rose-900/20 relative overflow-hidden group">
               <div className="absolute -right-10 -bottom-10 opacity-10 group-hover:scale-110 transition-transform duration-700">
                  <QrCodeIcon className="w-48 h-48" />
               </div>
