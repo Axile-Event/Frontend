@@ -36,26 +36,31 @@ const ReferralDetailPage = () => {
     queryFn: async () => {
       const decodedId = decodeURIComponent(eventId);
       
-      // Call organizer profiles endpoint which is richer for organizers (includes referral configs)
-      const res = await api.get("/organizer/events/");
-      const payload = res?.data;
-      
-      let list = [];
-      if (Array.isArray(payload)) list = payload;
-      else if (Array.isArray(payload?.events)) list = payload.events;
-      else if (Array.isArray(payload?.data)) list = payload.data;
-      
-      // Match with the current ID (after decoding)
-      const found = list.find(e => {
-        const entryId = String(e.event_id ?? e.id);
-        return entryId === decodedId || entryId.replace("event:", "") === decodedId.replace("event:", "");
-      });
-      
-      if (!found) {
-        throw new Error("Event not found in your organizer profile");
+      // Endpoint 3: GET /organizer/events/<event_id>/ - Returns full event with referral.usernames
+      try {
+        const res = await api.get(`/organizer/events/${decodedId}/`);
+        return res?.data;
+      } catch (err) {
+        // Fallback to list endpoint if detail fails
+        const res = await api.get("/organizer/events/");
+        const payload = res?.data;
+        
+        let list = [];
+        if (Array.isArray(payload)) list = payload;
+        else if (Array.isArray(payload?.events)) list = payload.events;
+        else if (Array.isArray(payload?.data)) list = payload.data;
+        
+        const found = list.find(e => {
+          const entryId = String(e.event_id ?? e.id);
+          return entryId === decodedId || entryId.replace("event:", "") === decodedId.replace("event:", "");
+        });
+        
+        if (!found) {
+          throw new Error("Event not found in your organizer profile");
+        }
+        
+        return found;
       }
-      
-      return found;
     }
   });
 
@@ -180,7 +185,7 @@ const ReferralDetailPage = () => {
           </div>
 
           <div className="w-full lg:w-auto">
-            <div className="bg-rose-600/10 border-l-4 border-rose-600 p-6 rounded-r-[1.5rem] flex flex-col md:flex-row md:items-center gap-6 shadow-xl backdrop-blur-sm">
+            <div className="bg-rose-600/10 border-l-4 border-rose-600 p-6 rounded-r-3xl flex flex-col md:flex-row md:items-center gap-6 shadow-xl backdrop-blur-sm">
               <div>
                 <p className="text-gray-400 text-[10px] font-black uppercase tracking-widest mb-1">Reward per ticket</p>
                 <h2 className="text-3xl font-black text-rose-500">{rewardText}</h2>
@@ -259,7 +264,7 @@ const ReferralDetailPage = () => {
           ) : (
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-white/5 bg-white/[0.02]">
+                <tr className="border-b border-white/5 bg-white/2">
                   <th className="px-8 py-5 text-gray-400 font-bold uppercase text-[10px] tracking-widest">Referrer</th>
                   <th className="px-6 py-5 text-gray-400 font-bold uppercase text-[10px] tracking-widest">Tickets</th>
                   <th className="px-6 py-5 text-gray-400 font-bold uppercase text-[10px] tracking-widest text-right">Gross Sales</th>
@@ -269,7 +274,7 @@ const ReferralDetailPage = () => {
               </thead>
               <tbody>
                 {referrals.map((row, idx) => (
-                  <tr key={row.username || idx} className="border-b border-white/5 hover:bg-white/[0.03] transition-colors">
+                  <tr key={row.username || idx} className="border-b border-white/5 hover:bg-white/3 transition-colors">
                     <td className="py-6 px-8">
                        <div className="flex items-center gap-3">
                          <div className="w-10 h-10 rounded-full bg-linear-to-br from-rose-500/20 to-purple-500/20 flex items-center justify-center text-[11px] font-black text-rose-500 border border-rose-500/20 uppercase">
