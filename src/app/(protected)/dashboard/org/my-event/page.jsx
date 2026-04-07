@@ -311,7 +311,7 @@ const MyEvent = () => {
                     : `/dashboard/org/my-event/${id}`
                   );
                 }}
-                className="group relative bg-[#0A0A0A] border border-white/5 rounded-[2rem] overflow-hidden hover:border-rose-500/30 transition-all duration-500 shadow-xl hover:shadow-rose-600/5 cursor-pointer flex flex-col"
+                className="group relative bg-[#0A0A0A] border border-white/5 rounded-4xl overflow-hidden hover:border-rose-500/30 transition-all duration-500 shadow-xl hover:shadow-rose-600/5 cursor-pointer flex flex-col"
               >
                 {/* Image Section */}
                 <div className="relative h-48 overflow-hidden">
