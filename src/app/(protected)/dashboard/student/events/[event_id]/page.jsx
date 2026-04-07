@@ -14,7 +14,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select-component";
-import { Loader2, MapPin, Calendar, Clock, Ticket, Info, CheckCircle2, Share2, Copy, Check, X, Maximize2, Plus, Minus, ShoppingCart } from "lucide-react";
+import { Loader2, MapPin, Calendar, Clock, Ticket, Info, CheckCircle2, Share2, Copy, Check, X, Maximize2, Plus, Minus, ShoppingCart, Zap } from "lucide-react";
+import PaymentTabs from "@/components/payment/PaymentTabs";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { getImageUrl, getCookie } from "@/lib/utils";
@@ -53,6 +54,34 @@ const EventDetailsPage = () => {
   // Temporary referral source state for event:TO-56363
   const [referralSource, setReferralSource] = useState("");
   const [otherReferral, setOtherReferral] = useState("");
+
+  const [checkoutPaymentMethod, setCheckoutPaymentMethod] = useState(null);
+
+  const allowedPaymentMethods = useMemo(() => {
+    if (!event || event.pricing_type !== "paid") return [];
+    const raw = event.payment_methods_allowed;
+    const list = Array.isArray(raw)
+      ? raw
+      : typeof raw === "string"
+        ? raw.split(",").map((s) => s.trim()).filter(Boolean)
+        : [];
+    const normalized = list.filter(
+      (m) => m === "paystack" || m === "manual_bank_transfer",
+    );
+    return normalized.length ? normalized : ["paystack"];
+  }, [event]);
+
+  useEffect(() => {
+    if (!allowedPaymentMethods.length) {
+      setCheckoutPaymentMethod(null);
+      return;
+    }
+    setCheckoutPaymentMethod((prev) =>
+      prev && allowedPaymentMethods.includes(prev)
+        ? prev
+        : allowedPaymentMethods[0],
+    );
+  }, [event?.event_id, allowedPaymentMethods]);
 
   const { setReferral, getValidReferral, clearReferral } = useReferral();
   const [refUsername, setRefUsername] = useState(null);
@@ -184,6 +213,17 @@ const EventDetailsPage = () => {
       return;
     }
 
+    const isPaidCheckout =
+      event.pricing_type === "paid" && orderSummary.subtotal > 0;
+    if (
+      isPaidCheckout &&
+      (!checkoutPaymentMethod ||
+        !allowedPaymentMethods.includes(checkoutPaymentMethod))
+    ) {
+      toast.error("Choose how you want to pay for this event");
+      return;
+    }
+
     setBookingLoading(true);
     const toastId = toast.loading("Processing booking...");
 
@@ -216,6 +256,7 @@ const EventDetailsPage = () => {
       const payload = {
         event_id: eventIdToUse,
         items: items,
+        ...(isPaidCheckout && { payment_method: checkoutPaymentMethod }),
         // Send referral username/ID in standard 'referral' field
         ...(finalReferral && { referral: finalReferral }),
         // For maximum compatibility with all backend endpoints
@@ -244,7 +285,13 @@ const EventDetailsPage = () => {
           subtotal: orderSummary.subtotal,
           payment_url: response.data.payment_url,
           payment_reference: response.data.payment_reference,
-          payment_methods_allowed: event.payment_methods_allowed || event.payment_method_allowed || ["paystack"],
+          payment_method: response.data.payment_method || checkoutPaymentMethod,
+          payment_methods_allowed:
+            response.data.allowed_payment_methods ||
+            event.payment_methods_allowed ||
+            event.payment_method_allowed ||
+            allowedPaymentMethods,
+          total_manual_amount: response.data.total_amount,
           pricing_type: event.pricing_type,
           tickets: tickets,
           created_at: new Date().toISOString()
@@ -601,6 +648,37 @@ const EventDetailsPage = () => {
                         </div>
                       ))}
                     </div>
+
+                    {event.pricing_type === "paid" &&
+                      orderSummary.subtotal > 0 &&
+                      allowedPaymentMethods.length > 1 && (
+                      <div className="space-y-3 pb-2">
+                        <div className="flex items-center gap-2">
+                          <Zap className="h-4 w-4 text-rose-500" />
+                          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                            Payment method
+                          </span>
+                        </div>
+                        <PaymentTabs
+                          activeTab={checkoutPaymentMethod || allowedPaymentMethods[0]}
+                          onChange={setCheckoutPaymentMethod}
+                          allowedMethods={allowedPaymentMethods}
+                        />
+                      </div>
+                    )}
+
+                    {event.pricing_type === "paid" &&
+                      orderSummary.subtotal > 0 &&
+                      allowedPaymentMethods.length === 1 && (
+                      <p className="text-xs text-muted-foreground pb-2">
+                        Payment:{" "}
+                        <span className="font-medium text-foreground">
+                          {allowedPaymentMethods[0] === "manual_bank_transfer"
+                            ? "Bank transfer"
+                            : "Paystack (card)"}
+                        </span>
+                      </p>
+                    )}
 
                     <div className="border-t border-border/50 pt-4 space-y-2">
                       <div className="flex justify-between text-sm">
