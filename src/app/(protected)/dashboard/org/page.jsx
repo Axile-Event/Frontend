@@ -504,7 +504,7 @@ export default function Overview() {
                                   <p className="text-[10px] text-gray-500 font-bold mt-1">Sold</p>
                                </div>
                             </div>
-                            <ChevronRight className="w-5 h-5 text-gray-700 group-hover:text-rose-500 transition-colors ml-2 flex-shrink-0" />
+                            <ChevronRight className="w-5 h-5 text-gray-700 group-hover:text-rose-500 transition-colors ml-2 shrink-0" />
                          </div>
                       </div>
                     </div>
