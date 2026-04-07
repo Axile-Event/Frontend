@@ -1,9 +1,16 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Ticket, Info } from "lucide-react";
+import { Ticket, Info, Loader2, Lock, ShieldCheck } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
-const PaymentSummary = ({ summary, activeTab }) => {
+const PaymentSummary = ({ 
+  summary, 
+  onPay, 
+  loading = false, 
+  paymentMethod = 'paystack',
+  showActionButton = true 
+}) => {
   const { 
     ticketNumber, 
     event_name,
@@ -12,39 +19,47 @@ const PaymentSummary = ({ summary, activeTab }) => {
     subtotal = 0,
     serviceFee = 0, // Platform service fee (₦80)
     paystackFee = 0, // Paystack processing fee
-    platformFee = 0, // Combined fees (fallback)
     totalPaystack = 0,
+    totalManual = subtotal + serviceFee,
   } = summary || {};
 
-  // Determine which fees and total to show based on active tab
-  const isPaystack = activeTab === "paystack";
-  const currentTotal = isPaystack ? totalPaystack : (subtotal + serviceFee);
+  const isManual = paymentMethod === 'manual_bank_transfer';
+  const currentTotal = isManual ? totalManual : (totalPaystack || (subtotal + serviceFee + paystackFee));
+  const processingFee = isManual ? 0 : paystackFee;
 
   return (
-    <Card className="border-border/70 bg-card/90 shadow-sm">
-      <CardHeader className="pb-3">
+    <Card className="border-border/70 bg-card/90 shadow-xl overflow-hidden">
+      <CardHeader className="pb-3 bg-muted/20">
         <CardTitle className="text-xl flex items-center gap-2">
           <Ticket className="h-5 w-5 text-rose-500" />
           Order Summary
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 pt-4">
         {/* Event Details */}
         {event_name && (
           <div className="space-y-1">
-            <p className="font-semibold text-foreground">{event_name}</p>
-            <p className="text-sm text-muted-foreground">{quantity} ticket{quantity > 1 ? 's' : ''}</p>
+            <p className="font-bold text-foreground text-lg tracking-tight">{event_name}</p>
+            <p className="text-sm text-muted-foreground font-medium">{quantity} ticket{quantity > 1 ? 's' : ''}</p>
           </div>
         )}
 
         <Separator className="bg-border/50" />
 
-        {/* Booking Reference */}
-        <div className="flex justify-between items-center text-sm">
-          <span className="text-muted-foreground">Booking Reference</span>
-          <span className="font-mono font-medium text-foreground text-xs">
-            {ticketNumber || "N/A"}
-          </span>
+        {/* Booking & Method Details */}
+        <div className="grid grid-cols-1 gap-3">
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-muted-foreground font-medium">Booking Reference</span>
+            <span className="font-mono font-black text-rose-500 text-xs tracking-wider bg-rose-500/5 px-2 py-1 rounded">
+              {ticketNumber || "N/A"}
+            </span>
+          </div>
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-muted-foreground font-medium">Payment Method</span>
+            <span className="text-foreground font-bold uppercase text-[10px] tracking-widest bg-muted px-2 py-1 rounded">
+              {isManual ? "Bank Transfer" : "Paystack"}
+            </span>
+          </div>
         </div>
         
         <Separator className="bg-border/50" />
@@ -54,10 +69,10 @@ const PaymentSummary = ({ summary, activeTab }) => {
           {items.map((item, index) => (
             <div key={index} className="flex justify-between items-start text-sm">
               <div>
-                <span className="text-foreground font-medium">{item.name}</span>
-                <span className="text-muted-foreground ml-2">×{item.quantity}</span>
+                <span className="text-foreground font-bold">{item.name}</span>
+                <span className="text-muted-foreground ml-2 font-medium">×{item.quantity}</span>
               </div>
-              <span className="text-foreground">
+              <span className="text-foreground font-mono font-bold">
                 ₦{(item.price * item.quantity).toLocaleString()}
               </span>
             </div>
@@ -66,9 +81,9 @@ const PaymentSummary = ({ summary, activeTab }) => {
           {items.length > 1 && (
             <>
               <Separator className="bg-border/30" />
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Subtotal</span>
-                <span className="text-foreground">₦{subtotal?.toLocaleString()}</span>
+              <div className="flex justify-between text-sm font-medium">
+                <span className="text-muted-foreground tracking-tight uppercase text-[10px] font-bold">Subtotal</span>
+                <span className="text-foreground font-mono">₦{subtotal?.toLocaleString()}</span>
               </div>
             </>
           )}
@@ -77,64 +92,82 @@ const PaymentSummary = ({ summary, activeTab }) => {
         <Separator className="bg-border/50" />
 
         {/* Fee Breakdown Section */}
-        <div className="space-y-2">
-          <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
-            <Info className="h-3.5 w-3.5" />
-            <span>Fee Breakdown</span>
+        <div className="space-y-3">
+          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground uppercase font-black tracking-widest mb-1">
+            <span className="flex items-center gap-1">
+              <Info className="h-3 w-3" />
+              Fee Breakdown
+            </span>
           </div>
           
-          {/* Service Fee - always shown for paid tickets */}
           {serviceFee > 0 && (
             <div className="flex justify-between items-center text-sm">
               <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">Service Fee</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground/70">
+                <span className="text-muted-foreground font-medium">Service Fee</span>
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground/70 font-bold uppercase tracking-tighter">
                   Platform
                 </span>
               </div>
-              <span className="text-foreground">₦{serviceFee?.toLocaleString()}</span>
+              <span className="text-foreground font-mono font-medium">₦{serviceFee?.toLocaleString()}</span>
             </div>
           )}
           
-          {/* Paystack Fee - only shown when Paystack tab is active */}
-          {isPaystack && paystackFee > 0 && (
+          {processingFee > 0 && (
             <div className="flex justify-between items-center text-sm">
               <div className="flex items-center gap-2">
-                <span className="text-muted-foreground">Processing Fee</span>
-                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                <span className="text-muted-foreground font-medium">Processing Fee</span>
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-tighter">
                   Paystack
                 </span>
               </div>
-              <span className="text-foreground">₦{paystackFee?.toLocaleString()}</span>
+              <span className="text-foreground font-mono font-medium">₦{processingFee?.toLocaleString()}</span>
             </div>
           )}
-
-          {/* Manual Transfer Additional Fee Disclaimer */}
-          {!isPaystack && (
-            <div className="bg-amber-500/5 border border-amber-510/10 rounded-lg p-2.5 flex gap-2">
-              <Info size={14} className="text-amber-500 shrink-0 mt-0.5" />
-              <p className="text-[10px] text-amber-200/70 leading-relaxed font-medium">
-                Note: An additional 6% processing fee will be calculated during manual verification by the admin.
-              </p>
-            </div>
-          )}
-
         </div>
 
         <Separator className="bg-border/50" />
 
         {/* Total */}
-        <div className="flex justify-between items-center pt-1">
-          <span className="text-base font-semibold">Total Amount</span>
+        <div className="flex justify-between items-center">
+          <span className="text-base font-black uppercase tracking-tight">Total Amount</span>
           <div className="text-right">
-            <span className="text-2xl font-bold text-rose-500">
+            <span className="text-3xl font-black text-rose-500 font-mono tracking-tighter">
               ₦{currentTotal?.toLocaleString()}
             </span>
-            <p className="text-[10px] text-muted-foreground mt-0.5">
-              Includes ₦{(isPaystack ? (serviceFee + paystackFee) : serviceFee).toLocaleString()} in fees
+            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-tighter mt-1">
+              Includes ₦{(serviceFee + processingFee).toLocaleString()} in fees
             </p>
           </div>
         </div>
+
+        {/* Action Button - Desktop Only */}
+        {showActionButton && (
+          <div className="hidden lg:block pt-2 space-y-3">
+            <Button 
+              onClick={onPay}
+              disabled={loading}
+              className="w-full h-14 text-sm font-black uppercase tracking-widest shadow-xl shadow-rose-600/20 bg-rose-600 hover:bg-rose-700 active:scale-[0.98] transition-all"
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Redirecting...
+                </>
+              ) : (
+                <>
+                  <Lock className="mr-2 h-4 w-4" />
+                  Complete Order
+                </>
+              )}
+            </Button>
+            <div className="flex items-center justify-center gap-4 text-[10px] text-muted-foreground font-bold uppercase tracking-tight">
+              <div className="flex items-center gap-1">
+                <ShieldCheck size={12} className="text-emerald-500" />
+                Secured by {isManual ? "Manual Verification" : "Paystack"}
+              </div>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

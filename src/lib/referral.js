@@ -14,16 +14,31 @@ export async function fetchReferralRewardTypes() {
 
 /**
  * Fetch referral stats for an event (organizer).
- * POST /organiser/<event_id>/referral-stats/
+ * Returns all referrers for the event with their usernames and stats.
+ * Uses POST /organiser/{event_id}/referral-stats/ with empty referrals array.
  * @param {string} eventId
- * @param {Array<{username: string}>} referrals
+ * @param {Array} referrals - Optional array of {username: string} to filter results
  */
-export async function fetchReferralStats(eventId, referrals = []) {
-  const res = await api.post(`/organiser/${eventId}/referral-stats/`, {
-    referrals,
-  });
-  return res?.data;
+export async function getReferralStats(eventId, usernames = []) {
+  // USER UPDATED FORMAT: Use "event:EV-XXXXX" directly in path (no re-encoding)
+  const cleanId = decodeURIComponent(eventId);
+  
+  const url = `/organizer/${cleanId}/referral-stats/`;
+  
+  const body = {
+    referrals: usernames.map(u => typeof u === 'string' ? { username: u } : u)
+  };
+
+  try {
+    const res = await api.post(url, body);
+    return res?.data;
+  } catch (err) {
+    throw err;
+  }
 }
+
+// Alias for backwards compatibility or alternative naming
+export const fetchReferralStats = getReferralStats;
 
 /**
  * Build referral FormData fields for event create/update.

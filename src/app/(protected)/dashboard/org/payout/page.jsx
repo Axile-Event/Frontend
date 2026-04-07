@@ -402,7 +402,7 @@ export default function PayoutPage() {
                       ))
                     ) : (
                       <tr>
-                         <td colSpan="3" className="px-6 py-12 text-center text-gray-500 italic">
+                         <td colSpan="3" className="px-6 py-12 text-center text-gray-500">
                            No payout requests found.
                          </td>
                       </tr>
@@ -447,7 +447,7 @@ export default function PayoutPage() {
                       ))
                     ) : (
                       <tr>
-                         <td colSpan="4" className="px-6 py-12 text-center text-gray-500 italic">
+                         <td colSpan="4" className="px-6 py-12 text-center text-gray-500">
                            No transactions found.
                          </td>
                       </tr>
@@ -501,7 +501,7 @@ export default function PayoutPage() {
                       ))
                     ) : (
                       <tr>
-                         <td colSpan="5" className="px-6 py-12 text-center text-gray-500 italic">
+                         <td colSpan="5" className="px-6 py-12 text-center text-gray-500">
                            No completed payouts found.
                          </td>
                       </tr>

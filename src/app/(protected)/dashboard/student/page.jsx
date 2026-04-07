@@ -11,7 +11,7 @@ import toast from "react-hot-toast";
 import { StudentDashboardSkeleton } from "@/components/skeletons";
 import { queryKeys } from "@/lib/query-keys";
 
-const StudentDashboardOverview = () => {
+const UserDashboardOverview = () => {
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
 
@@ -62,7 +62,7 @@ const StudentDashboardOverview = () => {
                       profile?.Firstname || 
                       profile?.first_name || 
                       profile?.Preferred_name ||
-                      "Student";
+                      "User";
 
   return (
     <div className="min-h-screen space-y-5 md:space-y-8 pt-2 md:pt-6">
@@ -154,4 +154,4 @@ const StudentDashboardOverview = () => {
 
 
 
-export default StudentDashboardOverview;
+export default UserDashboardOverview;

@@ -6,7 +6,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axios";
 import { queryKeys } from "@/lib/query-keys";
 import toast from "react-hot-toast";
-import { ChevronLeft, Save, Loader2, X, Plus, Edit2, Trash2, Camera, MapPin, Eye, ImageIcon, Zap, Ticket, Calendar, Megaphone } from "lucide-react";
+import { ChevronLeft, Save, Loader2, X, Plus, Edit2, Trash2, Camera, MapPin, Eye, ImageIcon, Zap, Ticket, Calendar, Megaphone, CreditCard, Banknote, CheckCircle2 } from "lucide-react";
 import Loading from "@/components/ui/Loading";
 import { Skeleton } from "@/components/ui/skeleton";
 import DateTimePicker from "@/components/ui/DateTimePicker";
@@ -51,6 +51,7 @@ export default function EditEventPage() {
     event_type: "",
     pricing_type: "",
     max_quantity_per_booking: "",
+    payment_methods_allowed: [],
   });
   const [categories, setCategories] = useState([]);
   const [referralConfig, setReferralConfig] = useState({
@@ -64,6 +65,8 @@ export default function EditEventPage() {
   const [errors, setErrors] = useState({});
   const [showPinPrompt, setShowPinPrompt] = useState(false);
   const [pendingSubmit, setPendingSubmit] = useState(false);
+  const [wantsToPublish, setWantsToPublish] = useState(false);
+  const [isDraft, setIsDraft] = useState(false);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -107,15 +110,64 @@ export default function EditEventPage() {
       }
 
       try {
-        const res = await api.get(`/events/${eventId}/details/`);
-        const eventData = res?.data;
+        // Primary source: organizer events list (includes draft events)
+        const orgRes = await api.get("/organizer/events/");
+        const payload = orgRes.data;
+        let list = [];
+        if (Array.isArray(payload)) list = payload;
+        else if (Array.isArray(payload?.events)) list = payload.events;
+        else if (Array.isArray(payload?.data)) list = payload.data;
+
+        const decodedEventId = decodeURIComponent(String(eventId || ""));
+        const normalizeId = (id) => String(id ?? "").replace(/^event:/i, "").toLowerCase();
+        const normalizedTarget = normalizeId(decodedEventId);
+
+        console.log("[EditEvent] Param eventId:", eventId);
+        console.log("[EditEvent] Decoded eventId:", decodedEventId);
+        console.log("[EditEvent] Normalized target:", normalizedTarget);
+
+        let eventData = list.find((e) => {
+          const rawId = String(e.event_id ?? e.id ?? "");
+          const match = rawId === decodedEventId || normalizeId(rawId) === normalizedTarget;
+          if (!match) console.log(`[EditEvent] Mismatch: raw="${rawId}" vs decoded="${decodedEventId}" (normalized: "${normalizeId(rawId)}" vs "${normalizedTarget}")`);
+          return match;
+        }) || null;
+
+        console.log("[EditEvent] Found eventData:", eventData ? `${eventData.event_id ?? eventData.id} (Status: ${eventData.status})` : "NULL - no match in list");
+
+        // Case-insensitive status check and flexible flag detection
+        const isDraftEvent = String(eventData?.status).toLowerCase() === "draft";
+
+        if (!isDraftEvent && eventId) {
+          try {
+            const detailRes = await api.get(`/events/${eventId}/details/`);
+            if (detailRes?.data) {
+              eventData = eventData ? { ...eventData, ...detailRes.data } : detailRes.data;
+            }
+          } catch (err) {
+            // Public details fetch failed (expected for drafts)
+          }
+        }
+
+        // Fetch ticket categories separately if needed
+        if (eventData) {
+          try {
+            const catRes = await api.get(`/tickets/categories/?event_id=${eventId}`);
+            const cats = Array.isArray(catRes.data) ? catRes.data : (catRes.data?.categories || []);
+            if (cats.length > 0) {
+              eventData = { ...eventData, ticket_categories: cats };
+            }
+          } catch {
+            // Use ticket_categories from eventData if already present
+          }
+        }
 
         if (isMountedRef.current && eventData) {
           setEvent(eventData);
-          
+
           // Parse date correctly for DateTimePicker
           const dateObj = eventData.date ? new Date(eventData.date) : null;
-          
+
           setForm({
             name: eventData.name || "",
             description: eventData.description || "",
@@ -124,29 +176,38 @@ export default function EditEventPage() {
             event_type: eventData.event_type || "",
             pricing_type: eventData.pricing_type || "free",
             max_quantity_per_booking: eventData.max_quantity_per_booking || "",
+            payment_methods_allowed: Array.isArray(eventData.payment_methods_allowed)
+              ? eventData.payment_methods_allowed
+              : (typeof eventData.payment_methods_allowed === 'string'
+                  ? eventData.payment_methods_allowed.split(',').filter(Boolean)
+                  : ["paystack"]),
           });
 
           // Load ticket categories if paid event
-          if (eventData.pricing_type === "paid" && eventData.ticket_categories) {
-            setCategories(eventData.ticket_categories || []);
+          const cats = eventData.ticket_categories || [];
+          if (eventData.pricing_type === "paid" && cats.length > 0) {
+            setCategories(cats);
           }
 
           // Pre-fill referral config from event data
           setReferralConfig({
-            use_referral: eventData.use_referral || false,
+            use_referral: eventData.use_referral ?? eventData.has_referral ?? false,
             referral_reward_type: eventData.referral_reward_type || "",
             referral_reward_amount: eventData.referral_reward_amount ?? "",
             referral_reward_percentage: eventData.referral_reward_percentage ?? "",
           });
 
+          setIsDraft(isDraftEvent);
+
           if (eventData.image) {
             setPreview(eventData.image);
           }
         }
+        // No toast for not-found — the UI error state handles it gracefully
       } catch (err) {
         if (isMountedRef.current) {
           toast.error("Failed to load event details");
-          console.error(err);
+          console.error("[EditEvent] fetchEvent error:", err);
         }
       } finally {
         if (isMountedRef.current) {
@@ -157,6 +218,7 @@ export default function EditEventPage() {
 
     fetchEvent();
   }, [eventId]);
+
 
   const handleChange = (field) => (e) => {
     const value = e.target.type === "checkbox" ? e.target.checked : e.target.value;
@@ -264,6 +326,10 @@ export default function EditEventPage() {
           e.categories = "Each category must have a price greater than 0";
         }
       }
+
+      if (!Array.isArray(form.payment_methods_allowed) || form.payment_methods_allowed.length === 0) {
+        e.payment_methods_allowed = "At least one payment method is required for paid events";
+      }
     }
 
     // Referral validation
@@ -280,9 +346,12 @@ export default function EditEventPage() {
     return Object.keys(e).length === 0;
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (e, shouldPublish = false) => {
+    if (e) e.preventDefault();
+    setWantsToPublish(shouldPublish);
     
+    // Always validate full requirements, even for drafts.
+    // A draft is a complete event that simply hasn't been published yet.
     if (!validate()) {
       toast.error("Please fill in all required fields correctly.");
       return;
@@ -304,6 +373,16 @@ export default function EditEventPage() {
       formData.append("event_type", form.event_type);
       formData.append("location", form.location.trim());
 
+      if (form.pricing_type === "paid") {
+        const methods = Array.isArray(form.payment_methods_allowed) 
+          ? form.payment_methods_allowed 
+          : (form.payment_methods_allowed ? [form.payment_methods_allowed] : ["paystack"]);
+
+        // Backend expects a JSON array string for this multipart field.
+        formData.append("payment_methods_allowed", JSON.stringify(methods));
+      }
+
+      // convert local datetime input to ISO with Z
       const isoDate = form.date ? new Date(form.date).toISOString() : "";
       formData.append("date", isoDate);
 
@@ -316,8 +395,23 @@ export default function EditEventPage() {
         formData.append("max_quantity_per_booking", form.max_quantity_per_booking);
       }
 
-      // Append referral config
-      appendReferralFields(formData, referralConfig);
+      // Only add save_as_draft flag if the event is currently in a draft state.
+      // Already LIVE or verified events should not send this flag as the backend
+      // rejects moving them back to the review queue.
+      if (isDraft) {
+        formData.append("save_as_draft", wantsToPublish ? "false" : "true");
+      }
+
+      // Add referral configuration
+      formData.append("use_referral", referralConfig.use_referral ? "true" : "false");
+      if (referralConfig.use_referral) {
+        formData.append("referral_reward_type", referralConfig.referral_reward_type || "flat");
+        if (referralConfig.referral_reward_type === "flat") {
+          formData.append("referral_reward_amount", referralConfig.referral_reward_amount || 0);
+        } else {
+          formData.append("referral_reward_percentage", referralConfig.referral_reward_percentage || 0);
+        }
+      }
 
       // Debug: log referral fields being sent
       console.log("[EditEvent] Referral config:", referralConfig);
@@ -368,12 +462,22 @@ export default function EditEventPage() {
           }
         }
 
-        toast.success("Event updated successfully!");
+        toast.success(
+          wantsToPublish
+            ? "Event published successfully!"
+            : isDraft
+            ? "Draft saved successfully!"
+            : "Event updated successfully!"
+        );
         queryClient.invalidateQueries({ queryKey: queryKeys.organizer.events });
         queryClient.invalidateQueries({ queryKey: queryKeys.organizer.dashboard });
         queryClient.invalidateQueries({ queryKey: queryKeys.organizer.eventDetail(eventId) });
         queryClient.invalidateQueries({ queryKey: queryKeys.organizer.eventTickets(eventId) });
-        router.push(`/dashboard/org/my-event/${eventId}`);
+        if (wantsToPublish) {
+          router.push("/dashboard/org/my-event");
+        } else {
+          router.push(`/dashboard/org/my-event/${eventId}`);
+        }
       } else {
         toast.error(`Unexpected server response: ${response?.status}`);
       }
@@ -385,7 +489,12 @@ export default function EditEventPage() {
         err?.message ||
         "Failed to update event";
       toast.error(msg);
-      console.error("Update event error:", err?.response || err);
+      if (err.response) {
+        console.error("[UpdateEvent] Response Data:", err.response.data);
+        console.error("[UpdateEvent] Response Status:", err.response.status);
+        console.error("[UpdateEvent] Response Headers:", err.response.headers);
+        console.error("[UpdateEvent] Full Error Response:", err.response);
+      }
       window.scrollTo({ top: 0, behavior: "smooth" });
     } finally {
       setSubmitting(false);
@@ -472,13 +581,43 @@ export default function EditEventPage() {
             required.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="text-xs font-semibold text-gray-500 hover:text-white transition-colors"
-        >
-          Cancel
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            type="submit"
+            disabled={submitting}
+            onClick={(e) => handleSubmit(e, false)}
+            className="px-8 py-3.5 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-bold transition-all border border-white/10 flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-50"
+          >
+            {submitting && !wantsToPublish ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Save className="w-4 h-4" />
+            )}
+            {event.status === "draft" ? "Save Draft" : "Save Changes"}
+          </button>
+          {event.status === "draft" && (
+            <button
+              type="button"
+              disabled={submitting}
+              onClick={(e) => handleSubmit(e, true)}
+              className="px-6 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl transition-all shadow-lg shadow-rose-600/20 active:scale-95 disabled:opacity-50 flex items-center gap-2"
+            >
+              {submitting && wantsToPublish ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : (
+                <Megaphone className="w-3 h-3" />
+              )}
+              Publish Event
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="text-xs font-semibold text-gray-500 hover:text-white transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -723,7 +862,7 @@ export default function EditEventPage() {
                                 <span className="text-rose-500">*</span>
                               </label>
                               <input
-                                value={cat.name}
+                                value={cat.name ?? ""}
                                 onChange={(e) =>
                                   updateCategory(idx, "name", e.target.value)
                                 }
@@ -755,7 +894,7 @@ export default function EditEventPage() {
                               </label>
                               <input
                                 type="number"
-                                value={cat.max_tickets}
+                                value={cat.max_tickets ?? ""}
                                 onChange={(e) =>
                                   updateCategory(
                                     idx,
@@ -790,6 +929,107 @@ export default function EditEventPage() {
                       ))}
                     </div>
                   )}
+
+                  {errors.categories && (
+                    <p className="text-[10px] text-rose-500 font-bold mt-2 ml-1">
+                      {errors.categories}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Payment Methods Section */}
+              {form.pricing_type === "paid" && (
+                <div className="space-y-4 pt-4 border-t border-white/5">
+                  <div className="flex items-center gap-2 mb-2">
+                    <CreditCard className="w-4 h-4 text-rose-500" />
+                    <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">
+                      Payment Methods
+                    </h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3">
+                    {[
+                      {
+                        id: "paystack",
+                        label: "Paystack",
+                        desc: "Auto-confirmed",
+                        explanation:
+                          "Payments are processed instantly through Paystack. Tickets are automatically issued to attendees upon successful payment. (Standard fees apply)",
+                        icon: <CreditCard className="w-5 h-5" />,
+                      },
+                      {
+                        id: "manual_bank_transfer",
+                        label: "Bank Transfer",
+                        desc: "Manual confirm",
+                        explanation:
+                          "Attendees transfer directly to our company account. Due to the manual nature of verification, it may take some time to process, but all valid payments will be approved.",
+                        icon: <Banknote className="w-5 h-5" />,
+                      },
+                    ].map((method) => {
+                      const isSelected = (form.payment_methods_allowed || []).includes(method.id);
+                      return (
+                        <button
+                          key={method.id}
+                          type="button"
+                          onClick={() => {
+                            const current = Array.isArray(form.payment_methods_allowed)
+                              ? form.payment_methods_allowed
+                              : form.payment_methods_allowed
+                              ? [form.payment_methods_allowed]
+                              : [];
+
+                            if (isSelected) {
+                              if (current.length > 1) {
+                                setForm((s) => ({
+                                  ...s,
+                                  payment_methods_allowed: current.filter((m) => m !== method.id),
+                                }));
+                              } else {
+                                toast.error("At least one method required");
+                              }
+                            } else {
+                              setForm((s) => ({
+                                ...s,
+                                payment_methods_allowed: [...current, method.id],
+                              }));
+                            }
+                            setErrors((prev) => ({ ...prev, payment_methods_allowed: undefined }));
+                          }}
+                          className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all duration-300 ${
+                            isSelected
+                              ? "bg-rose-500/10 border-rose-500/50 shadow-lg shadow-rose-900/10"
+                              : "bg-white/5 border-white/10 hover:border-white/20"
+                          }`}
+                        >
+                        <div className="flex items-center gap-3">
+                          <div className={`p-2 rounded-xl transition-colors ${
+                            isSelected ? "bg-rose-500/20 text-rose-400" : "bg-white/10 text-gray-500"
+                          }`}>
+                            {method.id === 'paystack' ? <CreditCard className="w-4 h-4" /> : <Banknote className="w-4 h-4" />}
+                          </div>
+                          <div className="text-left">
+                            <p className="text-[11px] font-black uppercase tracking-wider text-white">
+                              {method.label}
+                            </p>
+                            <p className="text-[9px] font-bold text-rose-500 uppercase tracking-tight mb-1">
+                              {method.desc}
+                            </p>
+                            <p className="text-[10px] text-gray-500 font-medium leading-relaxed max-w-[200px]">
+                              {method.explanation}
+                            </p>
+                          </div>
+                        </div>
+                        {isSelected && <CheckCircle2 className="w-5 h-5 text-rose-500 animate-in zoom-in-0 duration-300" />}
+                      </button>
+                    );
+                  })}
+                </div>
+                {errors.payment_methods_allowed && (
+                  <p className="text-[10px] text-rose-500 font-bold mt-2 ml-1 uppercase">
+                    {errors.payment_methods_allowed}
+                  </p>
+                )}
                 </div>
               )}
 
@@ -860,31 +1100,39 @@ export default function EditEventPage() {
                 </AnimatePresence>
               </div>
 
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-bold file:bg-rose-600 file:text-white hover:file:bg-rose-700 file:cursor-pointer"
-              />
-              <p className="text-xs text-gray-500">
-                Upload a new image to replace the current one (max 5MB)
-              </p>
             </div>
 
-            <button
-              type="submit"
-              disabled={submitting}
-              className="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold py-3.5 rounded-xl transition-all shadow-lg shadow-rose-600/20 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-4"
-            >
-              {submitting ? (
-                <>
+
+            <div className="flex flex-col sm:flex-row gap-4 mt-6">
+              <button
+                type="submit"
+                disabled={submitting}
+                className={`flex-1 ${isDraft ? 'bg-white/5 hover:bg-white/10 text-white border border-white/10' : 'bg-rose-600 hover:bg-rose-700 text-white shadow-rose-600/20'} font-bold py-4 rounded-2xl transition-all shadow-lg active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
+              >
+                {submitting && !wantsToPublish ? (
                   <span className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                  Updating Event...
-                </>
-              ) : (
-                "Update Event"
+                ) : (
+                  <Save className="w-4 h-4" />
+                )}
+                {isDraft ? "Save Draft" : "Save Changes"}
+              </button>
+
+              {isDraft && (
+                <button
+                  type="button"
+                  disabled={submitting}
+                  onClick={(e) => handleSubmit(e, true)}
+                  className="flex-1 bg-rose-600 hover:bg-rose-700 text-white font-bold py-4 rounded-2xl transition-all shadow-lg shadow-rose-600/20 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {submitting && wantsToPublish ? (
+                    <span className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <Megaphone className="w-4 h-4" />
+                  )}
+                  Publish Event
+                </button>
               )}
-            </button>
+            </div>
           </form>
         </section>
 

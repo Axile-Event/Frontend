@@ -37,7 +37,7 @@ import BulkBookForAttendeeModal from "@/components/organizer/BulkBookForAttendee
 import ManualConfirmationModal from "@/components/payment/ManualConfirmationModal";
 import ReferralBadge from "@/components/organizer/ReferralBadge";
 import ReferralStatsTable from "@/components/organizer/ReferralStatsTable";
-import { fetchReferralStats } from "@/lib/referral";
+import { getReferralStats } from "@/lib/referral";
 import useTempBookingStore from "@/store/tempBookingStore";
 
 // Book for Attendee Modal Component
@@ -391,59 +391,109 @@ export default function EventDetailsPage() {
     queryKey: queryKeys.organizer.eventDetail(id),
     queryFn: async () => {
       const orgRes = await api.get("/organizer/events/");
-      const list = Array.isArray(orgRes.data) ? orgRes.data : (orgRes.data?.events ?? []);
-      let eventData = list.find((e) => String(e.event_id ?? e.id) === String(id));
-      
-      // Always fetch full details to ensure we get all fields like use_referral, referral_reward_type, etc.
-      try {
-        const publicRes = await api.get(`/events/${id}/details/`);
-        if (publicRes?.data) {
-          eventData = eventData ? { ...eventData, ...publicRes.data } : publicRes.data;
+      const payload = orgRes.data;
+      let list = [];
+      if (Array.isArray(payload)) list = payload;
+      else if (Array.isArray(payload?.events)) list = payload.events;
+      else if (Array.isArray(payload?.data)) list = payload.data;
+
+      // Normalize IDs — backend may return "EV-xxx" or "event:EV-xxx"; URL may use either
+      const normalizeId = (id) => String(id ?? "").replace(/^event:/i, "").toLowerCase();
+      const normalizedTarget = normalizeId(id);
+
+      let eventData = list.find((e) => {
+        const raw = String(e.event_id ?? e.id ?? "");
+        return raw === String(id) || normalizeId(raw) === normalizedTarget;
+      }) || null;
+
+      // Case-insensitive status check and flexible flag detection
+      const isDraftEvent = 
+        String(eventData?.status || "").toLowerCase() === "draft" || 
+        String(eventData?.save_as_draft).toLowerCase() === "true" || 
+        String(eventData?.is_draft).toLowerCase() === "true";
+
+      if (!isDraftEvent && id) {
+        // Only fetch full public details for non-draft events
+        try {
+          const publicRes = await api.get(`/events/${id}/details/`);
+          if (publicRes?.data) {
+            eventData = eventData ? { ...eventData, ...publicRes.data } : publicRes.data;
+          }
+        } catch {
+          // Non-fatal
         }
-      } catch (err) {
-        if (!eventData) throw err;
       }
 
       if (eventData) {
+        // Fetch tickets and revenue (Analytics is the source of truth for Net Revenue)
         try {
-          const ticketsRes = await api.get(`/tickets/organizer/${id}/tickets/`);
-          const stats = ticketsRes.data?.statistics || {};
-          eventData = { ...eventData, ticket_stats: { confirmed_tickets: stats.confirmed || 0, tickets_sold: stats.sold ?? (stats.confirmed || 0) + (stats.used || 0), pending_tickets: stats.pending || 0, total_revenue: stats.total_revenue || 0, available_spots: stats.available_spots ?? "∞" } };
-        } catch {
+          const [ticketsRes, analyticsRes] = await Promise.allSettled([
+            api.get(`/tickets/organizer/${id}/tickets/`),
+            api.get(`/analytics/event/${id}/`)
+          ]);
+
+          const stats = (ticketsRes.status === 'fulfilled' ? ticketsRes.value.data?.statistics : null) || {};
+          let analyticsRevenue = 0;
+
+          if (analyticsRes.status === 'fulfilled') {
+            const aData = analyticsRes.value.data.analytics || analyticsRes.value.data;
+            const aStats = aData.statistics || {};
+            const aRevenueSource = analyticsRes.value.data.event?.revenue;
+
+            if (aRevenueSource && typeof aRevenueSource === "object") {
+              analyticsRevenue = aRevenueSource.organizer_revenue ?? 
+                                 aRevenueSource.net_revenue ?? 
+                                 aRevenueSource.earnings ?? 
+                                 aRevenueSource.organizer_share ?? 
+                                 aRevenueSource.net ?? 
+                                 aRevenueSource.total_revenue ?? 0;
+            } else {
+              analyticsRevenue = aRevenueSource ?? aStats.net_revenue ?? aStats.total_revenue ?? stats.total_revenue ?? 0;
+            }
+          } else {
+            analyticsRevenue = stats.total_revenue || 0;
+          }
+
+          eventData = { 
+            ...eventData, 
+            ticket_stats: { 
+              confirmed_tickets: stats.confirmed || 0, 
+              tickets_sold: stats.sold ?? (stats.confirmed || 0) + (stats.used || 0), 
+              pending_tickets: stats.pending || 0, 
+              total_revenue: analyticsRevenue, // Use correct net revenue
+              available_spots: stats.available_spots ?? "∞" 
+            } 
+          };
+        } catch (err) {
+          console.error("Failed to fetch event stats:", err);
           if (!eventData.ticket_stats) eventData = { ...eventData, ticket_stats: { confirmed_tickets: 0, tickets_sold: 0, pending_tickets: 0, total_revenue: 0, available_spots: "∞" } };
         }
+
         try {
-          const catRes = await api.get(`/tickets/categories/?event_id=${id}`);
-          const categoriesData = Array.isArray(catRes.data) ? catRes.data : (catRes.data?.categories || []);
-          eventData = { ...eventData, ticket_categories: categoriesData };
+          const publicRes = await api.get(`/events/${id}/details/`);
+          return publicRes.data;
         } catch {
-          try {
-            const detailsRes = await api.get(`/events/${id}/details/`);
-            eventData = { ...eventData, ticket_categories: detailsRes.data?.ticket_categories || [] };
-          } catch {
-            eventData = { ...eventData, ticket_categories: [] };
-          }
+          throw err;
         }
       }
-      return eventData;
     },
     enabled: !!id,
     refetchOnWindowFocus: true
   });
 
   // Fetch referral stats specifically for the dashboard
-  const isReferralEnabled = event?.use_referral === true || String(event?.use_referral).toLowerCase() === 'true';
+  const isReferralEnabled = 
+    event?.use_referral === true || 
+    String(event?.use_referral).toLowerCase() === 'true' ||
+    event?.has_referral === true ||
+    String(event?.has_referral).toLowerCase() === 'true';
   const { data: referralData, isLoading: referralLoading } = useQuery({
     queryKey: queryKeys.organizer.referralStats(id),
     queryFn: async () => {
       if (!isReferralEnabled) return [];
       try {
-        // Map any available referee usernames/IDs to satisfy current API requirements
-        const usernames = event?.referral_usernames || event?.referral_referee_ids || [];
-        const referrals = usernames.map((un) => ({ username: un }));
-        
-        const stats = await fetchReferralStats(id, referrals);
-        return Array.isArray(stats) ? stats : (stats?.stats || stats?.data || []);
+        const stats = await getReferralStats(id);
+        return Array.isArray(stats) ? stats : (stats?.referrals || stats?.stats || stats?.data || []);
       } catch (err) {
         console.error("Referral stats error:", err);
         return [];
@@ -652,6 +702,16 @@ export default function EventDetailsPage() {
 
   if (!event) return null;
 
+  // Draft events are not published — redirect to edit-event so the organizer can complete and publish.
+  const isCurrentDraft = 
+    String(event.status || "").toLowerCase() === "draft" || 
+    String(event.save_as_draft).toLowerCase() === "true" || 
+    String(event.is_draft).toLowerCase() === "true";
+  if (isCurrentDraft) {
+    router.replace(`/dashboard/org/edit-event/${id}`);
+    return null;
+  }
+
   const eventName = event?.name ?? "";
   const showCover = Boolean(coverSrc) && !coverBroken;
   const isPaidEvent = event.pricing_type === "paid";
@@ -659,10 +719,10 @@ export default function EventDetailsPage() {
   const freeEventCategoryName = categories.length > 0 ? categories[0].name : "General Admission";
 
   const stats = [
-    { label: "Bookings", value: event.ticket_stats?.tickets_sold ?? event.ticket_stats?.confirmed_tickets ?? 0, icon: <Ticket className="w-5 h-5 text-rose-500" />, color: "rose" },
-    { label: "Available", value: event.ticket_stats?.available_spots ?? "∞", icon: <Users className="w-5 h-5 text-emerald-500" />, color: "emerald" },
+    { label: "Bookings", value: event.ticket_stats?.tickets_sold ?? 0, icon: <Ticket className="w-5 h-5 text-rose-500" />, color: "rose" },
+    { label: "Available", value: event.ticket_stats?.capacity_total ?? "∞", icon: <Users className="w-5 h-5 text-emerald-500" />, color: "emerald" },
     // Only show revenue for paid events
-    ...(isPaidEvent ? [{ label: "Revenue", value: `₦${(event.ticket_stats?.total_revenue ?? 0).toLocaleString()}`, icon: <CreditCard className="w-5 h-5 text-blue-500" />, color: "blue" }] : []),
+    ...(isPaidEvent ? [{ label: "Your Revenue", value: `₦${(event.ticket_stats?.organizer_revenue ?? 0).toLocaleString()}`, icon: <CreditCard className="w-5 h-5 text-blue-500" />, color: "blue" }] : []),
   ];
 
   return (
@@ -837,7 +897,7 @@ export default function EventDetailsPage() {
           <div className="bg-[#0A0A0A] border border-white/5 rounded-[2.5rem] p-10 space-y-6 shadow-xl">
             <div className="flex items-center gap-3">
               <FileText className="w-6 h-6 text-rose-500" />
-              <h2 className="text-2xl font-black uppercase tracking-tighter italic">About the event</h2>
+              <h2 className="text-2xl font-black uppercase tracking-tighter">About the event</h2>
             </div>
             <p className="text-gray-400 text-base leading-loose whitespace-pre-line font-medium opacity-80">
               {event.description || "No description provided for this event yet."}
@@ -850,7 +910,7 @@ export default function EventDetailsPage() {
               <div className="bg-[#0A0A0A] border border-white/5 rounded-2xl md:rounded-[2.5rem] p-5 md:p-10 space-y-4 md:space-y-6 shadow-xl">
                 <div className="flex items-center gap-2 md:gap-3">
                   <Ticket className="w-5 h-5 md:w-6 md:h-6 text-rose-500" />
-                  <h2 className="text-lg md:text-2xl font-black uppercase tracking-tighter italic">Ticket Categories</h2>
+                  <h2 className="text-lg md:text-2xl font-black uppercase tracking-tighter">Ticket Categories</h2>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                   {event.ticket_categories.map((category, idx) => (
@@ -896,7 +956,7 @@ export default function EventDetailsPage() {
             <div className="bg-[#0A0A0A] border border-white/5 rounded-2xl md:rounded-[2.5rem] p-5 md:p-10 space-y-4 md:space-y-6 shadow-xl">
               <div className="flex items-center gap-2 md:gap-3">
                 <Ticket className="w-5 h-5 md:w-6 md:h-6 text-rose-500" />
-                <h2 className="text-lg md:text-2xl font-black uppercase tracking-tighter italic">Ticket</h2>
+                <h2 className="text-lg md:text-2xl font-black uppercase tracking-tighter">Ticket</h2>
               </div>
               <div className="bg-white/5 border border-white/10 rounded-xl md:rounded-2xl p-4 md:p-6 hover:border-emerald-500/30 transition-colors">
                 <div className="flex items-center justify-between">
@@ -915,7 +975,7 @@ export default function EventDetailsPage() {
             <div className="space-y-6">
               <div className="flex items-center gap-3">
                 <Megaphone className="w-6 h-6 text-rose-500" />
-                <h2 className="text-2xl font-black uppercase tracking-tighter italic">Referral Performance</h2>
+                <h2 className="text-2xl font-black uppercase tracking-tighter">Referral Performance</h2>
               </div>
               <ReferralStatsTable 
                 stats={referralData || []} 

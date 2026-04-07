@@ -168,7 +168,7 @@ const ManualConfirmationModal = ({
                  <Check className="text-white" size={48} strokeWidth={3} />
               </div>
               <div className="space-y-2">
-                <h3 className="text-lg font-black italic tracking-tighter">SUBMITTED!</h3>
+                <h3 className="text-lg font-black tracking-tighter">SUBMITTED!</h3>
                 <p className="text-gray-400 text-xs font-medium leading-relaxed max-w-[240px] mx-auto">
                     Verification is in progress. Check your email for your tickets within 2 hours.
                 </p>
@@ -209,7 +209,7 @@ const ManualConfirmationModal = ({
 
                  <div className="flex justify-between items-center px-1">
                     <span className="text-[10px] font-bold text-gray-500 group-hover:text-gray-400 transition-colors">EXACT AMOUNT TO PAY</span>
-                    <span className="text-base font-black text-white italic">₦{Number(totalAmount).toLocaleString()}</span>
+                    <span className="text-base font-black text-white">₦{Number(totalAmount).toLocaleString()}</span>
                  </div>
               </div>
 

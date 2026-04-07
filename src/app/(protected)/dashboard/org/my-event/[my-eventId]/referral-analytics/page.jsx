@@ -5,7 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import api from "@/lib/axios";
 import { queryKeys } from "@/lib/query-keys";
-import { fetchReferralStats } from "@/lib/referral";
+import { getReferralStats } from "@/lib/referral";
 import {
   ArrowLeft,
   Megaphone,
@@ -41,13 +41,9 @@ export default function ReferralAnalyticsPage() {
   } = useQuery({
     queryKey: queryKeys.organizer.referralStats(eventId),
     queryFn: async () => {
-      // We need usernames/IDs to query — get them from the event's referral_usernames or referral_referee_ids
-      const usernames = event?.referral_usernames || event?.referral_referee_ids || [];
-      const referrals = usernames.map((un) => ({ username: un }));
-
       try {
-        const stats = await fetchReferralStats(eventId, referrals);
-        return Array.isArray(stats) ? stats : stats?.stats || stats?.data || [];
+        const stats = await getReferralStats(eventId);
+        return Array.isArray(stats) ? stats : (stats?.referrals || stats?.stats || stats?.data || []);
       } catch (err) {
         // If the endpoint fails with empty referrals, return empty
         console.error("Referral stats error:", err);

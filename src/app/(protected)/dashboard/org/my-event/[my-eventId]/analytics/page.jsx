@@ -33,31 +33,46 @@ export default function AnalyticsPage() {
       try {
         const res = await api.get(`/analytics/event/${id}/`);
         console.log("Analytics response raw:", res.data);
-        const analyticsData = res.data.analytics || res.data;
-        console.log("Analytics tickets list:", analyticsData.tickets_list);
-        if (analyticsData.tickets_list?.[0]) {
-          console.log("Keys in ticket object:", Object.getOwnPropertyNames(analyticsData.tickets_list[0]));
+        
+        // 1. Resiliently extract "org money" from the nested revenue object or statistics
+        const revenueSource = res.data.event?.revenue;
+        let revenue = 0;
+
+        if (revenueSource && typeof revenueSource === "object") {
+          // If it's an object, extract "org money" fields as hinted by the user
+          revenue = revenueSource.organizer_revenue ?? 
+                    revenueSource.net_revenue ?? 
+                    revenueSource.earnings ?? 
+                    revenueSource.organizer_share ?? 
+                    revenueSource.net ?? 
+                    revenueSource.total_revenue ?? 0;
+        } else {
+          // Fallback to numeric value or other statistics fields
+          revenue = revenueSource ?? statistics.net_revenue ?? statistics.total_revenue ?? 0;
         }
+        
         return {
-          event_id: analyticsData.event_info?.event_id || id,
-          event_name: analyticsData.event_info?.name || analyticsData.event_info?.event_name || "Unknown Event",
-          event_location: analyticsData.event_info?.location,
-          event_date: analyticsData.event_info?.date,
-          event_status: analyticsData.event_info?.status,
-          pricing_type: analyticsData.event_info?.pricing_type,
-          referral_usernames: analyticsData.event_info?.referral_usernames || analyticsData.event_info?.referral_referee_ids || [],
+          event_id: eventData?.event_id || id,
+          event_name: eventData?.name || eventData?.event_name || "Unknown Event",
+          event_location: eventData?.location,
+          event_date: eventData?.date,
+          event_status: eventData?.status,
+          pricing_type: eventData?.pricing_type,
+          referral_usernames: eventData?.referral_usernames || eventData?.referral_referee_ids || [],
           tickets: analyticsData.tickets_list || [],
           count: analyticsData.tickets_list?.length || 0,
           statistics: {
-            confirmed: analyticsData.statistics?.total_tickets_sold || 0,
-            pending: analyticsData.statistics?.pending_tickets || 0,
-            cancelled: analyticsData.statistics?.cancelled_tickets || 0,
-            used: analyticsData.statistics?.used_tickets || 0,
-            total_revenue: analyticsData.statistics?.total_revenue || 0,
-            available_spots: analyticsData.statistics?.available_spots ?? "∞"
+            confirmed: statistics.total_tickets_sold || 0,
+            pending: statistics.pending_tickets || 0,
+            cancelled: statistics.cancelled_tickets || 0,
+            used: statistics.used_tickets || 0,
+            total_revenue: statistics.total_revenue || revenue,
+            net_revenue: revenue, // Correctly mapped "org money" to net_revenue
+            available_spots: statistics.available_spots ?? "∞"
           }
         };
       } catch (err) {
+        console.error("Analytics fetch error:", err);
         const fallbackRes = await api.get(`/tickets/organizer/${id}/tickets/`);
         return fallbackRes.data;
       }
@@ -84,7 +99,7 @@ export default function AnalyticsPage() {
     }
 
     // Create CSV headers - includes category info from analytics endpoint
-    const headers = ["Attendee Name", "Email", "Ticket ID", "Category", "Price", "Quantity", "Referral", "Status", "Check-in Time", "Purchase Date"];
+    const headers = ["Attendee Name", "Email", "Ticket ID", "Category", "Price", "Quantity", "Status", "Check-in Time", "Purchase Date"];
     
     // Create CSV rows
     const rows = data.tickets.map(ticket => [
@@ -94,7 +109,6 @@ export default function AnalyticsPage() {
       ticket.category_name || "General",
       ticket.total_price || ticket.price_per_ticket || "0",
       ticket.quantity || 0,
-      ticket.referral || ticket.referral_username || ticket.referrer_username || ticket.referral_name || ticket.username || ticket.referral_source || ticket.referral_payload || "N/A",
       ticket.status || "N/A",
       ticket.checked_in_at ? new Date(ticket.checked_in_at).toLocaleString() : "Not Checked In",
       ticket.created_at ? new Date(ticket.created_at).toLocaleString() : "N/A"
@@ -112,7 +126,7 @@ export default function AnalyticsPage() {
     const url = URL.createObjectURL(blob);
     
     link.setAttribute("href", url);
-    link.setAttribute("download", `${data.event_name || 'event'}_attendees_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute("download", `Axile_${data.event_name || 'event'}_attendees_${new Date().toISOString().split('T')[0]}.csv`);
     link.style.visibility = "hidden";
     
     document.body.appendChild(link);
@@ -241,7 +255,6 @@ export default function AnalyticsPage() {
                   <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-500">Ticket ID</th>
                   <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-500">Category</th>
                   <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-500">Quantity</th>
-                  <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-500">Referral</th>
                   <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-500">Status</th>
                   <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-gray-500">Check-in</th>
                 </tr>
@@ -271,27 +284,6 @@ export default function AnalyticsPage() {
                     </td>
                     <td className="px-6 py-5">
                       <span className="text-sm font-bold">{t.quantity}</span>
-                    </td>
-                    <td className="px-6 py-5">
-                      <div className="flex items-center gap-2">
-                        {(() => {
-                          const ref = t.referral || t.referral_username || t.referrer_username || t.referral_name || t.username || t.referral_source || t.referral_payload || t.ref_code || t.referral_code;
-                          
-                          if (!ref || ref.toLowerCase() === "none") {
-                            return <span className="text-gray-600 italic text-xs">None</span>;
-                          }
-
-                          return (
-                            <button
-                              onClick={() => router.push(`/dashboard/org/my-event/${id}/referrals/${ref}`)}
-                              className="text-xs text-rose-500 hover:text-rose-400 font-bold underline decoration-rose-500/30 underline-offset-4 transition-colors flex items-center gap-1 group/ref"
-                            >
-                              {ref}
-                              <ChevronRight className="w-3 h-3 group-hover/ref:translate-x-0.5 transition-transform" />
-                            </button>
-                          );
-                        })()}
-                      </div>
                     </td>
                     <td className="px-6 py-5">
                       <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider border ${

@@ -16,27 +16,39 @@ const Header = () => {
   const pathname = usePathname();
   const { user, role, logout, isAuthenticated, setUser, hydrated, token } = useAuthStore();
 
+  const hasFetchedRef = React.useRef(false);
+  const fetchingRef = React.useRef(false);
+
   React.useEffect(() => {
     // Wait for store hydration and ensure we have a valid token before fetching
-    if (!hydrated || !token) return;
+    if (!hydrated || !token || !isAuthenticated) return;
     
-    if (isAuthenticated && user && !user.firstname && !user.Firstname && !user.Preferred_name && !user.Organization_Name) {
+    // Only fetch if profile fields are missing AND we haven't already fetched/aren't fetching
+    const needsProfileUpdate = user && !user.firstname && !user.Firstname && !user.Preferred_name && !user.Organization_Name;
+    
+    if (needsProfileUpdate && !hasFetchedRef.current && !fetchingRef.current) {
       const fetchUserData = async () => {
+        fetchingRef.current = true;
         try {
           const endpoint = role?.toLowerCase() === 'organizer' ? '/organizer/profile/' : '/student/profile/';
           const response = await api.get(endpoint);
           const data = response.data.profile || response.data.Org_profile || response.data;
           setUser(data);
+          hasFetchedRef.current = true;
         } catch (e) {
           // Silently ignore 401 errors - token may not be valid yet after signup
           if (e?.response?.status !== 401) {
             console.error("Failed to fetch user data for header", e);
           }
+          // On error, we still mark as "fetched" to avoid spamming if the server is down
+          hasFetchedRef.current = true;
+        } finally {
+          fetchingRef.current = false;
         }
       };
       fetchUserData();
     }
-  }, [hydrated, token, isAuthenticated, user, role, setUser]);
+  }, [hydrated, token, isAuthenticated, role, setUser, user]); // Keep user for initial check, but refs break the loop
 
   if (pathname.startsWith('/dashboard/org') || pathname === '/dashboard' || pathname.startsWith('/lighthouse')) return null;
 

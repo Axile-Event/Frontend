@@ -29,6 +29,11 @@ import {
   Edit2,
   Zap,
   Megaphone,
+  FileText,
+  Clock,
+  Layers,
+  CreditCard,
+  Banknote,
 } from "lucide-react";
 import DateTimePicker from "@/components/ui/DateTimePicker";
 
@@ -83,6 +88,7 @@ export default function CreateEvent() {
   const [createdEventId, setCreatedEventId] = useState(null);
   const [showPinPrompt, setShowPinPrompt] = useState(false);
   const [pendingSubmit, setPendingSubmit] = useState(false);
+  const [isDraft, setIsDraft] = useState(false);
   const DRAFT_KEY = "axile_event_creation_draft";
   const [hasLoadedDraft, setHasLoadedDraft] = useState(false);
 
@@ -290,7 +296,7 @@ export default function CreateEvent() {
     // Remove commas to get raw number for storage
     const numericValue = rawValue.replace(/,/g, "");
     // Only allow digits and one decimal point
-    if (/^\d*\.?\d*$/.test(numericValue)) {
+if (/^\d*\.?\d*$/.test(numericValue)) {
       updateCategory(index, "price", numericValue);
     }
   };
@@ -328,11 +334,10 @@ export default function CreateEvent() {
           e.categories = "Each category must have a price greater than 0";
         }
       }
-    }
-    
-    // Payment method validation for paid events
-    if (form.pricing_type === "paid" && (!form.payment_methods_allowed || form.payment_methods_allowed.length === 0)) {
-       e.payment_methods_allowed = "At least one payment method is required for paid events";
+
+      if (!Array.isArray(form.payment_methods_allowed) || form.payment_methods_allowed.length === 0) {
+        e.payment_methods_allowed = "At least one payment method is required for paid events";
+      }
     }
 
     // Referral validation
@@ -376,8 +381,12 @@ export default function CreateEvent() {
 
 
 
-  const submit = async (ev) => {
-    ev.preventDefault();
+  const submit = async (ev, draftFlag = false) => {
+    if (ev) ev.preventDefault();
+    setIsDraft(draftFlag);
+    
+    // Always validate full requirements, even for drafts.
+    // A draft is a complete event that simply hasn't been published yet.
     const localErrors = validate();
     if (Object.keys(localErrors).length > 0) {
       const firstError = Object.values(localErrors)[0] || "Please fill in all required fields correctly.";
@@ -408,8 +417,13 @@ export default function CreateEvent() {
       formData.append("event_type", form.event_type);
       formData.append("location", form.location.trim());
       
-      if (form.pricing_type === "paid" && form.payment_methods_allowed?.length > 0) {
-        formData.append("payment_methods_allowed", form.payment_methods_allowed.join(","));
+      if (form.pricing_type === "paid") {
+        const methods = Array.isArray(form.payment_methods_allowed) 
+          ? form.payment_methods_allowed 
+          : (form.payment_methods_allowed ? [form.payment_methods_allowed] : ["paystack"]);
+
+        // Backend expects a JSON array string for this multipart field.
+        formData.append("payment_methods_allowed", JSON.stringify(methods));
       }
 
       // convert local datetime input to ISO with Z
@@ -425,11 +439,21 @@ export default function CreateEvent() {
         formData.append("max_quantity_per_booking", form.max_quantity_per_booking);
       }
 
-      // Append referral config to FormData
-      appendReferralFields(formData, referralConfig);
+      // Add save_as_draft flag
+      formData.append("save_as_draft", isDraft ? "true" : "false");
+
+      // Add referral configuration
+      formData.append("use_referral", referralConfig.use_referral ? "true" : "false");
+      if (referralConfig.use_referral) {
+        formData.append("referral_reward_type", referralConfig.referral_reward_type || "flat");
+        if (referralConfig.referral_reward_type === "flat") {
+          formData.append("referral_reward_amount", referralConfig.referral_reward_amount || 0);
+        } else {
+          formData.append("referral_reward_percentage", referralConfig.referral_reward_percentage || 0);
+        }
+      }
 
       // Debug: log what we're sending
-      console.log("[CreateEvent] Referral config:", referralConfig);
       console.log("[CreateEvent] FormData entries:", [...formData.entries()]);
 
       // IMPORTANT: don't set Content-Type for FormData; the browser will add the correct boundary.
@@ -502,6 +526,9 @@ export default function CreateEvent() {
         }
 
         setCreatedEventId(newId);
+        if (isDraft) {
+          toast.success("Event saved as draft");
+        }
         setShowSuccessModal(true);
         queryClient.invalidateQueries({ queryKey: queryKeys.organizer.events });
         queryClient.invalidateQueries({ queryKey: queryKeys.organizer.dashboard });
@@ -516,6 +543,7 @@ export default function CreateEvent() {
         console.error("[CreateEvent] Response Data:", err.response.data);
         console.error("[CreateEvent] Response Status:", err.response.status);
         console.error("[CreateEvent] Response Headers:", err.response.headers);
+        console.error("[CreateEvent] Full Error Response:", err.response);
       } else if (err.request) {
         console.error("[CreateEvent] No response received. Request details:", err.request);
       } else {
@@ -558,6 +586,7 @@ export default function CreateEvent() {
       window.scrollTo({ top: 0, behavior: "smooth" });
     } finally {
       setLoading(false);
+      setIsDraft(false);
     }
   };
 
@@ -654,68 +683,99 @@ export default function CreateEvent() {
             </div>
           </section>
         </div>
-      </div>
-    );
-  }
+</div>
+  );
+}
+
+
 
   return (
     <div className="min-h-screen p-4 md:p-8 space-y-10 max-w-7xl mx-auto text-white">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-xl md:text-2xl font-bold mb-1">Create Event</h1>
-          <p className="text-gray-400 text-xs">
-            Fill in event details. <span className="text-rose-500">*</span>{" "}
-            required.
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-b border-white/5 pb-8">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-rose-500 text-[10px] font-black uppercase tracking-[0.2em] mb-2">
+            <Plus className="w-3 h-3" />
+            New Event
+          </div>
+          <h1 className="text-3xl font-black tracking-tight">Create Event</h1>
+          <p className="text-gray-500 text-sm font-medium">
+            Fill in the details below to get your event live on Axile.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => router.back()}
-          className="text-xs font-semibold text-gray-500 hover:text-white transition-colors"
-        >
-          Cancel
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            type="button"
+            disabled={loading}
+            onClick={(e) => submit(e, true)}
+            className="px-6 py-2.5 rounded-xl border border-rose-500/30 text-xs font-bold text-rose-500 hover:bg-rose-500/10 transition-all active:scale-95 disabled:opacity-50"
+            title="All fields must be filled to save a draft"
+          >
+            {loading && isDraft ? (
+               <span className="w-3 h-3 border-2 border-rose-500/20 border-t-rose-500 rounded-full animate-spin" />
+            ) : "Save as Draft"}
+          </button>
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="px-6 py-2.5 rounded-xl border border-white/10 text-xs font-bold text-gray-400 hover:text-white hover:bg-white/5 transition-all active:scale-95"
+          >
+            Cancel
+          </button>
+        </div>
+
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Form Section */}
-        <section className="bg-[#0A0A0A] border border-white/5 rounded-2xl p-6 md:p-8 shadow-xl">
-          <form onSubmit={submit} className="space-y-6" noValidate>
-            {/* No more serverError div */}
+        <section className="space-y-8">
+          <form onSubmit={submit} className="space-y-10" noValidate>
+            
+            {/* Section: Basic Details */}
+            <div className="bg-[#0A0A0A] border border-white/5 rounded-3xl p-6 md:p-8 shadow-xl space-y-8">
+               <div className="flex items-center gap-3 border-b border-white/5 pb-4">
+                  <div className="p-2 bg-rose-500/10 rounded-xl">
+                     <Edit2 className="w-5 h-5 text-rose-500" />
+                  </div>
+                  <h2 className="text-lg font-bold">Basic Information</h2>
+               </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                Event Name <span className="text-rose-500">*</span>
-              </label>
-              <input
-                value={form.name}
-                onChange={handleChange("name")}
-                placeholder="e.g. Summer Tech Conference 2024"
-                className={`w-full bg-white/5 border ${errors.name ? "border-rose-500/50 focus:border-rose-500" : "border-white/10 focus:border-rose-500"} rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-rose-500 transition-all`}
-              />
-              {errors.name && (
-                <p className="text-[10px] text-rose-500 font-bold">
-                  {errors.name}
-                </p>
-              )}
-            </div>
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                    <Zap className="w-3 h-3" />
+                    Event Name <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    value={form.name}
+                    onChange={handleChange("name")}
+                    placeholder="e.g. Summer Tech Conference 2024"
+                    className={`w-full bg-white/5 border ${errors.name ? "border-rose-500/50 focus:border-rose-500" : "border-white/10 focus:border-rose-500"} rounded-2xl px-5 py-4 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-rose-500 transition-all font-medium`}
+                  />
+                  {errors.name && (
+                    <p className="text-[10px] text-rose-500 font-bold uppercase tracking-tight">
+                      {errors.name}
+                    </p>
+                  )}
+                </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                Description <span className="text-rose-500">*</span>
-              </label>
-              <textarea
-                value={form.description}
-                onChange={handleChange("description")}
-                placeholder="What to expect, schedule, speakers..."
-                className={`w-full bg-white/5 border ${errors.description ? "border-rose-500/50 focus:border-rose-500" : "border-white/10 focus:border-rose-500"} rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-rose-500 transition-all min-h-[120px] resize-y`}
-              />
-              {errors.description && (
-                <p className="text-[10px] text-rose-500 font-bold">
-                  {errors.description}
-                </p>
-              )}
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                    <FileText className="w-3 h-3" />
+                    Description <span className="text-rose-500">*</span>
+                  </label>
+                  <textarea
+                    value={form.description}
+                    onChange={handleChange("description")}
+                    placeholder="What to expect, schedule, speakers..."
+                    className={`w-full bg-white/5 border ${errors.description ? "border-rose-500/50 focus:border-rose-500" : "border-white/10 focus:border-rose-500"} rounded-2xl px-5 py-4 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-rose-500 transition-all min-h-[160px] resize-y font-medium`}
+                  />
+                  {errors.description && (
+                    <p className="text-[10px] text-rose-500 font-bold uppercase tracking-tight">
+                      {errors.description}
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
@@ -768,232 +828,202 @@ export default function CreateEvent() {
                   )}
                 </div>
               </div>
-
-              <CustomDropdown
-                value={form.event_type}
-                onChange={(val) => {
-                  setForm((s) => ({ ...s, event_type: val }));
-                  setErrors((p) => ({ ...p, event_type: undefined }));
-                }}
-                options={eventTypes.map((t) => ({
-                  value: t.value || t,
-                  label: t.label || t,
-                  icon: Zap,
-                }))}
-                placeholder="Select Type"
-                error={errors.event_type}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div className="space-y-1.5">
+              <div className="space-y-1.5 flex flex-col">
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                  Location <span className="text-rose-500">*</span>
+                  Event Type <span className="text-rose-500">*</span>
                 </label>
-                <div className="relative">
-                  <input
-                    value={form.location}
-                    onChange={handleChange("location")}
-                    placeholder="Venue address or online link"
-                    className={`w-full pl-10 bg-white/5 border ${errors.location ? "border-rose-500/50 focus:border-rose-500" : "border-white/10 focus:border-rose-500"} rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-rose-500 transition-all`}
-                  />
-                  <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                </div>
-                {errors.location && (
-                  <p className="text-[10px] text-rose-500 font-bold">
-                    {errors.location}
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                  Date & Time <span className="text-rose-500">*</span>
-                </label>
-                <DateTimePicker
-                  selected={form.date}
-                  onChange={(value) => {
-                     setForm(prev => ({ ...prev, date: value }));
-                     setErrors(prev => ({ ...prev, date: undefined }));
+                <CustomDropdown
+                  value={form.event_type}
+                  onChange={(val) => {
+                    setForm((s) => ({ ...s, event_type: val }));
+                    setErrors((p) => ({ ...p, event_type: undefined }));
                   }}
-                  placeholder="Select event date and time"
-                  hasError={!!errors.date}
+                  options={eventTypes.map((t) => ({
+                    value: t.value || t,
+                    label: t.label || t,
+                    icon: Zap,
+                  }))}
+                  placeholder="Select Type"
+                  hasError={!!errors.event_type}
                 />
-                {errors.date && (
-                  <p className="text-[10px] text-rose-500 font-bold">
-                    {errors.date}
+                {errors.event_type && (
+                  <p className="text-[10px] text-rose-500 font-bold uppercase tracking-tight mt-1">
+                    {errors.event_type}
                   </p>
                 )}
               </div>
             </div>
+
+            {/* Section: Logistics */}
+            <div className="bg-[#0A0A0A] border border-white/5 rounded-3xl p-6 md:p-8 shadow-xl space-y-8">
+               <div className="flex items-center gap-3 border-b border-white/5 pb-4">
+                  <div className="p-2 bg-rose-500/10 rounded-xl">
+                     <MapPin className="w-5 h-5 text-rose-500" />
+                  </div>
+                  <h2 className="text-lg font-bold">Logistics</h2>
+               </div>
+
+               <div className="space-y-6">
+                 <div className="space-y-2">
+                   <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                     <MapPin className="w-3 h-3" />
+                     Location <span className="text-rose-500">*</span>
+                   </label>
+                   <div className="relative">
+                     <input
+                       value={form.location}
+                       onChange={handleChange("location")}
+                       placeholder="Venue address or online link"
+                       className={`w-full pl-12 bg-white/5 border ${errors.location ? "border-rose-500/50 focus:border-rose-500" : "border-white/10 focus:border-rose-500"} rounded-2xl px-5 py-4 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-rose-500 transition-all font-medium`}
+                     />
+                     <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                   </div>
+                   {errors.location && (
+                     <p className="text-[10px] text-rose-500 font-bold uppercase tracking-tight">
+                       {errors.location}
+                     </p>
+                   )}
+                 </div>
+
+                 <div className="space-y-2">
+                   <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                     <Clock className="w-3 h-3" />
+                     Date & Time <span className="text-rose-500">*</span>
+                   </label>
+                   <DateTimePicker
+                     selected={form.date}
+                     onChange={(value) => {
+                        setForm(prev => ({ ...prev, date: value }));
+                        setErrors(prev => ({ ...prev, date: undefined }));
+                     }}
+                     placeholder="Select event date and time"
+                     hasError={!!errors.date}
+                   />
+                   {errors.date && (
+                     <p className="text-[10px] text-rose-500 font-bold uppercase tracking-tight">
+                       {errors.date}
+                     </p>
+                   )}
+                 </div>
+               </div>
+            </div>
+
+            {/* Section: Pricing & Capacity */}
+            <div className="bg-[#0A0A0A] border border-white/5 rounded-3xl p-6 md:p-8 shadow-xl space-y-8">
+               <div className="flex items-center gap-3 border-b border-white/5 pb-4">
+                  <div className="p-2 bg-rose-500/10 rounded-xl">
+                     <Ticket className="w-5 h-5 text-rose-500" />
+                  </div>
+                  <h2 className="text-lg font-bold">Tickets & Pricing</h2>
+               </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               {form.pricing_type === "free" && (
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                <div className="space-y-1.5 flex flex-col">
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-wider min-h-[1rem]">
                     Capacity <span className="text-rose-500">*</span>
                   </label>
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={form.capacity}
-                    onChange={handleChange("capacity")}
-                    placeholder="e.g. 100"
-                    className={`w-full bg-white/5 border ${errors.capacity ? "border-rose-500/50 focus:border-rose-500" : "border-white/10 focus:border-rose-500"} rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-rose-500 transition-all`}
-                  />
-                  {errors.capacity && (
-                    <p className="text-[10px] text-rose-500 font-bold">
-                      {errors.capacity}
+                  <div className="mt-auto">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={form.capacity}
+                      onChange={handleChange("capacity")}
+                      placeholder="e.g. 100"
+                      className={`w-full bg-white/5 border ${errors.capacity ? "border-rose-500/50 focus:border-rose-500" : "border-white/10 focus:border-rose-500"} rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-rose-500 transition-all`}
+                    />
+                    {errors.capacity && (
+                      <p className="text-[10px] text-rose-500 font-bold mt-1">
+                        {errors.capacity}
+                      </p>
+                    )}
+                    <p className="text-[10px] text-gray-500 font-medium mt-1.5">
+                      Free events require a capacity. This becomes the max tickets for the default “General” category.
                     </p>
-                  )}
-                  <p className="text-[10px] text-gray-500 font-medium">
-                    Free events require a capacity. This becomes the max tickets for the default “General” category.
-                  </p>
+                  </div>
                 </div>
               )}
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+              <div className="space-y-1.5 flex flex-col">
+                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider min-h-[1rem]">
                   Max Tickets Per Booking
                 </label>
-                <input
-                  type="number"
-                  min="1"
-                  value={form.max_quantity_per_booking}
-                  onChange={handleChange("max_quantity_per_booking")}
-                  placeholder="Default: 3"
-                  className="w-full bg-white/5 border border-white/10 focus:border-rose-500 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-rose-500 transition-all"
-                />
-                <p className="text-[10px] text-gray-500 font-medium">
-                  Maximum number of tickets a user can purchase in a single booking. Defaults to 3 if not set.
-                </p>
+                <div className="mt-auto">
+                  <input
+                    type="number"
+                    min="1"
+                    value={form.max_quantity_per_booking}
+                    onChange={handleChange("max_quantity_per_booking")}
+                    placeholder="Default: 3"
+                    className="w-full bg-white/5 border border-white/10 focus:border-rose-500 rounded-xl px-4 py-3 text-sm text-white placeholder-gray-600 focus:outline-none focus:ring-1 focus:ring-rose-500 transition-all mt-auto"
+                  />
+                  <p className="text-[10px] text-gray-500 font-medium mt-1.5">
+                    Maximum number of tickets a user can purchase in a single booking. Defaults to 3 if not set.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Section: Media */}
+            <div className="bg-[#0A0A0A] border border-white/5 rounded-3xl p-6 md:p-8 shadow-xl space-y-8">
+               <div className="flex items-center gap-3 border-b border-white/5 pb-4">
+                  <div className="p-2 bg-rose-500/10 rounded-xl">
+                     <ImageIcon className="w-5 h-5 text-rose-500" />
+                  </div>
+                  <h2 className="text-lg font-bold">Event Media</h2>
+               </div>
+
+              <div className="space-y-6">
+                <div className="space-y-2">
+                  <label className="text-[10px] font-black text-gray-500 uppercase tracking-widest flex items-center justify-between">
+                    <span>Cover Image</span>
+                    {imageFile && <span className="text-rose-500 font-bold tracking-tight">Selected: {imageFile.name}</span>}
+                  </label>
+                  <div className="relative group cursor-pointer border-2 border-dashed border-white/10 rounded-3xl hover:border-rose-500/50 hover:bg-rose-500/5 transition-all h-40 flex flex-col items-center justify-center text-center overflow-hidden">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImage}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                    />
+                    <div className="pointer-events-none flex flex-col items-center">
+                      <div className="p-3 bg-white/5 rounded-2xl mb-3 group-hover:scale-110 group-hover:bg-rose-500/10 transition-all duration-500">
+                        <Camera className="w-8 h-8 text-gray-500 group-hover:text-rose-500 transition-colors" />
+                      </div>
+                      <span className="text-xs text-gray-400 group-hover:text-rose-500 font-bold tracking-tight">
+                        Click or drag to upload cover
+                      </span>
+                      <span className="text-[10px] text-gray-600 mt-1 font-medium">
+                        High resolution recommended (PNG, JPG ≤ 5MB)
+                      </span>
+                    </div>
+                  </div>
+                  
+                  {preview && (
+                    <div className="relative aspect-video w-full rounded-2xl overflow-hidden border border-white/10 mt-4 group shadow-2xl">
+                      <img
+                        src={preview}
+                        alt="preview"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                      />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-sm">
+                         <button
+                           type="button"
+                           onClick={() => {
+                             setImageFile(null);
+                             setPreview(null);
+                           }}
+                           className="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all transform translate-y-4 group-hover:translate-y-0 shadow-xl"
+                         >
+                           Remove Image
+                         </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
-            <div className="space-y-4 pt-2">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                  Cover Image {imageFile && <span className="text-rose-500">• Selected: {imageFile.name}</span>}
-                </label>
-                <div className="relative group cursor-pointer border-2 border-dashed border-white/10 rounded-2xl hover:border-rose-500/50 hover:bg-rose-500/5 transition-all h-32 flex flex-col items-center justify-center text-center">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImage}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                  />
-                  <div className="pointer-events-none flex flex-col items-center">
-                    <Camera className="w-8 h-8 mb-2 text-gray-500 group-hover:text-rose-400 transition-colors" />
-                    <span className="text-xs text-gray-500 group-hover:text-rose-400 font-medium">
-                      Click to upload cover image
-                    </span>
-                    <span className="text-[10px] text-gray-600 mt-1">
-                      PNG, JPG up to 5MB
-                    </span>
-                  </div>
-                </div>
-                {preview && (
-                  <div className="relative h-40 w-full rounded-2xl overflow-hidden border border-white/10 mt-3 group">
-                    <img
-                      src={preview}
-                      alt="preview"
-                      className="w-full h-full object-cover"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setImageFile(null);
-                        setPreview(null);
-                      }}
-                      className="absolute top-2 right-2 bg-black/60 hover:bg-rose-600 text-white p-1.5 rounded-lg backdrop-blur-md transition-colors opacity-0 group-hover:opacity-100"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* payment method type */}
-              {form.pricing_type === "paid" && (
-                 <div className="space-y-3 pt-4 border-t border-white/5 animate-in fade-in slide-in-from-top-2 duration-300">
-                    <div className="flex items-center gap-2">
-                      <Zap className="w-4 h-4 text-rose-500" />
-                      <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                        Allowed Payment Methods <span className="text-rose-500">*</span>
-                      </label>
-                    </div>
-                    <p className="text-[11px] text-gray-400 font-medium leading-relaxed max-w-lg mb-1">
-                      Choose how your attendees will purchase their tickets. <span className="text-rose-500 font-bold">This is compulsory for paid events</span> to ensure you can receive funds.
-                    </p>
-                    
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                       {[
-                         { 
-                           id: "paystack", 
-                           label: "Paystack", 
-                           description: "Faster and more seamless for users, but attracts higher transaction charges." 
-                         },
-                         { 
-                           id: "manual_bank_transfer", 
-                           label: "Manual Bank Transfer", 
-                           description: "A bit slower for users, but with fewer transaction charges." 
-                         },
-                       ].map((method) => {
-                         const isSelected = form.payment_methods_allowed?.includes(method.id);
-                         return (
-                           <button
-                             key={method.id}
-                             type="button"
-                             onClick={() => {
-                               const current = form.payment_methods_allowed || [];
-                               const updated = current.includes(method.id)
-                                 ? current.filter((m) => m !== method.id)
-                                 : [...current, method.id];
-                               setForm((s) => ({ ...s, payment_methods_allowed: updated }));
-                               setErrors((p) => ({ ...p, payment_methods_allowed: undefined }));
-                             }}
-                             className={`flex flex-col items-start gap-3 p-5 rounded-2xl border transition-all duration-300 text-left group relative overflow-hidden ${
-                               isSelected
-                                 ? "bg-rose-600/10 border-rose-600 shadow-[0_0_20px_rgba(225,29,72,0.1)]"
-                                 : "bg-white/5 border-white/10 text-gray-400 hover:border-white/20 hover:bg-white/8"
-                             }`}
-                           >
-                             {/* Visual background glow for selected state */}
-                             {isSelected && (
-                               <div className="absolute top-0 right-0 w-24 h-24 bg-rose-600/5 rounded-full -mr-8 -mt-8 blur-2xl animate-pulse" />
-                             )}
-                             
-                             <div className="flex w-full items-center justify-between relative z-10">
-                               <p className={`text-sm font-bold tracking-tight transition-colors ${isSelected ? "text-white" : "text-gray-300 group-hover:text-white"}`}>
-                                 {method.label}
-                               </p>
-                               <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all duration-300 ${
-                                 isSelected
-                                    ? "bg-rose-600 border-rose-600 scale-110 shadow-[0_0_10px_rgba(225,29,72,0.4)]"
-                                    : "border-gray-600 group-hover:border-gray-400 group-hover:scale-105"
-                               }`}>
-                                 {isSelected && (
-                                   <div className="w-2.5 h-2.5 bg-white rounded-full animate-in zoom-in-50 duration-200 shadow-sm" />
-                                 )}
-                               </div>
-                             </div>
-                             
-                             <p className={`text-[10px] font-medium leading-relaxed transition-colors relative z-10 ${isSelected ? "text-gray-200" : "text-gray-500 group-hover:text-gray-400"}`}>
-                               {method.description}
-                             </p>
-                           </button>
-                         );
-                       })}
-                     </div>
-                     {errors.payment_methods_allowed && (
-                       <div className="flex items-center gap-2 px-1 animate-in fade-in slide-in-from-left-1 mt-1">
-                         <span className="w-1.5 h-1.5 bg-rose-500 rounded-full animate-pulse" />
-                         <p className="text-[10px] text-rose-500 font-bold uppercase tracking-tight">
-                           {errors.payment_methods_allowed}
-                         </p>
-                       </div>
-                     )}
-                 </div>
-              )}
 
               {/* Ticket Categories Section */}
               {form.pricing_type === "paid" && (
@@ -1043,7 +1073,7 @@ export default function CreateEvent() {
                               <span className="text-rose-500">*</span>
                             </label>
                             <input
-                              value={cat.name}
+                              value={cat.name ?? ""}
                               onChange={(e) =>
                                 updateCategory(idx, "name", e.target.value)
                               }
@@ -1075,7 +1105,7 @@ export default function CreateEvent() {
                             </label>
                             <input
                               type="number"
-                              value={cat.max_tickets}
+                              value={cat.max_tickets ?? ""}
                               onChange={(e) =>
                                 updateCategory(
                                   idx,
@@ -1116,8 +1146,105 @@ export default function CreateEvent() {
                     {errors.categories}
                   </p>
                 )}
-              </div>
+                </div>
               )}
+
+                {/* Payment Methods Section */}
+                {form.pricing_type === "paid" && (
+                  <div className="space-y-4 pt-4 border-t border-white/5">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CreditCard className="w-4 h-4 text-rose-500" />
+                      <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">
+                        Payment Methods
+                      </h3>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      {[
+                        { id: 'paystack', label: 'Paystack', desc: 'Auto-confirmed' },
+                        { id: 'manual_bank_transfer', label: 'Bank Transfer', desc: 'Manual confirm' }
+                      ].map((method) => {
+                        const isSelected = (form.payment_methods_allowed || []).includes(method.id);
+                        return (
+                          <div key={method.id} className="space-y-3">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const current = Array.isArray(form.payment_methods_allowed) 
+                                  ? form.payment_methods_allowed 
+                                  : (form.payment_methods_allowed ? [form.payment_methods_allowed] : []);
+                                
+                                if (isSelected) {
+                                  setForm(s => ({
+                                    ...s,
+                                    payment_methods_allowed: current.filter(m => m !== method.id)
+                                  }));
+                                } else {
+                                  setForm(s => ({
+                                    ...s,
+                                    payment_methods_allowed: [...current, method.id]
+                                  }));
+                                }
+                                setErrors(prev => ({ ...prev, payment_methods_allowed: undefined }));
+                              }}
+                              className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all duration-300 ${
+                                isSelected 
+                                  ? "bg-rose-500/10 border-rose-500/50 shadow-lg shadow-rose-900/10" 
+                                  : "bg-white/5 border-white/10 hover:border-white/20"
+                              }`}
+                            >
+                              <div className="flex items-center gap-3">
+                                <div className={`p-2 rounded-xl transition-colors ${
+                                  isSelected ? "bg-rose-500/20 text-rose-400" : "bg-white/10 text-gray-500"
+                                }`}>
+                                  {method.id === 'paystack' ? <CreditCard className="w-4 h-4" /> : <Banknote className="w-4 h-4" />}
+                                </div>
+                                <div className="text-left">
+                                  <p className="text-[11px] font-black uppercase tracking-wider text-white">
+                                    {method.label}
+                                  </p>
+                                  <p className="text-[9px] font-bold text-gray-500 uppercase tracking-tight">
+                                    {method.desc}
+                                  </p>
+                                </div>
+                              </div>
+                              {isSelected && <CheckCircle2 className="w-4 h-4 text-rose-500 animate-in zoom-in-0 duration-300" />}
+                            </button>
+
+                            <AnimatePresence>
+                              {isSelected && (
+                                <motion.div
+                                  initial={{ opacity: 0, height: 0, marginTop: 0 }}
+                                  animate={{ opacity: 1, height: "auto", marginTop: 8 }}
+                                  exit={{ opacity: 0, height: 0, marginTop: 0 }}
+                                  className="overflow-hidden"
+                                >
+                                  <div className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-2">
+                                    <div className="flex items-center gap-2 text-[9px] font-black text-rose-500 uppercase tracking-[0.2em]">
+                                      <div className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+                                      Details & Explanation
+                                    </div>
+                                    <p className="text-[11px] font-medium text-gray-400 leading-relaxed">
+                                      {method.id === 'paystack' 
+                                        ? "Payments are handled securely via our Paystack gateway. Attendees can pay via Card, USSD, or Bank Transfer, and tickets are issued immediately upon confirmation."
+                                        : "Attendees transfer to our company account. Due to the manual nature of verification, it may take some time to process, but all valid payments will be approved."
+                                      }
+                                    </p>
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    {errors.payment_methods_allowed && (
+                      <p className="text-[10px] text-rose-500 font-bold mt-2 ml-1 uppercase">
+                        {errors.payment_methods_allowed}
+                      </p>
+                    )}
+                  </div>
+                )}
 
               {/* Referral Rewards Section */}
               <div className="space-y-4 pt-4 border-t border-white/5">
@@ -1186,7 +1313,6 @@ export default function CreateEvent() {
                   )}
                 </AnimatePresence>
               </div>
-            </div>
 
             <button
               type="submit"
@@ -1199,19 +1325,21 @@ export default function CreateEvent() {
                   Creating Event...
                 </>
               ) : (
-                "Create Event"
+                "Publish Event"
               )}
             </button>
           </form>
         </section>
 
-        {/* Live Preview Section */}
-        <section className="space-y-4">
-          <div className="flex items-center gap-2 mb-2">
-            <div className="p-1.5 bg-white/5 rounded-lg">
-              <Eye className="w-4 h-4 text-rose-500" />
+        {/* Live Preview Section - Sticky */}
+        <section className="lg:sticky lg:top-8 space-y-6 self-start">
+          <div className="flex items-center justify-between px-2">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-rose-500/10 rounded-xl">
+                 <Eye className="w-5 h-5 text-rose-500" />
+              </div>
+              <h2 className="text-xl font-bold">Live Preview</h2>
             </div>
-            <h2 className="text-lg font-bold">Live Preview</h2>
           </div>
 
           {/* Preview Card */}
@@ -1344,6 +1472,29 @@ export default function CreateEvent() {
                   </div>
                 </div>
               )}
+
+              {/* Payment Methods Preview */}
+              {form.pricing_type !== "free" && form.payment_methods_allowed?.length > 0 && (
+                <div className="pt-4 border-t border-white/5">
+                  <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-3">
+                    Supported Payments
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {form.payment_methods_allowed.includes('paystack') && (
+                      <div className="px-3 py-1.5 bg-rose-500/10 border border-rose-500/20 rounded-lg flex items-center gap-2">
+                        <CreditCard className="w-3 h-3 text-rose-500" />
+                        <span className="text-[10px] font-bold text-gray-300 uppercase tracking-tight">Paystack</span>
+                      </div>
+                    )}
+                    {form.payment_methods_allowed.includes('manual_bank_transfer') && (
+                      <div className="px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-center gap-2">
+                        <Banknote className="w-3 h-3 text-amber-500" />
+                        <span className="text-[10px] font-bold text-gray-300 uppercase tracking-tight">Bank Transfer</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -1360,9 +1511,13 @@ export default function CreateEvent() {
               <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mb-2">
                 <CheckCircle2 className="w-16 h-16 text-emerald-500 mb-4" />
               </div>
-              <h2 className="text-2xl font-bold text-white">Event Created & Pending</h2>
+              <h2 className="text-2xl font-bold text-white">
+                {isDraft ? "Draft Saved" : "Event Created & Pending"}
+              </h2>
               <p className="text-gray-400 text-center max-w-md">
-                Your event has been successfully created and is currently pending approval. An email will be delivered to you once your event is approved and is live.
+                {isDraft 
+                  ? "Your event has been saved as a draft. You can access it anytime from 'My Events' and publish it later."
+                  : "Your event has been successfully created and is currently pending approval. An email will be delivered to you once your event is approved and is live."}
               </p>
             </div>
 
@@ -1382,12 +1537,12 @@ export default function CreateEvent() {
         </div>
       )}
 
-      {/* PIN Prompt Modal */}
       <PinPromptModal
         isOpen={showPinPrompt}
         onClose={() => {
           setShowPinPrompt(false);
           setPendingSubmit(false);
+          setPendingDraftMode(false);
         }}
         onSuccess={() => {
           setShowPinPrompt(false);
@@ -1399,3 +1554,4 @@ export default function CreateEvent() {
     </div>
   );
 }
+
