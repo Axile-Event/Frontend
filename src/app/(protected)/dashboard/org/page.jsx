@@ -46,37 +46,15 @@ export default function Overview() {
 
       if (eventsRes.status === "fulfilled") {
         eventsData = eventsRes.value.data.events || [];
-        // Fetch detailed stats for each event to get NET revenue for aggregation
-        const eventsWithNetStats = await Promise.all(
-          eventsData.map(async (event) => {
-            const eventId = event.event_id ?? event.id;
-            try {
-              // Endpoint 6: GET /analytics/event/<event_id>/
-              const res = await api.get(`/analytics/event/${eventId}/`);
-              const aData = res.data.analytics || res.data;
-              const aStats = aData.statistics || {};
-              
-              // organizer_revenue is in statistics, not in a nested event.revenue object
-              const netRevenue = aStats.organizer_revenue ?? aStats.net_revenue ?? 0;
-              
-              const confirmedCount = aStats.total_tickets_sold || event.metrics?.tickets_sold || event.ticket_stats?.confirmed_tickets || 0;
-              totalTicketsFromEvents += confirmedCount;
-              totalNetRevenueFromEvents += netRevenue;
-
-              return {
-                ...event,
-                ticket_stats: {
-                  ...event.ticket_stats,
-                  tickets_sold: confirmedCount,
-                  organizer_revenue: netRevenue // Use correct field name
-                }
-              };
-            } catch {
-              return event;
-            }
-          })
-        );
-        eventsData = eventsWithNetStats;
+        // Use metrics directly from list response - no N+1 calls needed
+        eventsData.forEach((event) => {
+          const metrics = event.metrics || {};
+          const tickets = metrics.tickets_sold ?? 0;
+          const revenue = metrics.organizer_revenue ?? 0;
+          
+          totalTicketsFromEvents += tickets;
+          totalNetRevenueFromEvents += revenue;
+        });
       }
       
       const recentEvents = [...eventsData].sort((a, b) =>

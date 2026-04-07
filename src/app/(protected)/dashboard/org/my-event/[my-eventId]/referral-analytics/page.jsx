@@ -27,7 +27,9 @@ export default function ReferralAnalyticsPage() {
   const { data: event, isLoading: eventLoading } = useQuery({
     queryKey: queryKeys.organizer.eventDetail(eventId),
     queryFn: async () => {
-      const res = await api.get(`/events/${eventId}/details/`);
+      // Endpoint 3: GET /organizer/events/<event_id>/ - Returns referral.usernames
+      const decodedId = decodeURIComponent(eventId);
+      const res = await api.get(`/organizer/events/${decodedId}/`);
       return res?.data;
     },
     enabled: !!eventId,
@@ -42,7 +44,9 @@ export default function ReferralAnalyticsPage() {
     queryKey: queryKeys.organizer.referralStats(eventId),
     queryFn: async () => {
       try {
-        const stats = await getReferralStats(eventId);
+        // Pass usernames from event.referral.usernames to getReferralStats
+        const usernames = event?.referral?.usernames ?? [];
+        const stats = await getReferralStats(eventId, usernames);
         return Array.isArray(stats) ? stats : (stats?.referrals || stats?.stats || stats?.data || []);
       } catch (err) {
         // If the endpoint fails with empty referrals, return empty
