@@ -38,6 +38,7 @@ export async function submitApplication(data) {
   };
 
   // Only include student fields if they are a student
+  // and ensure we don't send undefined values for non-students
   if (isStudent) {
     payload.university = data.university;
     payload.department = data.department;
