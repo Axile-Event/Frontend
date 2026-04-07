@@ -34,6 +34,39 @@ const calculatePaystackFee = (amount) => {
   return Math.min(totalFee, 2000); // Cap at ₦2000
 };
 
+const VALID_PAYMENT_METHODS = new Set(["paystack", "manual_bank_transfer"]);
+
+function extractAllowedPaymentMethods(event) {
+  if (!event) return [];
+  const raw =
+    event.payment_methods_allowed ?? event.paymentMethodsAllowed;
+  let list = [];
+  if (Array.isArray(raw)) {
+    list = raw;
+  } else if (typeof raw === "string") {
+    const s = raw.trim();
+    if (s.startsWith("[")) {
+      try {
+        const parsed = JSON.parse(s);
+        list = Array.isArray(parsed) ? parsed : [];
+      } catch {
+        list = [];
+      }
+    } else {
+      list = s.split(",").map((x) => x.trim()).filter(Boolean);
+    }
+  }
+  const seen = new Set();
+  const out = [];
+  for (const m of list) {
+    const key = typeof m === "string" ? m.trim() : m;
+    if (!VALID_PAYMENT_METHODS.has(key) || seen.has(key)) continue;
+    seen.add(key);
+    out.push(key);
+  }
+  return out;
+}
+
 const EventDetailsPage = () => {
   const params = useParams();
   const router = useRouter();
@@ -58,16 +91,10 @@ const EventDetailsPage = () => {
   const [checkoutPaymentMethod, setCheckoutPaymentMethod] = useState(null);
 
   const allowedPaymentMethods = useMemo(() => {
-    if (!event || event.pricing_type !== "paid") return [];
-    const raw = event.payment_methods_allowed;
-    const list = Array.isArray(raw)
-      ? raw
-      : typeof raw === "string"
-        ? raw.split(",").map((s) => s.trim()).filter(Boolean)
-        : [];
-    const normalized = list.filter(
-      (m) => m === "paystack" || m === "manual_bank_transfer",
-    );
+    if (!event || String(event.pricing_type || "").toLowerCase() !== "paid") {
+      return [];
+    }
+    const normalized = extractAllowedPaymentMethods(event);
     return normalized.length ? normalized : ["paystack"];
   }, [event]);
 
@@ -214,7 +241,8 @@ const EventDetailsPage = () => {
     }
 
     const isPaidCheckout =
-      event.pricing_type === "paid" && orderSummary.subtotal > 0;
+      String(event?.pricing_type || "").toLowerCase() === "paid" &&
+      orderSummary.subtotal > 0;
     if (
       isPaidCheckout &&
       (!checkoutPaymentMethod ||
@@ -362,8 +390,20 @@ const EventDetailsPage = () => {
       ? Number(event.event_price)
       : minCategoryPrice;
 
+  const isEventPaid =
+    String(event?.pricing_type || "").toLowerCase() === "paid";
+  const showPaymentMethodPicker =
+    isEventPaid &&
+    orderSummary.subtotal > 0 &&
+    orderSummary.totalQuantity > 0 &&
+    allowedPaymentMethods.length > 1;
+
   return (
-    <div className="max-w-5xl mx-auto space-y-6 md:space-y-8 pb-20">
+    <div
+      className={`max-w-5xl mx-auto space-y-6 md:space-y-8 ${
+        showPaymentMethodPicker ? "pb-44 md:pb-20" : "pb-24 md:pb-20"
+      }`}
+    >
       {/* Hero Section */}
       <div 
         className="relative w-full h-[200px] md:h-[400px] rounded-xl md:rounded-2xl overflow-hidden bg-muted cursor-pointer group"
@@ -398,9 +438,9 @@ const EventDetailsPage = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8">
         {/* Main Content - Left Column */}
-        <div className="lg:col-span-2 space-y-6 md:space-y-8">
+        <div className="md:col-span-2 space-y-6 md:space-y-8">
           {/* Event Title & Info */}
           <div>
             <h1 className="text-2xl md:text-4xl font-bold mb-3">{event.name}</h1>
@@ -545,11 +585,48 @@ const EventDetailsPage = () => {
               </div>
             )}
 
-            {categories.length === 0 && event.pricing_type === 'paid' && (
+            {categories.length === 0 && isEventPaid && (
               <div className="p-6 rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-500 text-sm text-center">
                 <Info className="h-8 w-8 mx-auto mb-2 opacity-70" />
                 No ticket categories available yet. Please check back later.
               </div>
+            )}
+
+            {orderSummary.totalQuantity > 0 &&
+              isEventPaid &&
+              orderSummary.subtotal > 0 &&
+              showPaymentMethodPicker && (
+              <div className="rounded-2xl border-2 border-rose-500/50 bg-gradient-to-br from-rose-500/10 to-card p-4 md:p-5 space-y-3 shadow-lg shadow-rose-500/10">
+                <div className="flex items-center gap-2">
+                  <Zap className="h-5 w-5 text-rose-500 shrink-0" />
+                  <h3 className="text-sm font-bold uppercase tracking-wide text-foreground">
+                    Choose how you&apos;ll pay
+                  </h3>
+                </div>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  This event offers more than one payment option. Select one
+                  before you complete checkout.
+                </p>
+                <PaymentTabs
+                  activeTab={checkoutPaymentMethod || allowedPaymentMethods[0]}
+                  onChange={setCheckoutPaymentMethod}
+                  allowedMethods={allowedPaymentMethods}
+                />
+              </div>
+            )}
+
+            {orderSummary.totalQuantity > 0 &&
+              isEventPaid &&
+              orderSummary.subtotal > 0 &&
+              allowedPaymentMethods.length === 1 && (
+              <p className="text-sm text-muted-foreground rounded-xl border border-border/80 bg-muted/20 px-4 py-3">
+                Payment:{" "}
+                <span className="font-semibold text-foreground">
+                  {allowedPaymentMethods[0] === "manual_bank_transfer"
+                    ? "Bank transfer (manual)"
+                    : "Card via Paystack"}
+                </span>
+              </p>
             )}
 
             {/* TEMPORARY: Referral Source Field for event:TO-56363 */}
@@ -592,7 +669,7 @@ const EventDetailsPage = () => {
           </div>
 
           {/* Share Section - Desktop */}
-          <div className="hidden lg:block">
+          <div className="hidden md:block">
             <Card className="border-border/50 bg-card/50">
               <CardContent className="p-5">
                 <div className="flex items-center gap-2 mb-3">
@@ -618,7 +695,7 @@ const EventDetailsPage = () => {
         </div>
 
         {/* Right Column - Sticky Order Summary */}
-        <div className="lg:col-span-1">
+        <div className="md:col-span-1">
           <div className="sticky top-24 space-y-4">
             {/* Order Summary Card */}
             <Card className={`border-2 transition-all duration-300 ${
@@ -648,37 +725,6 @@ const EventDetailsPage = () => {
                         </div>
                       ))}
                     </div>
-
-                    {event.pricing_type === "paid" &&
-                      orderSummary.subtotal > 0 &&
-                      allowedPaymentMethods.length > 1 && (
-                      <div className="space-y-3 pb-2">
-                        <div className="flex items-center gap-2">
-                          <Zap className="h-4 w-4 text-rose-500" />
-                          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                            Payment method
-                          </span>
-                        </div>
-                        <PaymentTabs
-                          activeTab={checkoutPaymentMethod || allowedPaymentMethods[0]}
-                          onChange={setCheckoutPaymentMethod}
-                          allowedMethods={allowedPaymentMethods}
-                        />
-                      </div>
-                    )}
-
-                    {event.pricing_type === "paid" &&
-                      orderSummary.subtotal > 0 &&
-                      allowedPaymentMethods.length === 1 && (
-                      <p className="text-xs text-muted-foreground pb-2">
-                        Payment:{" "}
-                        <span className="font-medium text-foreground">
-                          {allowedPaymentMethods[0] === "manual_bank_transfer"
-                            ? "Bank transfer"
-                            : "Paystack (card)"}
-                        </span>
-                      </p>
-                    )}
 
                     <div className="border-t border-border/50 pt-4 space-y-2">
                       <div className="flex justify-between text-sm">
@@ -711,8 +757,8 @@ const EventDetailsPage = () => {
                     <ShoppingCart className="h-12 w-12 mx-auto mb-3 opacity-30" />
                     <p className="text-sm">No tickets selected</p>
                     <p className="text-xs mt-1 opacity-70">
-                      <span className="hidden lg:inline">Select tickets from the left to continue</span>
-                      <span className="lg:hidden">Select tickets above to continue</span>
+                      <span className="hidden md:inline">Select tickets from the left to continue</span>
+                      <span className="md:hidden">Select tickets above to continue</span>
                     </p>
                   </div>
                 )}
@@ -749,7 +795,7 @@ const EventDetailsPage = () => {
             </Card>
 
             {/* Share Section - Mobile */}
-            <div className="lg:hidden">
+            <div className="md:hidden">
               <Card className="border-border/50 bg-card/50">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 mb-3">
@@ -783,38 +829,67 @@ const EventDetailsPage = () => {
             initial={{ y: 100 }}
             animate={{ y: 0 }}
             exit={{ y: 100 }}
-            className="fixed bottom-0 left-0 right-0 z-50 lg:hidden p-4 bg-background/80 backdrop-blur-xl border-t border-border shadow-[0_-10px_40px_rgba(0,0,0,0.2)]"
+            className="fixed bottom-0 left-0 right-0 z-50 md:hidden p-3 pt-2 bg-background/95 backdrop-blur-xl border-t border-border shadow-[0_-10px_40px_rgba(0,0,0,0.2)] max-h-[min(70vh,420px)] overflow-y-auto"
           >
-            <div className="flex items-center justify-between gap-4 max-w-lg mx-auto">
-              <div className="flex flex-col">
-                <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">
-                  {orderSummary.totalQuantity} Ticket{orderSummary.totalQuantity > 1 ? 's' : ''} Selected
-                </span>
-                <div className="flex flex-baseline gap-1">
-                  <span className="text-xl font-bold text-rose-500">
-                    ₦{Math.round(orderSummary.total).toLocaleString()}
-                  </span>
-                  {orderSummary.platformFee > 0 && (
-                    <span className="text-[10px] text-muted-foreground font-medium self-end mb-1">
-                      + ₦{Math.round(orderSummary.platformFee).toLocaleString()} booking fee
+            <div className="max-w-lg mx-auto space-y-3">
+              {showPaymentMethodPicker && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Zap className="h-4 w-4 text-rose-500 shrink-0" />
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+                      Payment method
                     </span>
-                  )}
+                  </div>
+                  <PaymentTabs
+                    activeTab={checkoutPaymentMethod || allowedPaymentMethods[0]}
+                    onChange={setCheckoutPaymentMethod}
+                    allowedMethods={allowedPaymentMethods}
+                  />
                 </div>
+              )}
+              {isEventPaid &&
+                orderSummary.subtotal > 0 &&
+                allowedPaymentMethods.length === 1 && (
+                <p className="text-[11px] text-muted-foreground">
+                  Paying with{" "}
+                  <span className="font-medium text-foreground">
+                    {allowedPaymentMethods[0] === "manual_bank_transfer"
+                      ? "bank transfer"
+                      : "Paystack"}
+                  </span>
+                </p>
+              )}
+              <div className="flex items-center justify-between gap-3 pb-1">
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                    {orderSummary.totalQuantity} Ticket{orderSummary.totalQuantity > 1 ? "s" : ""} Selected
+                  </span>
+                  <div className="flex flex-baseline gap-1 flex-wrap">
+                    <span className="text-lg font-bold text-rose-500">
+                      ₦{Math.round(orderSummary.total).toLocaleString()}
+                    </span>
+                    {orderSummary.platformFee > 0 && (
+                      <span className="text-[10px] text-muted-foreground font-medium self-end mb-0.5">
+                        + ₦{Math.round(orderSummary.platformFee).toLocaleString()} fee
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <Button
+                  className="bg-rose-600 hover:bg-rose-700 text-white font-bold px-6 h-11 shrink-0 rounded-xl shadow-lg shadow-rose-600/20 active:scale-95 transition-transform"
+                  onClick={handleBookTicket}
+                  disabled={bookingLoading}
+                >
+                  {bookingLoading ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <>
+                      <span>Checkout</span>
+                      <ShoppingCart className="ml-2 h-4 w-4" />
+                    </>
+                  )}
+                </Button>
               </div>
-              <Button
-                className="bg-rose-600 hover:bg-rose-700 text-white font-bold px-8 h-12 rounded-xl shadow-lg shadow-rose-600/20 active:scale-95 transition-transform"
-                onClick={handleBookTicket}
-                disabled={bookingLoading}
-              >
-                {bookingLoading ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  <>
-                    <span>Checkout</span>
-                    <ShoppingCart className="ml-2 h-4 w-4" />
-                  </>
-                )}
-              </Button>
             </div>
           </motion.div>
         )}
