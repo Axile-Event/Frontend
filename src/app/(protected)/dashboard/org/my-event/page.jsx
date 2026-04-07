@@ -53,7 +53,7 @@ const MyEvent = () => {
         return dateB - dateA;
       });
     },
-    refetchOnWindowFocus: true
+    refetchOnWindowFocus: true,
   });
 
   const filteredEvents = !events
