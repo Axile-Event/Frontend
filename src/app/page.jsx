@@ -110,13 +110,13 @@ const LandingPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground selection:bg-primary/30 overflow-x-hidden">
-      <section className="relative pt-20 pb-32 lg:pt-32 lg:pb-40 overflow-hidden">
+    <div className="min-h-screen bg-background text-foreground selection:bg-primary/20 overflow-x-hidden">
+      <section className="relative pt-28 pb-40 lg:pt-48 lg:pb-56 overflow-hidden">
         {/* Animated Background */}
         <div className="absolute inset-0 pointer-events-none">
           <motion.div 
             animate={{ 
-              scale: [1, 1.1, 1],
+              scale: [1, 1.08, 1],
               opacity: [0.3, 0.5, 0.3],
             }}
             transition={{ duration: 8, repeat: Infinity }}
@@ -124,7 +124,7 @@ const LandingPage = () => {
           />
           <motion.div 
             animate={{ 
-              scale: [1, 1.2, 1],
+              scale: [1, 1.15, 1],
               opacity: [0.2, 0.4, 0.2],
             }}
             transition={{ duration: 10, repeat: Infinity }}
@@ -152,7 +152,7 @@ const LandingPage = () => {
             {/* Main Headline */}
             <motion.h1 
               variants={fadeInScale}
-              className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black tracking-tight leading-[1.1]"
+              className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-black tracking-tighter leading-[1.0] mb-6"
             >
               Experience Events
               <br />
@@ -169,21 +169,21 @@ const LandingPage = () => {
             {/* Subheadline */}
             <motion.p 
               variants={fadeInScale}
-              className="text-lg md:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed"
+              className="text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed mb-2"
             >
-              The all-in-one platform connecting <span className="text-foreground font-semibold">attendees</span> to unforgettable events and empowering <span className="text-foreground font-semibold">organizers</span> to sell out shows.
+              Connect attendees to unforgettable events. Empower organizers to sell out. All-in-one platform for the culture.
             </motion.p>
 
             {/* CTA Buttons */}
-            <motion.div variants={fadeInScale} className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+            <motion.div variants={fadeInScale} className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-6">
               <Link href="/events">
-                <Button size="lg" className="h-14 px-10 text-lg bg-primary hover:bg-primary/90 shadow-lg shadow-primary/30 hover:shadow-primary/50 transition-all rounded-2xl">
+                <Button size="lg" className="h-16 px-12 text-lg bg-primary hover:bg-primary/90 shadow-xl shadow-primary/40 hover:shadow-primary/60 transition-all rounded-2xl font-bold">
                   Explore Events
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
               <Link href="/signup?tab=organizer">
-                <Button size="lg" variant="outline" className="h-14 px-10 text-lg border-border hover:bg-muted group rounded-2xl">
+                <Button size="lg" variant="outline" className="h-16 px-12 text-lg border-border hover:bg-muted hover:border-primary/50 group rounded-2xl font-bold transition-all">
                   Start Selling Tickets
                   <TrendingUp className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                 </Button>
@@ -210,14 +210,14 @@ const LandingPage = () => {
       </section>
 
       {/* Stats Section */}
-      <section className="py-16 border-y border-border bg-muted/30">
+      <section className="py-20 border-b border-border/50">
         <div className="container mx-auto px-4">
           <motion.div 
             variants={staggerContainer}
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true }}
-            className="grid grid-cols-2 md:grid-cols-3 gap-8 max-w-5xl mx-auto"
+            className="grid grid-cols-2 md:grid-cols-3 gap-6 md:gap-8 max-w-6xl mx-auto"
           >
             <StatCard icon={<Calendar className="h-6 w-6" />} value={loadingStats ? "…" : stats.events} label="Events Hosted" />
             <StatCard icon={<Users className="h-6 w-6" />} value={loadingStats ? "…" : stats.tickets} label="Tickets Sold" />
@@ -530,26 +530,19 @@ const StatCard = ({ icon, value, label }) => (
       hidden: { opacity: 0, y: 20 },
       visible: { opacity: 1, y: 0, transition: { duration: 0.6 } }
     }}
-    className="text-center space-y-2 p-6 rounded-3xl bg-secondary/20 border border-border/50 hover:border-primary/30 transition-colors group relative overflow-hidden"
+    whileHover={{ y: -4, transition: { duration: 0.3 } }}
+    className="text-center space-y-4 p-10 rounded-2xl bg-card border border-border/40 hover:border-primary/30 transition-all duration-300 hover:shadow-md group"
   >
-    {/* Subtle African Elevation Lines */}
-    <div className="absolute inset-0 pointer-events-none opacity-[0.03] group-hover:opacity-[0.06] transition-opacity duration-500">
-      <svg className="w-full h-full" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">
-        <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" strokeWidth="0.8" className="text-amber-600"/>
-        <circle cx="50" cy="50" r="30" fill="none" stroke="currentColor" strokeWidth="0.6" className="text-amber-600"/>
-        <circle cx="50" cy="50" r="20" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-amber-500"/>
-        <circle cx="50" cy="50" r="10" fill="none" stroke="currentColor" strokeWidth="0.4" className="text-amber-500"/>
-      </svg>
-    </div>
-    
-    <div className="relative z-10 flex items-center justify-center text-primary mb-2 group-hover:scale-110 transition-transform">
+    <div className="flex items-center justify-center text-primary group-hover:scale-110 transition-transform duration-300">
       {icon}
     </div>
-    <div className="relative z-10 text-4xl md:text-5xl font-black text-foreground">
-      {value} <span className="text-md">+</span>
-    </div>
-    <div className="relative z-10 text-xs text-muted-foreground font-black uppercase tracking-widest opacity-60">
-      {label}
+    <div>
+      <div className="text-5xl md:text-6xl font-black text-foreground tracking-tighter">
+        {value}
+      </div>
+      <div className="text-xs text-muted-foreground font-semibold uppercase tracking-widest mt-3 opacity-70">
+        {label}
+      </div>
     </div>
   </motion.div>
 );
@@ -560,29 +553,14 @@ const FeatureCard = ({ icon, title, description, color }) => (
       hidden: { opacity: 0, y: 30, scale: 0.95 },
       visible: { opacity: 1, y: 0, scale: 1, transition: { duration: 0.6 } }
     }}
-    whileHover={{ y: -12, transition: { duration: 0.3 } }}
-    className="p-10 rounded-[2.5rem] bg-card border border-border hover:border-primary/30 transition-all duration-500 hover:shadow-[0_20px_50px_rgba(225,29,72,0.08)] group relative overflow-hidden"
+    whileHover={{ y: -8, transition: { duration: 0.3 } }}
+    className="p-10 rounded-2xl bg-card border border-border/40 hover:border-primary/30 transition-all duration-300 hover:shadow-md group"
   >
-    {/* African Topographic Contour Lines */}
-    <div className="absolute inset-0 pointer-events-none opacity-[0.04] group-hover:opacity-[0.08] transition-opacity duration-700">
-      <svg className="w-full h-full" viewBox="0 0 200 200" preserveAspectRatio="xMidYMid slice">
-        <path d="M-20,100 Q30,40 100,60 Q170,80 220,30" fill="none" stroke="currentColor" strokeWidth="1" className="text-amber-600"/>
-        <path d="M-20,120 Q40,60 100,80 Q160,100 220,50" fill="none" stroke="currentColor" strokeWidth="1" className="text-amber-600"/>
-        <path d="M-20,140 Q50,80 100,100 Q150,120 220,70" fill="none" stroke="currentColor" strokeWidth="1" className="text-amber-600"/>
-        <path d="M-20,160 Q60,100 100,120 Q140,140 220,90" fill="none" stroke="currentColor" strokeWidth="1" className="text-amber-600"/>
-        <path d="M-20,180 Q70,120 100,140 Q130,160 220,110" fill="none" stroke="currentColor" strokeWidth="0.8" className="text-amber-500"/>
-        <path d="M-20,200 Q80,140 100,160 Q120,180 220,130" fill="none" stroke="currentColor" strokeWidth="0.8" className="text-amber-500"/>
-        <circle cx="160" cy="40" r="25" fill="none" stroke="currentColor" strokeWidth="0.6" className="text-amber-600"/>
-        <circle cx="160" cy="40" r="18" fill="none" stroke="currentColor" strokeWidth="0.6" className="text-amber-600"/>
-        <circle cx="160" cy="40" r="10" fill="none" stroke="currentColor" strokeWidth="0.6" className="text-amber-600"/>
-      </svg>
-    </div>
-    
-    <div className={`relative z-10 mb-8 p-5 rounded-2xl w-fit ${color} group-hover:scale-110 transition-transform duration-500 group-hover:rotate-6 shadow-sm`}>
+    <div className={`mb-8 p-4 rounded-xl w-fit ${color} group-hover:scale-110 transition-transform duration-300 shadow-sm`}>
       {icon}
     </div>
-    <h3 className="relative z-10 text-2xl font-black tracking-tight mb-4 group-hover:text-primary transition-colors duration-300">{title}</h3>
-    <p className="relative z-10 text-muted-foreground leading-relaxed text-lg opacity-80 group-hover:opacity-100 transition-opacity">
+    <h3 className="text-2xl font-bold tracking-tight mb-3 text-foreground group-hover:text-primary transition-colors duration-300">{title}</h3>
+    <p className="text-muted-foreground leading-relaxed opacity-85 group-hover:opacity-100 transition-opacity">
       {description}
     </p>
   </motion.div>
@@ -594,42 +572,24 @@ const TestimonialCard = ({ quote, author, role }) => (
       hidden: { opacity: 0, scale: 0.95 },
       visible: { opacity: 1, scale: 1, transition: { duration: 0.6 } }
     }}
-    whileHover={{ scale: 1.02, transition: { duration: 0.3 } }}
-    className="p-10 rounded-[2.5rem] bg-card border border-border hover:border-primary/20 transition-all duration-500 space-y-8 relative overflow-hidden group shadow-sm hover:shadow-xl"
+    whileHover={{ y: -8, transition: { duration: 0.3 } }}
+    className="p-10 rounded-2xl bg-card border border-border/40 hover:border-primary/20 transition-all duration-300 space-y-6 group shadow-sm hover:shadow-md"
   >
-    {/* African River & Terrain Contour Lines */}
-    <div className="absolute inset-0 pointer-events-none opacity-[0.03] group-hover:opacity-[0.06] transition-opacity duration-700">
-      <svg className="w-full h-full" viewBox="0 0 200 250" preserveAspectRatio="xMidYMid slice">
-        <path d="M0,200 Q40,180 60,190 Q100,210 140,180 Q180,150 200,160" fill="none" stroke="currentColor" strokeWidth="1.2" className="text-amber-700"/>
-        <path d="M0,210 Q50,190 70,200 Q110,220 150,190 Q190,160 200,170" fill="none" stroke="currentColor" strokeWidth="1" className="text-amber-600"/>
-        <path d="M0,220 Q60,200 80,210 Q120,230 160,200 Q200,170 220,180" fill="none" stroke="currentColor" strokeWidth="0.8" className="text-amber-600"/>
-        <path d="M0,230 Q70,210 90,220 Q130,240 170,210 Q210,180 230,190" fill="none" stroke="currentColor" strokeWidth="0.6" className="text-amber-500"/>
-        <ellipse cx="30" cy="50" rx="20" ry="30" fill="none" stroke="currentColor" strokeWidth="0.8" className="text-amber-600" transform="rotate(-15 30 50)"/>
-        <ellipse cx="30" cy="50" rx="14" ry="22" fill="none" stroke="currentColor" strokeWidth="0.6" className="text-amber-600" transform="rotate(-15 30 50)"/>
-        <ellipse cx="30" cy="50" rx="8" ry="14" fill="none" stroke="currentColor" strokeWidth="0.6" className="text-amber-500" transform="rotate(-15 30 50)"/>
-        <path d="M150,0 Q160,30 155,60 Q150,90 160,120" fill="none" stroke="currentColor" strokeWidth="0.6" className="text-amber-500"/>
-        <path d="M160,0 Q170,30 165,60 Q160,90 170,120" fill="none" stroke="currentColor" strokeWidth="0.6" className="text-amber-500"/>
-      </svg>
-    </div>
-    
-    <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:opacity-10 transition-opacity">
-      <Star size={80} className="fill-primary text-primary" />
-    </div>
-    <div className="flex gap-1.5 relative z-10">
+    <div className="flex gap-1.5">
       {[...Array(5)].map((_, i) => (
         <Star key={i} className="h-4 w-4 fill-primary text-primary" />
       ))}
     </div>
-    <p className="text-xl leading-relaxed text-foreground font-medium relative z-10">
+    <p className="text-lg leading-relaxed text-foreground font-medium">
       "{quote}"
     </p>
-    <div className="pt-6 border-t border-border flex items-center gap-4 relative z-10">
-      <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center font-black text-primary">
+    <div className="pt-6 border-t border-border/30 flex items-center gap-3">
+      <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary text-sm">
         {author.charAt(0)}
       </div>
       <div>
-        <div className="font-black text-foreground text-sm tracking-tight">{author}</div>
-        <div className="text-[10px] text-muted-foreground font-black uppercase tracking-widest opacity-60">{role}</div>
+        <div className="font-semibold text-foreground text-sm">{author}</div>
+        <div className="text-xs text-muted-foreground opacity-60 uppercase tracking-wide">{role}</div>
       </div>
     </div>
   </motion.div>

@@ -95,6 +95,9 @@ const Header = () => {
             <Link href="/events" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
               Find Events
             </Link>
+            <Link href="/referral" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+              Referral
+            </Link>
             <Link href="/features" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
               Features
             </Link>
@@ -241,18 +244,29 @@ const Header = () => {
                           <Home className="h-5 w-5" />
                           Home
                         </Link>
-                        <Link
-                          href="/features"
-                          onClick={closeMenu}
-                          className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors w-full ${pathname === "/features"
-                            ? "bg-rose-600/10 text-rose-500"
-                            : "hover:bg-gray-800 text-gray-300 hover:text-white"
-                            }`}
-                        >
-                          <Zap className="h-5 w-5" />
-                          Features
-                        </Link>
-                        {sidebarLinks.map((link) => (
+                       <Link
+                         href="/referral"
+                         onClick={closeMenu}
+                         className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors w-full ${pathname === "/referral"
+                           ? "bg-rose-600/10 text-rose-500"
+                           : "hover:bg-gray-800 text-gray-300 hover:text-white"
+                           }`}
+                       >
+                         <Zap className="h-5 w-5" />
+                         Referral
+                       </Link>
+                       <Link
+                         href="/features"
+                         onClick={closeMenu}
+                         className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors w-full ${pathname === "/features"
+                           ? "bg-rose-600/10 text-rose-500"
+                           : "hover:bg-gray-800 text-gray-300 hover:text-white"
+                           }`}
+                       >
+                         <Zap className="h-5 w-5" />
+                         Features
+                       </Link>
+                       {sidebarLinks.map((link) => (
                           <Link
                             key={link.name}
                             href={link.href}
@@ -291,22 +305,30 @@ const Header = () => {
                         <Home className="h-5 w-5" />
                         Home
                       </Link>
-                      <Link
-                        href="/features"
-                        onClick={closeMenu}
-                        className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white transition-colors w-full"
-                      >
-                        <Zap className="h-5 w-5" />
-                        Features
-                      </Link>
-                      <Link
-                        href="/events"
-                        onClick={closeMenu}
-                        className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white transition-colors w-full"
-                      >
-                        <Calendar className="h-5 w-5" />
-                        Discover Events
-                      </Link>
+                       <Link
+                         href="/referral"
+                         onClick={closeMenu}
+                         className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white transition-colors w-full"
+                       >
+                         <Zap className="h-5 w-5" />
+                         Referral Program
+                       </Link>
+                       <Link
+                         href="/features"
+                         onClick={closeMenu}
+                         className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white transition-colors w-full"
+                       >
+                         <Zap className="h-5 w-5" />
+                         Features
+                       </Link>
+                       <Link
+                         href="/events"
+                         onClick={closeMenu}
+                         className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white transition-colors w-full"
+                       >
+                         <Calendar className="h-5 w-5" />
+                         Discover Events
+                       </Link>
                       <Link
                         href="/hiring"
                         onClick={closeMenu}

@@ -12,7 +12,6 @@ import useAuthStore from "../../../store/authStore";
 import { useGoogleLogin } from '@react-oauth/google';
 import { Mail, Lock, User, Eye, EyeOff, UsersIcon, Loader2, ArrowRight, Phone } from "lucide-react";
 import Logo from "@/components/Logo";
-import BackgroundCarousel from "../../../components/BackgroundCarousel";
 import axios from 'axios';
 
 const SignUpContent = () => {
@@ -228,11 +227,13 @@ const SignUpContent = () => {
   return (
     <div className="min-h-screen w-full flex bg-[#0A0A14]">
       {/* Left Image */}
-      <div className="hidden lg:flex w-1/2 relative items-center justify-center overflow-hidden group">
-        <BackgroundCarousel
-          images={['/IMG (1).jpg', '/ticket image (1).jpeg']}
-          interval={5000}
+      <div className="hidden lg:flex w-1/2 relative items-center justify-center overflow-hidden bg-cover bg-center">
+        <img
+          src="/auth.jpg"
+          alt="Auth Background"
+          className="absolute inset-0 w-full h-full object-cover"
         />
+        <div className="absolute inset-0 bg-black/20"></div>
       </div>
 
       <motion.div
