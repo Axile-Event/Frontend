@@ -204,7 +204,7 @@ export default function CheckoutPaymentPage() {
   const currentTotal = activeTab === 'manual_bank_transfer' ? bookingData.totalManual : bookingData.totalPaystack;
 
   return (
-    <div className="min-h-screen bg-[#050505] text-white">
+    <div className="min-h-screen bg-background text-foreground">
       <div className="container mx-auto px-4 py-8 md:py-12">
           <div className="max-w-4xl mx-auto flex flex-col lg:flex-row gap-8 lg:gap-12">
             
