@@ -16,6 +16,7 @@ import BenefitCard from "@/components/BenefitCard";
 import StepCard from "@/components/StepCard";
 import * as Accordion from "@radix-ui/react-accordion";
 
+//done
 const ReferralPage = () => {
   const containerVariants = {
     hidden: { opacity: 0 },
