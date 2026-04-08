@@ -13,7 +13,6 @@ import useAuthStore from '../../../store/authStore'
 import { Button } from '../../../components/ui/button'
 import Logo from '@/components/Logo'
 import { getErrorMessage } from '@/lib/utils'
-import BackgroundCarousel from '@/components/BackgroundCarousel'
 import { useGoogleLogin } from '@react-oauth/google';
 
 const LoginContent = () => {
@@ -190,17 +189,13 @@ const LoginContent = () => {
     <div className="min-h-screen w-full flex bg-[#0A0A14]">
 
             {/* Left Image */}
-             <div className="hidden lg:flex w-1/2 relative items-center justify-center overflow-hidden group">
-               <BackgroundCarousel
-                 images={['/IMG (1).jpg', '/ticket image (1).jpeg']}
-                 interval={5000}
+             <div className="hidden lg:flex w-1/2 relative items-center justify-center overflow-hidden bg-cover bg-center">
+               <img
+                 src="/auth.jpg"
+                 alt="Auth Background"
+                 className="absolute inset-0 w-full h-full object-cover"
                />
-               {/* <div className="relative z-10 w-[40%] flex items-center justify-center">
-                 <img
-                   alt="Center Image"
-                   src='/assets/image 2 (1).png'
-                 />
-               </div> */}
+               <div className="absolute inset-0 bg-black/20"></div>
              </div>
       {/* Right Side - Form */}
       <motion.div
