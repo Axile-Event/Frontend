@@ -24,6 +24,7 @@ const Footer = () => {
     { label: 'Find Events', href: '/events' },
     { label: 'Pricing', href: '/pricing' },
     { label: 'Features', href: '/features' },
+    { label: 'Referral Program', href: '/referral' },
   ];
 
   const supportLinks = [
