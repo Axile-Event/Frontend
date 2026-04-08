@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
@@ -10,14 +10,16 @@ import {
   TrendingUp,
   ArrowRight,
   ChevronDown,
+  Mail,
   Sparkles,
 } from "lucide-react";
 import BenefitCard from "@/components/BenefitCard";
 import StepCard from "@/components/StepCard";
 import * as Accordion from "@radix-ui/react-accordion";
 
-//done
 const ReferralPage = () => {
+  const [email, setEmail] = useState("");
+
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -58,6 +60,7 @@ const ReferralPage = () => {
               scale: [1, 1.15, 1],
               opacity: [0.2, 0.4, 0.2],
             }}
+            //done
             transition={{ duration: 10, repeat: Infinity }}
             className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[120px]"
           />
@@ -236,6 +239,57 @@ const ReferralPage = () => {
               />
             </motion.div>
           </div>
+        </div>
+      </section>
+
+      {/* Quick Action Section */}
+      <section id="create-link" className="py-24 bg-muted/30">
+        <div className="container mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+            className="max-w-2xl mx-auto bg-card rounded-3xl border border-border p-8 md:p-12 shadow-lg"
+          >
+            <div className="text-center mb-8">
+              <h2 className="text-3xl md:text-4xl font-black mb-2">
+                Ready to Earn?
+              </h2>
+              <p className="text-muted-foreground">
+                Create your referral link in seconds
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              <div className="relative group">
+                <input
+                  type="email"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full bg-background border border-border rounded-xl py-4 px-6 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+                />
+              </div>
+
+              <a href="https://referral.axile.ng" target="_blank" rel="noopener noreferrer" className="block">
+                <Button
+                  size="lg"
+                  className="w-full h-14 text-lg bg-primary hover:bg-primary/90 shadow-lg shadow-primary/30 hover:shadow-primary/50 transition-all rounded-xl"
+                >
+                  <Mail className="mr-2 h-5 w-5" />
+                  Create My Link
+                </Button>
+              </a>
+
+              <p className="text-center text-sm text-muted-foreground pt-2">
+                Already have an account?{" "}
+                <Link href="/login" className="text-primary hover:underline">
+                  Log in
+                </Link>
+              </p>
+            </div>
+          </motion.div>
         </div>
       </section>
 
