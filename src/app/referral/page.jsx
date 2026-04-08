@@ -60,6 +60,7 @@ const ReferralPage = () => {
               scale: [1, 1.15, 1],
               opacity: [0.2, 0.4, 0.2],
             }}
+            //done
             transition={{ duration: 10, repeat: Infinity }}
             className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[120px]"
           />
