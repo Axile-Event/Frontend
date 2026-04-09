@@ -23,8 +23,8 @@ const Header = () => {
     // Wait for store hydration and ensure we have a valid token before fetching
     if (!hydrated || !token || !isAuthenticated) return;
     
-    // Only fetch if profile fields are missing AND we haven't already fetched/aren't fetching
-    const needsProfileUpdate = user && !user.firstname && !user.Firstname && !user.Preferred_name && !user.Organization_Name;
+    // Only fetch if user profile is missing OR incomplete
+    const needsProfileUpdate = !user || (user && !user.firstname && !user.Firstname && !user.Preferred_name && !user.Organization_Name);
     
     if (needsProfileUpdate && !hasFetchedRef.current && !fetchingRef.current) {
       const fetchUserData = async () => {
