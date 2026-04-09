@@ -30,21 +30,48 @@ const EventsPage = () => {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        // Fetch active/verified events from public endpoint
-        const publicResponse = await api.get("/event/");
-        const active = Array.isArray(publicResponse.data) ? publicResponse.data : (publicResponse.data.events || []);
+        // Fetch all events from public endpoint
+        const response = await api.get("/event/");
+        const allEvents = Array.isArray(response.data) ? response.data : (response.data.events || []);
         
-        // Attempt to fetch closed events from admin endpoint
-        let closed = [];
+        const now = new Date();
+        now.setHours(0, 0, 0, 0);
+
+        // Filter into Upcoming and Past based on date and status
+        const upcomingList = allEvents.filter(event => {
+          if (event.status === 'closed') return false;
+          if (!event.event_date) return true;
+          const eventDate = new Date(event.event_date);
+          eventDate.setHours(0, 0, 0, 0);
+          return eventDate >= now;
+        });
+
+        const pastList = allEvents.filter(event => {
+          if (event.status === 'closed') return true;
+          if (!event.event_date) return false;
+          const eventDate = new Date(event.event_date);
+          eventDate.setHours(0, 0, 0, 0);
+          return eventDate < now;
+        });
+        
+        // Attempt to fetch extra closed events from admin endpoint if possible
+        let closedAdmin = [];
         try {
           const adminResponse = await api.get("/api/admin/events/?status=closed");
-          closed = adminResponse.data.events || [];
+          closedAdmin = adminResponse.data.events || [];
         } catch (adminError) {
-          console.warn("Could not fetch closed events via admin endpoint:", adminError.message);
+          console.warn("Could not fetch extra closed events via admin endpoint:", adminError.message);
         }
         
-        setEvents(shuffleArray([...active]));
-        setPastEvents(shuffleArray([...closed]));
+        const combinedPast = [...pastList];
+        closedAdmin.forEach(c => {
+          if (!combinedPast.find(p => p.event_id === c.event_id)) {
+            combinedPast.push(c);
+          }
+        });
+        
+        setEvents(shuffleArray([...upcomingList]));
+        setPastEvents(shuffleArray([...combinedPast]));
       } catch (error) {
         console.error("Error fetching events:", error);
       } finally {
@@ -154,11 +181,14 @@ const EventsPage = () => {
               )}
             </div>
 
-            {/* Past Events */}
+            {/* Past Events Section */}
             {filteredPastEvents.length > 0 && (
-              <div className="space-y-4 md:space-y-6 pt-6 border-t border-border">
-                <h2 className="text-lg md:text-xl font-semibold">Past Events</h2>
-                <div className="grid gap-4 md:gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="space-y-4 md:space-y-6 pt-10 border-t border-border/50">
+                <div>
+                  <h2 className="text-lg md:text-xl font-semibold opacity-70">Past & Concluded Events</h2>
+                  <p className="text-xs text-muted-foreground">Relive the moments from events that have already ended.</p>
+                </div>
+                <div className="grid gap-3 md:gap-4 grid-cols-2 lg:grid-cols-4">
                   {filteredPastEvents.map((event, index) => (
                     <EventCard key={event.event_id} event={event} index={index} isPast />
                   ))}
@@ -184,85 +214,74 @@ const EventCard = ({ event, index, isPast = false }) => (
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.3, delay: index * 0.05 }}
   >
-    <Link href={`/dashboard/student/events/${event.event_slug || event.event_id}`}>
-      <div className={`group relative aspect-4/3 overflow-hidden rounded-xl md:rounded-2xl bg-muted cursor-pointer transition-all duration-300 ${isPast ? 'grayscale opacity-80 hover:grayscale-0 hover:opacity-100' : ''}`}>
-        {/* Background Image */}
-        {event.event_image ? (
-          <img
-            src={getImageUrl(event.event_image)}
-            alt={event.event_name}
-            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-          />
-        ) : (
-          <div className="h-full w-full bg-gray-800 flex items-center justify-center">
-             <CalendarIcon className="h-10 w-10 md:h-12 md:w-12 text-gray-600" />
+  <Link href={`/dashboard/student/events/${event.event_slug || event.event_id}`}>
+    <div className={`group relative aspect-4/3 overflow-hidden rounded-xl md:rounded-2xl bg-muted cursor-pointer transition-all duration-300 ${isPast ? 'grayscale opacity-70 hover:grayscale-0 hover:opacity-100' : ''}`}>
+      {/* Background Image */}
+      {event.event_image ? (
+        <img
+          src={getImageUrl(event.event_image)}
+          alt={event.event_name}
+          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+        />
+      ) : (
+        <div className="h-full w-full bg-gray-800 flex items-center justify-center">
+           <CalendarIcon className="h-10 w-10 md:h-12 md:w-12 text-gray-600" />
+        </div>
+      )}
+
+      {/* Gradient Overlay */}
+      <div className="absolute inset-0 bg-linear-to-t from-black/90 via-black/40 to-transparent" />
+
+      {/* Badges */}
+      <div className="absolute top-2 left-2 flex flex-col gap-2">
+        {!isPast && (
+          <div className="px-2 py-0.5 rounded-lg bg-primary/90 text-white text-[9px] font-bold uppercase tracking-wider shadow-lg shadow-primary/20 w-fit">
+            {event.event_type}
           </div>
         )}
+      </div>
 
-        {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-linear-to-t from-black/90 via-black/40 to-transparent" />
+      <div className="absolute top-2 right-2">
+         <div className={`px-2 py-0.5 rounded-lg bg-black/60 backdrop-blur-md text-[9px] font-semibold border border-gray-600/70 text-white ${isPast ? 'opacity-50' : ''}`}>
+           {isPast ? 'Closed' : (event.pricing_type === 'free' ? 'Free' : `₦${event.event_price}`)}
+         </div>
+      </div>
 
-        {/* Badges */}
-        <div className="absolute top-3 left-3 flex flex-col gap-2">
-          {!isPast && (
-            <div className="px-2 py-1 rounded-lg bg-primary/90 text-white text-[10px] font-bold uppercase tracking-wider shadow-lg shadow-primary/20 w-fit">
-              {event.event_type}
-            </div>
-          )}
+      {/* Content Overlay */}
+      <div className={`absolute bottom-0 left-0 right-0 p-3 md:p-4 text-white ${isPast ? 'pb-2' : ''}`}>
+        <h3 className={`${isPast ? 'text-xs md:text-sm' : 'text-base md:text-lg'} font-bold leading-tight mb-1 line-clamp-1`}>
+          {event.event_name}
+        </h3>
+        
+        <div className={`flex flex-wrap gap-y-0.5 gap-x-2 text-[10px] ${isPast ? 'opacity-60' : 'text-gray-300'} mb-1`}>
+          <div className="flex items-center gap-1">
+            <MapPin className="h-2.5 w-2.5" />
+            <span className="line-clamp-1 max-w-[80px]">{event.event_location}</span>
+          </div>
         </div>
 
-        <div className="absolute top-3 right-3">
-           <div className="px-2 py-1 rounded-lg bg-black/60 backdrop-blur-md text-[10px] font-semibold border border-gray-600/70 text-white">
-             {isPast ? 'Closed' : (event.pricing_type === 'free' ? 'Free' : `₦${event.event_price}`)}
+        <div className="flex items-center justify-between mt-1">
+           <div className={`flex items-center gap-1 text-[10px] ${isPast ? 'opacity-50' : 'text-gray-300'}`}>
+             <CalendarIcon className="h-2.5 w-2.5" />
+             <span>
+               {new Date(event.event_date).toLocaleDateString('en-US', {
+                 month: 'short',
+                 day: 'numeric'
+               })}
+             </span>
            </div>
-        </div>
-
-        {/* Content Overlay */}
-        <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
-          <h3 className="text-lg font-bold leading-tight mb-2">
-            {event.event_name}
-          </h3>
-          
-          <div className="flex flex-wrap gap-y-1 gap-x-3 text-xs text-gray-300 mb-2">
-            <div className="flex items-center gap-1">
-              <MapPin className="h-3 w-3" />
-              <span className="line-clamp-1 max-w-[120px]">{event.event_location}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              <CalendarIcon className="h-3 w-3" />
-              <span>
-                {new Date(event.event_date).toLocaleDateString('en-US', {
-                  weekday: 'short',
-                  month: 'short',
-                  day: 'numeric'
-                })}
-              </span>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between mt-1">
-             <div className="flex items-center gap-1 text-xs text-gray-300">
-               <Clock className="h-3 w-3" />
-               <span>
-                 {new Date(event.event_date).toLocaleTimeString('en-US', {
-                   hour: 'numeric',
-                   minute: '2-digit',
-                   hour12: true
-                 })}
-               </span>
-             </div>
-             
-             {!isPast && (
-               <span className={`font-bold text-sm ${
-                 event.pricing_type === 'free' ? 'text-green-400' : 'text-yellow-400'
-               }`}>
-                 {event.pricing_type === 'free' ? 'Free' : `₦${event.event_price}`}
-               </span>
-             )}
-          </div>
+           
+           {!isPast && (
+             <span className={`font-bold text-xs ${
+               event.pricing_type === 'free' ? 'text-green-400' : 'text-yellow-400'
+             }`}>
+               {event.pricing_type === 'free' ? 'Free' : `₦${event.event_price}`}
+             </span>
+           )}
         </div>
       </div>
-    </Link>
+    </div>
+  </Link>
   </motion.div>
 );
 
