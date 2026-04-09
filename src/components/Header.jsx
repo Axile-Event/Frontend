@@ -8,6 +8,7 @@ import { Menu, X, User, LogOut, LayoutDashboard, Home, Calendar, Ticket, Zap, Br
 import Logo from "./Logo";
 import { Button } from "./ui/button";
 import useAuthStore from "@/store/authStore";
+import Cookies from "js-cookie";
 import { motion, AnimatePresence } from "framer-motion";
 
 const Header = () => {
