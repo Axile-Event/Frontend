@@ -84,12 +84,12 @@ const Header = () => {
       <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-md">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           {/* Logo */}
-          <Link href="/" onClick={closeMenu} className="flex items-center">
+          <Link href="https://axile.ng" onClick={closeMenu} className="flex items-center">
             <Logo iconSize="h-18 w-auto" scale="scale-[2] md:scale-[2]" className="origin-left"/>
           </Link>
 
           <nav className="hidden md:flex items-center gap-6">
-            <Link href="/" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+            <Link href="https://axile.ng" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
               Home
             </Link>
             <Link href="/events" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
@@ -234,7 +234,7 @@ const Header = () => {
                       <div className="space-y-1">
                         <p className="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Menu</p>
                         <Link
-                          href="/"
+                          href="https://axile.ng"
                           onClick={closeMenu}
                           className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors w-full ${pathname === "/"
                             ? "bg-rose-600/10 text-rose-500"
@@ -298,7 +298,7 @@ const Header = () => {
                   ) : (
                     <div className="flex flex-col gap-3 mt-4">
                       <Link
-                        href="/"
+                        href="https://axile.ng"
                         onClick={closeMenu}
                         className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white transition-colors w-full"
                       >
