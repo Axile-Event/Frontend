@@ -12,13 +12,9 @@ export function middleware(request) {
   const isProtectedPage = pathname.startsWith('/dashboard') || pathname.startsWith('/profile') || pathname.startsWith('/settings')
   const isEventPage = pathname === '/events' || pathname.startsWith('/events/')
 
-  // 3. Handle Event & Referral Redirects
+  // 3. Handle Event Redirects (already implemented)
   if (isEventPage) {
     return NextResponse.redirect(new URL(pathname, 'https://axile.ng'))
-  }
-
-  if (pathname === '/referral' || pathname.startsWith('/referral/')) {
-    return NextResponse.redirect(`https://referral.axile.ng${pathname.replace('/referral', '')}`)
   }
 
   // 4. Redirect Authenticated users away from Login/Signup

@@ -111,7 +111,7 @@ const Header = () => {
             <Link href="https://axile.ng/events" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
               Find Events
             </Link>
-            <Link href="https://referral.axile.ng" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+            <Link href="/referral" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
               Referral
             </Link>
             <Link href="/features" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
@@ -261,7 +261,7 @@ const Header = () => {
                           Home
                         </Link>
                        <Link
-                         href="https://referral.axile.ng"
+                         href="/referral"
                          onClick={closeMenu}
                          className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors w-full ${pathname === "/referral"
                            ? "bg-rose-600/10 text-rose-500"
