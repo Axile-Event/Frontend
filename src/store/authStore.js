@@ -11,7 +11,7 @@ if (typeof window !== "undefined") {
   });
 }
 
-const useAuthStore = create(
+export const useAuthStore = create(
   persist(
     (set, get) => ({
       user: null,
