@@ -214,7 +214,7 @@ const EventCard = ({ event, index, isPast = false }) => (
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.3, delay: index * 0.05 }}
   >
-  <Link href={`https://axile.ng/events/${event.event_slug || event.event_id}`}>
+<Link href={`/dashboard/student/events/${event.event_id}`}>
     <div className={`group relative aspect-4/3 overflow-hidden rounded-xl md:rounded-2xl bg-muted cursor-pointer transition-all duration-300 ${isPast ? 'grayscale opacity-70 hover:grayscale-0 hover:opacity-100' : ''}`}>
       {/* Background Image */}
       {event.event_image ? (
