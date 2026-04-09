@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const BASE_URL = 'https://radar-ufvb.onrender.com';
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 async function testEndpoints() {
   const urls = [
