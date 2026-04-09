@@ -8,12 +8,6 @@ import CustomDropdown from "@/components/ui/CustomDropdown";
 import useTempBookingStore from "@/store/tempBookingStore";
 import { motion, AnimatePresence } from "framer-motion";
 
-const PAYEE_BANK_DETAILS = {
-  accountName: "Axile Solutions Limited",
-  accountNumber: "1311804312",
-  bankName: "Zenith Bank",
-};
-
 const ManualConfirmationModal = ({
   isOpen,
   onClose,
