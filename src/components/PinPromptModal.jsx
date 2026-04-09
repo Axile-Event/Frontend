@@ -125,7 +125,7 @@ export default function PinPromptModal({
       });
       
       // If we reach here, it means backend returned 2xx (status OK)
-      if (response.data?.is_valid !== false) {
+      if (response.data?.is_valid === true) {
         // Sync to local storage for future offline/cached success
         await storePinLocally(pin);
         toast.success('PIN verified');

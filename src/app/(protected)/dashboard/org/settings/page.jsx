@@ -145,14 +145,7 @@ export default function Settings() {
   const handlePasswordChange = async (e) => {
     e.preventDefault();
     
-    // Check if PIN is set, if not require setup
-    if (!hasPinSet()) {
-      setPendingAction('password');
-      setShowPinPrompt(true);
-      return;
-    }
-    
-    // If PIN is set, prompt for PIN
+    // Require PIN verification for password change
     setPendingAction('password');
     setShowPinPrompt(true);
   };
@@ -232,14 +225,7 @@ export default function Settings() {
         return;
     }
     
-    // Check if PIN is set, if not require setup
-    if (!hasPinSet()) {
-      setPendingAction('bank');
-      setShowPinPrompt(true);
-      return;
-    }
-    
-    // If PIN is set, prompt for PIN
+    // Require PIN verification for bank update
     setPendingAction('bank');
     setShowPinPrompt(true);
   };
