@@ -72,27 +72,37 @@ function stopTokenRefreshTimer() {
   }
 }
 
-// Start timer when module loads (if user is already logged in)
-if (typeof window !== "undefined") {
-  const token = getToken();
-  const refreshToken = getRefreshToken();
-  if (token && refreshToken) {
-    startTokenRefreshTimer();
-  }
-}
+// Timer is now managed by the AuthStore during login or sync
 
 // --------------------
 // Helper functions
 // --------------------
 function getToken() {
   if (typeof window === "undefined") return null;
-  // Read directly from the store's current state (most reliable for synced cookies)
-  return useAuthStore.getState().token ?? null;
+  try {
+    // Read directly from the store's current state (most reliable for synced cookies)
+    return useAuthStore.getState().token ?? null;
+  } catch (e) {
+    // Fallback if store is not yet initialized
+    try {
+      const raw = localStorage.getItem("auth-storage");
+      if (raw) return JSON.parse(raw).state.token;
+    } catch {}
+    return null;
+  }
 }
 
 function getRefreshToken() {
   if (typeof window === "undefined") return null;
-  return useAuthStore.getState().refreshToken ?? null;
+  try {
+    return useAuthStore.getState().refreshToken ?? null;
+  } catch (e) {
+    try {
+      const raw = localStorage.getItem("auth-storage");
+      if (raw) return JSON.parse(raw).state.refreshToken;
+    } catch {}
+    return null;
+  }
 }
 
 function isTokenNotValidResponse(response) {
