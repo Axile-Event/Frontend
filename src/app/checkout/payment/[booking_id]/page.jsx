@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import api from "@/lib/axios";
+import Cookies from "js-cookie";
 import toast from "react-hot-toast";
 
 // Custom Components
@@ -60,6 +61,17 @@ export default function CheckoutPaymentPage() {
         let storedBooking = localStorage.getItem(`booking_${decodedBookingId}`);
         if (!storedBooking) {
           storedBooking = localStorage.getItem(`booking_${booking_id}`);
+        }
+
+        // Cross-subdomain sync: Check shared cookie if localStorage is empty
+        if (!storedBooking) {
+          const syncCookie = Cookies.get(`booking_sync_${decodedBookingId}`) || Cookies.get(`booking_sync_${booking_id}`);
+          if (syncCookie) {
+            storedBooking = syncCookie;
+            // Clean up: Once read, we can remove the sync cookie (optional but cleaner)
+            Cookies.remove(`booking_sync_${decodedBookingId}`, { domain: ".axile.ng" });
+            Cookies.remove(`booking_sync_${booking_id}`, { domain: ".axile.ng" });
+          }
         }
 
         if (storedBooking) {
