@@ -1,0 +1,145 @@
+import { Plus_Jakarta_Sans, Geist_Mono } from "next/font/google";
+import "./globals.css";
+import { GoogleAuthProvider } from "@/components/GoogleAuthProvider";
+import { Toaster } from "react-hot-toast";
+import NavigationProgressBar from "@/components/NavigationProgressBar";
+import { Suspense } from "react";
+import AdminAwareLayout from "@/components/AdminAwareLayout";
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+
+import { ThemeProvider } from "@/components/theme-provider";
+import { QueryProvider } from "@/components/query-provider";
+
+const plusJakartaSans = Plus_Jakarta_Sans({
+  variable: "--font-plus-jakarta-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+export const metadata = {
+  title: {
+    default: "Axile | Event Ticketing and Management Platform for Nigeria",
+    template: "%s | Axile",
+  },
+  description: "Discover popular events or host your own. Axile provides secure digital ticketing, event analytics, and seamless payments for organizers across Nigeria.",
+  keywords: ["event ticketing Nigeria", "buy tickets online Nigeria", "event management software", "Lagos events", "Nigerian ticketing platform", "secure event payments"],
+  authors: [{ name: "Axile Team" }],
+  creator: "Axile",
+  publisher: "Axile",
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://www.axile.ng'),
+  openGraph: {
+    type: "website",
+    locale: "en_NG",
+    url: process.env.NEXT_PUBLIC_SITE_URL || "https://www.axile.ng",
+    title: "Axile | Sell and Discover Events in Nigeria",
+    description: "The unified platform for Nigerian events. Manage ticket sales, track attendance, and discover the best experiences around you.",
+    siteName: "Axile",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Axile Event Ticketing Platform",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Axile | Modern Event Ticketing for Nigeria",
+    description: "Create events and sell tickets securely. Discover and book experiences across Nigeria with the Axile event platform.",
+    images: ["/og-image.png"],
+  },
+  icons: {
+    icon: [
+      { url: "/axile-logo-cropped.png?v=8", sizes: "32x32", type: "image/png" },
+      { url: "/axile-logo-cropped.png?v=8", sizes: "96x96", type: "image/png" },
+      { url: "/axile-logo-cropped.png?v=8", sizes: "180x180", type: "image/png" },
+      { url: "/axile-logo-cropped.png?v=8", sizes: "192x192", type: "image/png" },
+      { url: "/axile-logo-cropped.png?v=8", sizes: "512x512", type: "image/png" },
+    ],
+    shortcut: "/axile-logo-cropped.png?v=8",
+    apple: "/axile-logo-cropped.png?v=8",
+    other: [
+      {
+        rel: "apple-touch-icon-precomposed",
+        url: "/axile-logo-cropped.png?v=8",
+      },
+    ],
+  },
+  manifest: "/site.webmanifest",
+  other: {
+    "color-scheme": "dark light",
+  },
+};
+
+export const viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0a0a14" },
+  ],
+};
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <meta name="color-scheme" content="dark light" />
+        <meta httpEquiv="Permissions-Policy" content="camera=(self), microphone=(self)" />
+        <link rel="icon" href="/axile-logo-cropped.png?v=8" sizes="any" />
+        <link rel="shortcut icon" href="/axile-logo-cropped.png?v=8" type="image/png" />
+        <link rel="apple-touch-icon" href="/axile-logo-cropped.png?v=8" />
+        <meta name="msapplication-TileImage" content="/axile-logo-cropped.png?v=8" />
+      </head>
+      <body
+        suppressHydrationWarning
+        className={`${plusJakartaSans.variable} ${geistMono.variable} antialiased bg-background text-foreground flex flex-col min-h-screen`}
+      >
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "WebApplication",
+              "name": "Axile",
+              "url": process.env.NEXT_PUBLIC_SITE_URL || "https://www.axile.ng",
+              "description": "A comprehensive event management and ticketing platform designed for Nigeria, enabling organizers to host events and attendees to book tickets securely.",
+              "applicationCategory": "BusinessApplication",
+              "operatingSystem": "Web",
+              "areaServed": {
+                "@type": "Country",
+                "name": "Nigeria"
+              }
+            })
+          }}
+        />
+        <GoogleAuthProvider>
+          <QueryProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="dark"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <Suspense fallback={null}>
+              <NavigationProgressBar />
+            </Suspense>
+            <Toaster position="top-center" />
+            <AdminAwareLayout>
+              {children}
+            </AdminAwareLayout>
+            <Analytics />
+            <SpeedInsights />
+          </ThemeProvider>
+          </QueryProvider>
+        </GoogleAuthProvider>
+      </body>
+    </html>
+  );
+}
+
+

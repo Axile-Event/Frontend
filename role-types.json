@@ -1,0 +1,20 @@
+{
+  "role_types": [
+    {
+      "value": "full_time",
+      "label": "Full-time"
+    },
+    {
+      "value": "intern",
+      "label": "Intern"
+    },
+    {
+      "value": "part_time",
+      "label": "Part-time"
+    },
+    {
+      "value": "contract",
+      "label": "Contract"
+    }
+  ]
+}
