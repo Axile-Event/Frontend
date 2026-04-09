@@ -41,7 +41,7 @@ export default function Settings() {
 
   const [setPinValue, setSetPinValue] = useState('');
 
-  // Password State done
+  // Password State
   const [passwords, setPasswords] = useState({
     old_password: '',
     new_password: '',
@@ -145,7 +145,14 @@ export default function Settings() {
   const handlePasswordChange = async (e) => {
     e.preventDefault();
     
-    // Require PIN verification for password change
+    // Check if PIN is set, if not require setup
+    if (!hasPinSet()) {
+      setPendingAction('password');
+      setShowPinPrompt(true);
+      return;
+    }
+    
+    // If PIN is set, prompt for PIN
     setPendingAction('password');
     setShowPinPrompt(true);
   };
@@ -225,7 +232,14 @@ export default function Settings() {
         return;
     }
     
-    // Require PIN verification for bank update
+    // Check if PIN is set, if not require setup
+    if (!hasPinSet()) {
+      setPendingAction('bank');
+      setShowPinPrompt(true);
+      return;
+    }
+    
+    // If PIN is set, prompt for PIN
     setPendingAction('bank');
     setShowPinPrompt(true);
   };

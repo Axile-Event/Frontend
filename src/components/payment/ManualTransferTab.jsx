@@ -152,7 +152,6 @@ const ManualTransferTab = ({ summary, bookingId, paymentReference }) => {
         totalAmount={totalManual}
         bookingId={bookingId}
         paymentReference={paymentReference}
-        bankDetails={bankDetails}
       />
     </div>
   );

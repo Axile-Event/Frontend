@@ -8,13 +8,18 @@ import CustomDropdown from "@/components/ui/CustomDropdown";
 import useTempBookingStore from "@/store/tempBookingStore";
 import { motion, AnimatePresence } from "framer-motion";
 
+const PAYEE_BANK_DETAILS = {
+  accountName: "Axile Solutions Limited",
+  accountNumber: "1311804312",
+  bankName: "Zenith Bank",
+};
+
 const ManualConfirmationModal = ({
   isOpen,
   onClose,
   totalAmount,
   bookingId: propBookingId,
   paymentReference,
-  bankDetails,
 }) => {
   const { bookingId: storedBookingId } = useTempBookingStore();
   
@@ -37,15 +42,8 @@ const ManualConfirmationModal = ({
     receipt: null,
   });
 
-  // Use bankDetails passed as prop, with fallback defaults
-  const payeeDetails = bankDetails || {
-    accountName: "Axile Solutions Limited",
-    accountNumber: "1033678367",
-    bankName: "Globus Bank",
-  };
-
   const handleCopyAccountNumber = () => {
-    navigator.clipboard.writeText(payeeDetails.accountNumber);
+    navigator.clipboard.writeText(PAYEE_BANK_DETAILS.accountNumber);
     setCopiedAccount(true);
     toast.success("Account copied!");
     setTimeout(() => setCopiedAccount(false), 2000);
@@ -190,18 +188,18 @@ const ManualConfirmationModal = ({
                  <div className="flex flex-col gap-4">
                     <div className="space-y-1">
                        <span className="text-[8px] font-black text-rose-500 uppercase tracking-widest">RECEIVING ACCOUNT</span>
-                       <p className="text-sm font-bold leading-none">{payeeDetails.accountName}</p>
+                       <p className="text-sm font-bold leading-none">{PAYEE_BANK_DETAILS.accountName}</p>
                     </div>
                     <div className="space-y-1">
                        <span className="text-[8px] font-black text-gray-500 uppercase tracking-widest">BANK NAME</span>
-                       <p className="text-xs font-bold leading-none">{payeeDetails.bankName}</p>
+                       <p className="text-xs font-bold leading-none">{PAYEE_BANK_DETAILS.bankName}</p>
                     </div>
                  </div>
 
                  <div className="flex flex-col gap-3 bg-black/40 p-4 rounded-2xl border border-white/5 relative group">
                     <div className="space-y-1">
                        <span className="text-[8px] font-black text-gray-600 uppercase tracking-widest">ACCOUNT NUMBER</span>
-                       <p className="text-lg font-mono font-black tracking-[0.2em]">{payeeDetails.accountNumber}</p>
+                       <p className="text-lg font-mono font-black tracking-[0.2em]">{PAYEE_BANK_DETAILS.accountNumber}</p>
                     </div>
                     <button type="button" onClick={handleCopyAccountNumber} className="flex items-center justify-center gap-2 w-full p-2.5 bg-white/5 hover:bg-rose-600 text-gray-400 hover:text-white rounded-xl transition-all active:scale-95 text-[10px] font-bold uppercase tracking-widest">
                        {copiedAccount ? <Check size={14} /> : <Copy size={14} />}
