@@ -65,12 +65,20 @@ export default function CheckoutPaymentPage() {
 
         // Cross-subdomain sync: Check shared cookie if localStorage is empty
         if (!storedBooking) {
-          const syncCookie = Cookies.get(`booking_sync_${decodedBookingId}`) || Cookies.get(`booking_sync_${booking_id}`);
+          // Some IDs might come with a prefix like "booking:ID"
+          const cleanId = decodedBookingId.includes(':') ? decodedBookingId.split(':').pop() : decodedBookingId;
+          const rawId = booking_id.includes(':') ? booking_id.split(':').pop() : booking_id;
+
+          const syncCookie = 
+            Cookies.get(`booking_sync_${decodedBookingId}`) || 
+            Cookies.get(`booking_sync_${booking_id}`) ||
+            Cookies.get(`booking_sync_${cleanId}`) ||
+            Cookies.get(`booking_sync_${rawId}`);
+
           if (syncCookie) {
             storedBooking = syncCookie;
-            // Clean up: Once read, we can remove the sync cookie (optional but cleaner)
-            Cookies.remove(`booking_sync_${decodedBookingId}`, { domain: ".axile.ng" });
-            Cookies.remove(`booking_sync_${booking_id}`, { domain: ".axile.ng" });
+            // NOTE: We don't remove the cookie immediately anymore so that 
+            // the user can return here if they cancel at Paystack.
           }
         }
 
