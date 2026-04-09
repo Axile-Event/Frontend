@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import Cookies from "js-cookie";
 
 // Import token refresh timer functions (dynamic import to avoid circular dependency)
 let startTokenRefreshTimer, stopTokenRefreshTimer;
@@ -12,7 +13,7 @@ if (typeof window !== "undefined") {
 
 const useAuthStore = create(
   persist(
-    (set) => ({
+    (set, get) => ({
       user: null,
       role: null,
       token: null,
@@ -20,16 +21,19 @@ const useAuthStore = create(
       hydrated: false,
       isAuthenticated: false,
       login: (userData, token, refresh, role) => {
-        // FIRST: Clear organizer store and user-specific data BEFORE setting new user
+        // Shared cookie for cross-subdomain auth
         if (typeof window !== "undefined") {
-          // Clear the organizer Zustand store
-          localStorage.removeItem("organizer-storage");
+          const cookieData = { token, refreshToken: refresh, role };
+          Cookies.set("axile_shared_auth", JSON.stringify(cookieData), { 
+            domain: ".axile.ng", 
+            expires: 7,
+            secure: true,
+            sameSite: 'Lax'
+          });
 
-          // IMPORTANT: Clear PIN reminder dismissal so new users see it
+          localStorage.removeItem("organizer-storage");
           localStorage.removeItem("Axile_pin_reminder_dismissed");
 
-          // IMMEDIATELY write to localStorage to prevent race conditions
-          // This ensures token is available before any page navigation
           const authData = {
             state: {
               user: userData,
@@ -44,7 +48,6 @@ const useAuthStore = create(
           localStorage.setItem("auth-storage", JSON.stringify(authData));
         }
 
-        // THEN: Set new user data in Zustand state
         set({
           user: userData,
           token,
@@ -53,13 +56,15 @@ const useAuthStore = create(
           isAuthenticated: true,
         });
 
-        // Start automatic token refresh timer (14min intervals)
         if (startTokenRefreshTimer) {
           startTokenRefreshTimer();
         }
       },
       logout: () => {
-        // Stop automatic token refresh
+        if (typeof window !== "undefined") {
+          Cookies.remove("axile_shared_auth", { domain: ".axile.ng" });
+        }
+
         if (stopTokenRefreshTimer) {
           stopTokenRefreshTimer();
         }
@@ -77,11 +82,31 @@ const useAuthStore = create(
         set((state) => ({
           user: { ...state.user, ...userData },
         })),
+      
+      // Sync state from shared cookie if localStorage is empty
+      syncWithCookie: () => {
+        if (typeof window === "undefined" || get().token) return;
+        
+        const shared = Cookies.get("axile_shared_auth");
+        if (shared) {
+          try {
+            const { token, refreshToken, role } = JSON.parse(shared);
+            if (token) {
+              set({ token, refreshToken, role, isAuthenticated: true });
+              if (startTokenRefreshTimer) startTokenRefreshTimer();
+            }
+          } catch (e) {
+            console.error("Failed to sync shared auth", e);
+          }
+        }
+      }
     }),
     {
-      name: "auth-storage", // name of the item in the storage (e need dey unique)
+      name: "auth-storage",
       onRehydrateStorage: () => (state) => {
         state.setHydrated();
+        // Check for shared cookie on hydration
+        state.syncWithCookie();
       },
     }
   )
