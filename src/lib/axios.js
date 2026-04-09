@@ -86,28 +86,13 @@ if (typeof window !== "undefined") {
 // --------------------
 function getToken() {
   if (typeof window === "undefined") return null;
-  try {
-    const raw = localStorage.getItem("auth-storage");
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    return parsed?.state?.token ?? null;
-  } catch (err) {
-    console.error("Failed to read access token", err);
-    return null;
-  }
+  // Read directly from the store's current state (most reliable for synced cookies)
+  return useAuthStore.getState().token ?? null;
 }
 
 function getRefreshToken() {
   if (typeof window === "undefined") return null;
-  try {
-    const raw = localStorage.getItem("auth-storage");
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    return parsed?.state?.refreshToken ?? null;
-  } catch (err) {
-    console.error("Failed to read refresh token", err);
-    return null;
-  }
+  return useAuthStore.getState().refreshToken ?? null;
 }
 
 function isTokenNotValidResponse(response) {
