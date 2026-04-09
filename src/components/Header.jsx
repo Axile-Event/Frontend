@@ -18,6 +18,22 @@ const Header = () => {
 
   const hasFetchedRef = React.useRef(false);
   const fetchingRef = React.useRef(false);
+  const { syncWithCookie } = useAuthStore();
+
+  // Cross-tab sync: Check for shared cookie on mount and token changes
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      const shared = Cookies.get("axile_shared_auth");
+      
+      if (!shared && token) {
+        // Ghost session: cookie is gone but store is still authenticated
+        logout();
+      } else if (shared && !token) {
+        // New session: cookie exists but store isn't aware yet
+        syncWithCookie();
+      }
+    }
+  }, [token, syncWithCookie, logout]);
 
   React.useEffect(() => {
     // Wait for store hydration and ensure we have a valid token before fetching
