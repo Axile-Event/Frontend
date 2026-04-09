@@ -41,7 +41,7 @@ export default function Settings() {
 
   const [setPinValue, setSetPinValue] = useState('');
 
-  // Password State
+  // Password State done
   const [passwords, setPasswords] = useState({
     old_password: '',
     new_password: '',
