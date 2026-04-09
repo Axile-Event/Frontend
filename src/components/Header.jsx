@@ -108,7 +108,7 @@ const Header = () => {
             <Link href="https://axile.ng" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
               Home
             </Link>
-            <Link href="/events" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+            <Link href="https://axile.ng/events" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
               Find Events
             </Link>
             <Link href="/referral" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
@@ -337,14 +337,14 @@ const Header = () => {
                          <Zap className="h-5 w-5" />
                          Features
                        </Link>
-                       <Link
-                         href="/events"
-                         onClick={closeMenu}
-                         className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white transition-colors w-full"
-                       >
-                         <Calendar className="h-5 w-5" />
-                         Discover Events
-                       </Link>
+                        <Link
+                          href="https://axile.ng/events"
+                          onClick={closeMenu}
+                          className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white transition-colors w-full"
+                        >
+                          <Calendar className="h-5 w-5" />
+                          Discover Events
+                        </Link>
                       <Link
                         href="/hiring"
                         onClick={closeMenu}
