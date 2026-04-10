@@ -14,6 +14,7 @@ import useAuthStore from "@/store/authStore";
 import { getImageUrl } from "@/lib/utils";
 import { EventDetailsSkeleton } from "@/components/skeletons";
 import useTempBookingStore from "@/store/tempBookingStore";
+import PaymentMethodModal from "@/components/payment/PaymentMethodModal";
 
 // Platform fee constants
 const PLATFORM_FEE = 80;
@@ -51,6 +52,11 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
   // Temporary referral source state for event:TO-56363
   const [referralSource, setReferralSource] = useState("");
   const [otherReferral, setOtherReferral] = useState("");
+
+  // Payment method modal state
+  const [showPaymentMethodModal, setShowPaymentMethodModal] = useState(false);
+  const [pendingBookingData, setPendingBookingData] = useState(null);
+  const [allowedPaymentMethods, setAllowedPaymentMethods] = useState(["paystack", "manual_bank_transfer"]);
 
   // Restore ticket selections from localStorage after login redirect
   useEffect(() => {
@@ -285,12 +291,17 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
           payment_url: response.data.payment_url,
           payment_reference: response.data.payment_reference,
           tickets: tickets,
-          created_at: new Date().toISOString()
+          created_at: new Date().toISOString(),
+          allowedMethods: response.data.allowed_payment_methods || ["paystack", "manual_bank_transfer"]
         };
         localStorage.setItem(`booking_${bookingId}`, JSON.stringify(bookingDataForCheckout));
         
-        toast.success("Booking created! Redirecting to payment...", { id: toastId });
-        router.push(`/checkout/payment/${bookingId}`);
+        // Save pending booking and payment methods, then show payment method modal
+        setPendingBookingData(bookingDataForCheckout);
+        setAllowedPaymentMethods(response.data.allowed_payment_methods || ["paystack", "manual_bank_transfer"]);
+        setShowPaymentMethodModal(true);
+        
+        toast.dismiss(toastId);
         return;
       }
 
@@ -316,6 +327,23 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
       toast.error(errorMessage, { id: toastId });
     } finally {
       setBookingLoading(false);
+    }
+  };
+
+  // Handle payment method selection
+  const handlePaymentMethodSelect = (method) => {
+    if (pendingBookingData) {
+      const bookingId = pendingBookingData.booking_id;
+      // Store selected payment method
+      localStorage.setItem(`selected_payment_method_${bookingId}`, method);
+      
+      // Close modal and redirect to checkout
+      setShowPaymentMethodModal(false);
+      toast.success("Redirecting to payment checkout...");
+      
+      setTimeout(() => {
+        router.push(`/checkout/payment/${bookingId}?method=${method}`);
+      }, 500);
     }
   };
 
@@ -802,6 +830,15 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Payment Method Selection Modal */}
+      <PaymentMethodModal 
+        isOpen={showPaymentMethodModal}
+        onClose={() => setShowPaymentMethodModal(false)}
+        onSelectMethod={handlePaymentMethodSelect}
+        allowedMethods={allowedPaymentMethods}
+        loading={bookingLoading}
+      />
     </div>
   );
 };

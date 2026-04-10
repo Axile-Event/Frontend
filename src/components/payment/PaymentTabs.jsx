@@ -1,7 +1,7 @@
 import React from 'react';
 import { CreditCard, Banknote } from 'lucide-react';
 
-const isPaystackAvailable = false; // Maintenance flag
+const isPaystackAvailable = true; // Maintenance flag
 
 const PaymentTabs = ({ activeTab, onChange, allowedMethods = ["paystack"] }) => {
   // Ensure we have an array for easier checking
@@ -29,7 +29,6 @@ const PaymentTabs = ({ activeTab, onChange, allowedMethods = ["paystack"] }) => 
           <CreditCard size={16} className="md:w-[18px] md:h-[18px]" />
           <div className="flex flex-col items-center">
             <span className="font-medium">Pay With Paystack</span>
-            {!isPaystackAvailable && <span className="text-[8px] uppercase font-black text-rose-200">Wait till tomorrow</span>}
           </div>
         </button>
       )}

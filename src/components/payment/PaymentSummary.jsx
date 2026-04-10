@@ -4,7 +4,7 @@ import { Separator } from "@/components/ui/separator";
 import { Ticket, Info, Loader2, Lock, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-const isPaystackAvailable = false; // Maintenance flag
+const isPaystackAvailable = true; // Maintenance flag
 
 const PaymentSummary = ({ 
   summary, 
