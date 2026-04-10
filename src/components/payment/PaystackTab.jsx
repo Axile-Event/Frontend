@@ -1,6 +1,6 @@
 import { CreditCard, ShieldCheck, Lock, Zap, CheckCircle2, Info } from 'lucide-react';
 
-const isPaystackAvailable = false; // Maintenance flag
+const isPaystackAvailable = true; // Maintenance flag
 
 const PaystackTab = ({ summary, onPay, loading = false }) => {
   // Extract fee values

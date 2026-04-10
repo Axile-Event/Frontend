@@ -60,27 +60,27 @@ export default function PaymentMethodModal({
             </div>
 
             {/* Payment Methods */}
-            <div className="space-y-3">
+            <div className="space-y-4">
               {/* Paystack Option */}
               {hasPaystack && (
                 <motion.button
-                  whileHover={{ scale: 1.02 }}
+                  whileHover={{ scale: 1.02, y: -2 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => handleSelect('paystack')}
                   disabled={loading}
-                  className="w-full p-4 rounded-2xl border-2 border-white/10 hover:border-rose-500/50 hover:bg-rose-500/5 transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full p-5 rounded-3xl border-2 border-white/5 bg-white/[0.02] hover:border-rose-500/50 hover:bg-rose-500/5 transition-all group disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
                 >
                   <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-rose-600/10 flex items-center justify-center group-hover:bg-rose-600/20 transition-colors">
+                    <div className="w-12 h-12 rounded-2xl bg-rose-600/10 flex items-center justify-center group-hover:bg-rose-600/20 transition-colors shrink-0">
                       <CreditCard className="w-6 h-6 text-rose-500" />
                     </div>
-                    <div className="text-left flex-1">
-                      <p className="text-base font-bold text-white mb-1">Pay with Paystack</p>
-                      <p className="text-xs text-gray-400 leading-relaxed">
-                        Instant payment via card or bank transfer. Tickets issued immediately.
+                    <div className="text-left flex-1 min-w-0">
+                      <p className="text-base font-black text-white mb-1">Paystack</p>
+                      <p className="text-[11px] text-gray-400 leading-relaxed font-medium">
+                        Instant payment (credit card, bank transfer, etc.). Tickets issued immediately.
                       </p>
-                      <div className="mt-2 flex items-center gap-1">
-                        <span className="text-[10px] font-black text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded">
+                      <div className="mt-3 flex items-center gap-1.5">
+                        <span className="text-[9px] font-black text-emerald-500 bg-emerald-500/10 px-2 py-1 rounded-lg border border-emerald-500/20 uppercase tracking-widest">
                           ✓ Auto-confirmed
                         </span>
                       </div>
@@ -92,23 +92,23 @@ export default function PaymentMethodModal({
               {/* Manual Transfer Option */}
               {hasManual && (
                 <motion.button
-                  whileHover={{ scale: 1.02 }}
+                  whileHover={{ scale: 1.02, y: -2 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => handleSelect('manual_bank_transfer')}
                   disabled={loading}
-                  className="w-full p-4 rounded-2xl border-2 border-white/10 hover:border-blue-500/50 hover:bg-blue-500/5 transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full p-5 rounded-3xl border-2 border-white/5 bg-white/[0.02] hover:border-blue-500/50 hover:bg-blue-500/5 transition-all group disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
                 >
                   <div className="flex items-start gap-4">
-                    <div className="w-12 h-12 rounded-xl bg-blue-600/10 flex items-center justify-center group-hover:bg-blue-600/20 transition-colors">
+                    <div className="w-12 h-12 rounded-2xl bg-blue-600/10 flex items-center justify-center group-hover:bg-blue-600/20 transition-colors shrink-0">
                       <Banknote className="w-6 h-6 text-blue-500" />
                     </div>
-                    <div className="text-left flex-1">
-                      <p className="text-base font-bold text-white mb-1">Bank Transfer</p>
-                      <p className="text-xs text-gray-400 leading-relaxed">
-                        Direct transfer to our account. Manual verification within 12-24 hours.
+                    <div className="text-left flex-1 min-w-0">
+                      <p className="text-base font-black text-white mb-1">Bank Transfer</p>
+                      <p className="text-[11px] text-gray-400 leading-relaxed font-medium">
+                        Manual verification (direct bank transfer, verified within 12-24 hours).
                       </p>
-                      <div className="mt-2 flex items-center gap-1">
-                        <span className="text-[10px] font-black text-amber-500 bg-amber-500/10 px-2 py-1 rounded">
+                      <div className="mt-3 flex items-center gap-1.5">
+                        <span className="text-[9px] font-black text-amber-500 bg-amber-500/10 px-2 py-1 rounded-lg border border-amber-500/20 uppercase tracking-widest">
                           ⏱ Manual verify
                         </span>
                       </div>
@@ -117,6 +117,7 @@ export default function PaymentMethodModal({
                 </motion.button>
               )}
             </div>
+
 
             {/* Info Box */}
             <div className="mt-6 p-4 bg-white/5 border border-white/10 rounded-xl">

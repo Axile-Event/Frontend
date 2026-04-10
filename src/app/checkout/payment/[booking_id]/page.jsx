@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   Zap,
   CheckCircle2,
+  Landmark,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import api from "@/lib/axios";
@@ -23,7 +24,7 @@ import PaymentTabs from "@/components/payment/PaymentTabs";
 import PaystackTab from "@/components/payment/PaystackTab";
 import ManualTransferTab from "@/components/payment/ManualTransferTab";
 
-const isPaystackAvailable = false; // Maintenance flag
+const isPaystackAvailable = true; // Maintenance flag
 
 // Platform service fee (charged to customer)
 const PLATFORM_FEE = 80;
@@ -251,20 +252,51 @@ export default function CheckoutPaymentPage() {
                 </p>
               </div>
 
-              {/* Tabs Section - Only show if multiple methods and NO pre-selected method from URL */}
-              {!methodFromUrl && bookingData?.allowedMethods?.length > 1 && (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 mb-2">
+              {/* Payment Method Section - Locked if methodFromUrl is present */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-2">
                     <Zap className="w-4 h-4 text-rose-500" />
-                    <h3 className="text-xs font-black text-gray-500 uppercase tracking-[0.2em]">Select Payment Method</h3>
+                    <h3 className="text-xs font-black text-gray-500 uppercase tracking-[0.2em]">
+                      {methodFromUrl ? "Selected Payment Method" : "Select Payment Method"}
+                    </h3>
                   </div>
+                  {methodFromUrl && (
+                    <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-black text-emerald-500 uppercase tracking-widest animate-in fade-in zoom-in duration-500">
+                      <ShieldCheck size={12} />
+                      Locked
+                    </div>
+                  )}
+                </div>
+
+                {!methodFromUrl && bookingData?.allowedMethods?.length > 1 ? (
                   <PaymentTabs 
                     activeTab={activeTab} 
                     onChange={setActiveTab} 
                     allowedMethods={bookingData.allowedMethods} 
                   />
-                </div>
-              )}
+                ) : methodFromUrl && (
+                  <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between group">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-xl bg-rose-600/10 flex items-center justify-center group-hover:bg-rose-600/20 transition-colors">
+                        {activeTab === 'paystack' ? (
+                          <ShieldCheck className="w-5 h-5 text-rose-500" />
+                        ) : (
+                          <Landmark className="w-5 h-5 text-rose-500" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-white uppercase tracking-tight">
+                          {activeTab === 'paystack' ? 'Pay with Paystack' : 'Bank Transfer'}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground font-medium">Selected via payment flow</p>
+                      </div>
+                    </div>
+                    {/* No button here to ensure it's locked */}
+                  </div>
+                )}
+              </div>
+
 
               {/* Tab Content */}
               <div className="min-h-[300px]">
