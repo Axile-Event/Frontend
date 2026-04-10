@@ -23,8 +23,9 @@ import PaymentSummary from "@/components/payment/PaymentSummary";
 import PaymentTabs from "@/components/payment/PaymentTabs";
 import PaystackTab from "@/components/payment/PaystackTab";
 import ManualTransferTab from "@/components/payment/ManualTransferTab";
+import { Landmark, ShieldCheck } from "lucide-react";
 
-
+const isPaystackAvailable = true; // Maintenance flag
 
 // Platform service fee (charged to customer)
 const PLATFORM_FEE = 80;
