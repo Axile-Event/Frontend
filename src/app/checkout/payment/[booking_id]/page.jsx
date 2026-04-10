@@ -24,7 +24,7 @@ import PaymentTabs from "@/components/payment/PaymentTabs";
 import PaystackTab from "@/components/payment/PaystackTab";
 import ManualTransferTab from "@/components/payment/ManualTransferTab";
 
-const isPaystackAvailable = true; // Maintenance flag
+
 
 // Platform service fee (charged to customer)
 const PLATFORM_FEE = 80;
@@ -52,7 +52,7 @@ export default function CheckoutPaymentPage() {
   
   // Get method from URL query param or default
   const methodFromUrl = searchParams?.get("method");
-  const [activeTab, setActiveTab] = useState(methodFromUrl || (isPaystackAvailable ? "paystack" : "manual_bank_transfer"));
+  const [activeTab, setActiveTab] = useState(methodFromUrl || "paystack");
 
   useEffect(() => {
     const fetchBookingData = async () => {
@@ -138,11 +138,10 @@ export default function CheckoutPaymentPage() {
           
           if (
             resolvedMethod &&
-            allowedMethods.includes(resolvedMethod) &&
-            (resolvedMethod !== 'paystack' || isPaystackAvailable)
+            allowedMethods.includes(resolvedMethod)
           ) {
             setActiveTab(resolvedMethod);
-          } else if (allowedMethods.includes("paystack") && isPaystackAvailable) {
+          } else if (allowedMethods.includes("paystack")) {
             setActiveTab("paystack");
           } else if (allowedMethods.includes("manual_bank_transfer")) {
             setActiveTab("manual_bank_transfer");
@@ -343,13 +342,11 @@ export default function CheckoutPaymentPage() {
             </div>
             <Button
               onClick={handlePayWithPaystack}
-              disabled={paymentLoading || !isPaystackAvailable}
+              disabled={paymentLoading}
               className="h-14 px-10 text-sm font-black uppercase italic bg-rose-600 hover:bg-rose-700 shadow-xl shadow-rose-600/20 active:scale-95 transition-all rounded-2xl disabled:opacity-50 disabled:grayscale"
             >
               {paymentLoading ? (
                 <Loader2 className="h-5 w-5 animate-spin text-white" />
-              ) : !isPaystackAvailable ? (
-                "Unavailable"
               ) : (
                 "Pay Now"
               )}

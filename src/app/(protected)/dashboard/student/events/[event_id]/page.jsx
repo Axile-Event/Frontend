@@ -14,8 +14,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select-component";
-import { Loader2, MapPin, Calendar, Clock, Ticket, Info, CheckCircle2, Share2, Copy, Check, X, Maximize2, Plus, Minus, ShoppingCart, Zap } from "lucide-react";
-import PaymentTabs from "@/components/payment/PaymentTabs";
+import { Loader2, MapPin, Calendar, Clock, Ticket, Info, CheckCircle2, Share2, Copy, Check, X, Maximize2, Plus, Minus, ShoppingCart, Zap, CreditCard, Banknote } from "lucide-react";
+import PaymentMethodModal from "@/components/payment/PaymentMethodModal";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { getImageUrl, getCookie } from "@/lib/utils";
@@ -89,6 +89,8 @@ const EventDetailsPage = () => {
   const [otherReferral, setOtherReferral] = useState("");
 
   const [checkoutPaymentMethod, setCheckoutPaymentMethod] = useState(null);
+  const [showPaymentMethodModal, setShowPaymentMethodModal] = useState(false);
+  const [pendingBookingData, setPendingBookingData] = useState(null);
 
   const allowedPaymentMethods = useMemo(() => {
     if (!event || String(event.pricing_type || "").toLowerCase() !== "paid") {
@@ -243,14 +245,6 @@ const EventDetailsPage = () => {
     const isPaidCheckout =
       String(event?.pricing_type || "").toLowerCase() === "paid" &&
       orderSummary.subtotal > 0;
-    if (
-      isPaidCheckout &&
-      (!checkoutPaymentMethod ||
-        !allowedPaymentMethods.includes(checkoutPaymentMethod))
-    ) {
-      toast.error("Choose how you want to pay for this event");
-      return;
-    }
 
     setBookingLoading(true);
     const toastId = toast.loading("Processing booking...");
@@ -300,7 +294,6 @@ const EventDetailsPage = () => {
       const bookingId = response.data.booking_id || response.data.id || response.data.data?.booking_id;
       const tickets = response.data.tickets || [];
       
-      // Handle Paid Event - Save booking data and redirect to checkout
       if (bookingId) {
         // Store booking data in localStorage for checkout page
         const bookingData = {
@@ -328,8 +321,15 @@ const EventDetailsPage = () => {
 
         if (validReferral) clearReferral();
         
-        toast.success("Booking created! Redirecting to checkout...", { id: toastId });
-        router.push(`/checkout/payment/${bookingId}`);
+        // Show payment method modal for paid events
+        if (orderSummary.total > 0) {
+          setPendingBookingData(bookingData);
+          setShowPaymentMethodModal(true);
+          toast.dismiss(toastId);
+        } else {
+          toast.success("Ticket booked successfully!", { id: toastId });
+          router.push("/dashboard/student/my-tickets");
+        }
         return;
       }
 
@@ -357,6 +357,23 @@ const EventDetailsPage = () => {
       toast.error(errorMessage, { id: toastId });
     } finally {
       setBookingLoading(false);
+    }
+  };
+
+  // Handle payment method selection from modal
+  const handlePaymentMethodSelect = (method) => {
+    if (pendingBookingData) {
+      const bookingId = pendingBookingData.booking_id;
+      // Store selected payment method
+      localStorage.setItem(`selected_payment_method_${bookingId}`, method);
+      
+      // Close modal and redirect to checkout
+      setShowPaymentMethodModal(false);
+      toast.success("Redirecting to payment checkout...");
+      
+      setTimeout(() => {
+        router.push(`/checkout/payment/${bookingId}?method=${method}`);
+      }, 500);
     }
   };
 
@@ -592,42 +609,7 @@ const EventDetailsPage = () => {
               </div>
             )}
 
-            {orderSummary.totalQuantity > 0 &&
-              isEventPaid &&
-              orderSummary.subtotal > 0 &&
-              showPaymentMethodPicker && (
-              <div className="rounded-2xl border-2 border-rose-500/50 bg-gradient-to-br from-rose-500/10 to-card p-4 md:p-5 space-y-3 shadow-lg shadow-rose-500/10">
-                <div className="flex items-center gap-2">
-                  <Zap className="h-5 w-5 text-rose-500 shrink-0" />
-                  <h3 className="text-sm font-bold uppercase tracking-wide text-foreground">
-                    Choose how you&apos;ll pay
-                  </h3>
-                </div>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  This event offers more than one payment option. Select one
-                  before you complete checkout.
-                </p>
-                <PaymentTabs
-                  activeTab={checkoutPaymentMethod || allowedPaymentMethods[0]}
-                  onChange={setCheckoutPaymentMethod}
-                  allowedMethods={allowedPaymentMethods}
-                />
-              </div>
-            )}
 
-            {orderSummary.totalQuantity > 0 &&
-              isEventPaid &&
-              orderSummary.subtotal > 0 &&
-              allowedPaymentMethods.length === 1 && (
-              <p className="text-sm text-muted-foreground rounded-xl border border-border/80 bg-muted/20 px-4 py-3">
-                Payment:{" "}
-                <span className="font-semibold text-foreground">
-                  {allowedPaymentMethods[0] === "manual_bank_transfer"
-                    ? "Bank transfer (manual)"
-                    : "Card via Paystack"}
-                </span>
-              </p>
-            )}
 
             {/* TEMPORARY: Referral Source Field for event:TO-56363 */}
             {event?.event_id === "event:TO-56363" && (
@@ -933,6 +915,15 @@ const EventDetailsPage = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Payment Method Selection Modal */}
+      <PaymentMethodModal 
+        isOpen={showPaymentMethodModal}
+        onClose={() => setShowPaymentMethodModal(false)}
+        onSelectMethod={handlePaymentMethodSelect}
+        allowedMethods={allowedPaymentMethods}
+        loading={bookingLoading}
+      />
     </div>
   );
 };
