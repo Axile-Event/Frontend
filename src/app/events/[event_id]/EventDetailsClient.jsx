@@ -277,6 +277,21 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
       const bookingId = response.data.booking_id || response.data.id || response.data.data?.booking_id;
       const tickets = response.data.tickets || [];
       
+      // Handle free tickets (zero total amount)
+      if (orderSummary.total <= 0) {
+        toast.success("Ticket booked successfully!", { id: toastId });
+        if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("tickets-updated"));
+        
+        // Clear local storage and state for this event
+        localStorage.removeItem(`pending_ticket_selections_${eventId}`);
+        setTicketSelections({});
+        
+        setTimeout(() => {
+          router.push("/dashboard/student/my-tickets");
+        }, 1500);
+        return;
+      }
+
       if (bookingId) {
         setBookingID(bookingId);
         setPersistentBookingId(bookingId); // Set in persistent store
@@ -315,6 +330,7 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
       toast.success("Ticket booked successfully!", { id: toastId });
       if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("tickets-updated"));
       router.push("/dashboard/student/my-tickets");
+
 
     } catch (error) {
       console.error("Booking error:", error);
