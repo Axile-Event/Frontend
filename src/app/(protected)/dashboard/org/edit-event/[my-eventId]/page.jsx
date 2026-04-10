@@ -407,9 +407,9 @@ export default function EditEventPage() {
       if (referralConfig.use_referral) {
         formData.append("referral_reward_type", referralConfig.referral_reward_type || "flat");
         if (referralConfig.referral_reward_type === "flat") {
-          formData.append("referral_reward_amount", referralConfig.referral_reward_amount || 0);
+          formData.append("referral_reward_amount", String(referralConfig.referral_reward_amount || 0));
         } else {
-          formData.append("referral_reward_percentage", referralConfig.referral_reward_percentage || 0);
+          formData.append("referral_reward_percentage", String(referralConfig.referral_reward_percentage || 0));
         }
       }
 

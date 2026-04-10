@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowLeft,
   Loader2,
@@ -41,13 +41,17 @@ const calculatePaystackFee = (amount) => {
 
 export default function CheckoutPaymentPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { booking_id } = useParams();
 
   const [loading, setLoading] = useState(true);
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [bookingData, setBookingData] = useState(null);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState(isPaystackAvailable ? "paystack" : "manual_bank_transfer");
+  
+  // Get method from URL query param or default
+  const methodFromUrl = searchParams?.get("method");
+  const [activeTab, setActiveTab] = useState(methodFromUrl || (isPaystackAvailable ? "paystack" : "manual_bank_transfer"));
 
   useEffect(() => {
     const fetchBookingData = async () => {
@@ -128,7 +132,9 @@ export default function CheckoutPaymentPage() {
             ? allowedMethodsRaw 
             : (typeof allowedMethodsRaw === 'string' ? allowedMethodsRaw.split(',') : ["paystack"]);
           
-          const resolvedMethod = parsed.payment_method;
+          // Check for method from URL param first, then localStorage, then payment_method, then default
+          let resolvedMethod = methodFromUrl || localStorage.getItem(`selected_payment_method_${decodedBookingId}`) || parsed.payment_method;
+          
           if (
             resolvedMethod &&
             allowedMethods.includes(resolvedMethod) &&
@@ -245,8 +251,8 @@ export default function CheckoutPaymentPage() {
                 </p>
               </div>
 
-              {/* Tabs Section */}
-              {bookingData?.allowedMethods?.length > 1 && (
+              {/* Tabs Section - Only show if multiple methods and NO pre-selected method from URL */}
+              {!methodFromUrl && bookingData?.allowedMethods?.length > 1 && (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2 mb-2">
                     <Zap className="w-4 h-4 text-rose-500" />
