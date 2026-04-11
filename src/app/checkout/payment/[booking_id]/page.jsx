@@ -23,8 +23,6 @@ import PaymentSummary from "@/components/payment/PaymentSummary";
 import PaymentTabs from "@/components/payment/PaymentTabs";
 import PaystackTab from "@/components/payment/PaystackTab";
 import ManualTransferTab from "@/components/payment/ManualTransferTab";
-import { Landmark, ShieldCheck } from "lucide-react";
-
 
 // Platform service fee (charged to customer)
 const PLATFORM_FEE = 80;
@@ -44,13 +42,13 @@ export default function CheckoutPaymentPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { booking_id } = useParams();
-  const searchParams = useSearchParams();
+  const methodFromUrl = searchParams?.get("method");
 
   const [loading, setLoading] = useState(true);
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [bookingData, setBookingData] = useState(null);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState("paystack");
+  const [activeTab, setActiveTab] = useState(methodFromUrl || "paystack");
 
   useEffect(() => {
     const fetchBookingData = async () => {
@@ -155,7 +153,7 @@ export default function CheckoutPaymentPage() {
             : (typeof allowedMethodsRaw === 'string' ? allowedMethodsRaw.split(',') : ["paystack"]);
           
           // Check for method from URL param first, then localStorage, then payment_method, then default
-          let resolvedMethod = methodFromUrl || localStorage.getItem(`selected_payment_method_${decodedBookingId}`) || parsed.payment_method;
+          const resolvedMethod = methodFromUrl || localStorage.getItem(`selected_payment_method_${decodedBookingId}`) || parsed.payment_method;
           
           if (
             resolvedMethod &&
@@ -197,7 +195,7 @@ export default function CheckoutPaymentPage() {
     };
 
     fetchBookingData();
-  }, [booking_id]);
+  }, [booking_id, methodFromUrl]);
 
   const handlePayWithPaystack = async () => {
     if (!bookingData) return;
