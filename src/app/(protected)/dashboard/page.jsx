@@ -27,7 +27,7 @@ const DashboardPage = () => {
     if (normalizedRole === "organizer" || normalizedRole === "org") {
       router.replace("/dashboard/org");
     } else {
-      router.replace("/dashboard/student");
+      router.replace("/dashboard/user");
     }
   }, [role, router, hydrated]);
 

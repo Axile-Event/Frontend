@@ -84,7 +84,7 @@ const MyTicketsPage = () => {
               You haven't booked any events yet. Browse our events to find something interesting!
             </p>
           </div>
-          <Link href="/dashboard/student/events">
+          <Link href="/dashboard/user/events">
             <Button className="h-9 md:h-10 text-sm md:text-base">Explore Events</Button>
           </Link>
         </div>
@@ -263,3 +263,4 @@ const MyTicketsPage = () => {
 };
 
 export default MyTicketsPage;
+
