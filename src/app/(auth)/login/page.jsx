@@ -100,8 +100,29 @@ const LoginContent = () => {
         toast.success("Login successful!", { id: toastId });
         
         // Use callbackUrl if provided, otherwise redirect to dashboard
+        // Use window.location.href for cross-app redirects to ensure cookies are sent
         if (callbackUrl) {
           const decodedUrl = decodeURIComponent(callbackUrl);
+          const isAbsolute = decodedUrl.startsWith('http');
+          
+          if (isAbsolute) {
+            // Safety check: Only redirect to authorized domains
+             const allowedDomains = [
+              process.env.NEXT_PUBLIC_LANDING_URL,
+              process.env.NEXT_PUBLIC_MAIN_APP_URL,
+              process.env.NEXT_PUBLIC_REFERRAL_URL
+            ].filter(Boolean).map(url => new URL(url).hostname);
+            
+            try {
+              const targetHostname = new URL(decodedUrl).hostname;
+              if (allowedDomains.includes(targetHostname) || targetHostname.endsWith('.axile.ng')) {
+                window.location.href = decodedUrl;
+                return;
+              }
+            } catch (e) {
+              console.error("Invalid redirect URL", e);
+            }
+          }
           router.replace(decodedUrl);
         } else {
           // Redirect to appropriate dashboard based on role
@@ -157,9 +178,29 @@ const LoginContent = () => {
       toast.success('Login successful! Redirecting...', { id: toastId })
       
       // Use router.replace to avoid adding to history and ensure clean redirect
+      // Use window.location.href for cross-app redirects to ensure cookies are sent
       if (callbackUrl) {
         const decodedUrl = decodeURIComponent(callbackUrl);
-        console.log('Redirecting to callback URL:', decodedUrl);
+        const isAbsolute = decodedUrl.startsWith('http');
+        
+        if (isAbsolute) {
+           // Safety check: Only redirect to authorized domains
+           const allowedDomains = [
+            process.env.NEXT_PUBLIC_LANDING_URL,
+            process.env.NEXT_PUBLIC_MAIN_APP_URL,
+            process.env.NEXT_PUBLIC_REFERRAL_URL
+          ].filter(Boolean).map(url => new URL(url).hostname);
+          
+          try {
+            const targetHostname = new URL(decodedUrl).hostname;
+            if (allowedDomains.includes(targetHostname) || targetHostname.endsWith('.axile.ng')) {
+              window.location.href = decodedUrl;
+              return;
+            }
+          } catch (e) {
+            console.error("Invalid redirect URL", e);
+          }
+        }
         router.replace(decodedUrl);
       } else {
         // Redirect to appropriate dashboard based on role
