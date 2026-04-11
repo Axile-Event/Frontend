@@ -1,6 +1,4 @@
-import { CreditCard, ShieldCheck, Lock, Zap, CheckCircle2, Info } from 'lucide-react';
-
-
+import { CreditCard, ShieldCheck, Lock, Zap, CheckCircle2 } from 'lucide-react';
 
 const PaystackTab = ({ summary, onPay, loading = false }) => {
   // Extract fee values
@@ -13,8 +11,9 @@ const PaystackTab = ({ summary, onPay, loading = false }) => {
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
-      <div className="border rounded-2xl p-8 flex flex-col items-center text-center space-y-4 bg-muted/10 border-border/30">
-        <div className="w-16 h-16 rounded-full flex items-center justify-center bg-rose-500/10 text-rose-500">
+      {/* Paystack Info Card */}
+      <div className="bg-muted/10 border border-border/30 rounded-2xl p-8 flex flex-col items-center text-center space-y-4">
+        <div className="w-16 h-16 bg-rose-500/10 rounded-full flex items-center justify-center text-rose-500">
            <CreditCard size={32} />
         </div>
         <div>

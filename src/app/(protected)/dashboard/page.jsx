@@ -17,7 +17,7 @@ const DashboardPage = () => {
     if (!hydrated) return;
 
     if (!role) {
-      router.push("/login");
+      router.replace("/login");
       return;
     }
 
@@ -25,9 +25,9 @@ const DashboardPage = () => {
     const normalizedRole = role.toLowerCase().trim();
 
     if (normalizedRole === "organizer" || normalizedRole === "org") {
-      router.push("/dashboard/org");
+      router.replace("/dashboard/org");
     } else {
-      router.push("/dashboard/student");
+      router.replace("/dashboard/student");
     }
   }, [role, router, hydrated]);
 

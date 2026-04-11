@@ -5,7 +5,6 @@ import { Ticket, Info, Loader2, Lock, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 
-
 const PaymentSummary = ({ 
   summary, 
   onPay, 
@@ -148,7 +147,7 @@ const PaymentSummary = ({
             <Button 
               onClick={onPay}
               disabled={loading}
-              className="w-full h-14 text-sm font-black uppercase tracking-widest shadow-xl shadow-rose-600/20 bg-rose-600 hover:bg-rose-700 active:scale-[0.98] transition-all disabled:opacity-50 disabled:grayscale disabled:cursor-not-allowed"
+              className="w-full h-14 text-sm font-black uppercase tracking-widest shadow-xl shadow-rose-600/20 bg-rose-600 hover:bg-rose-700 active:scale-[0.98] transition-all"
             >
               {loading ? (
                 <>

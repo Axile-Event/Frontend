@@ -1,8 +1,6 @@
 import React from 'react';
 import { CreditCard, Banknote } from 'lucide-react';
 
-
-
 const PaymentTabs = ({ activeTab, onChange, allowedMethods = ["paystack"] }) => {
   // Ensure we have an array for easier checking
   const methods = Array.isArray(allowedMethods) 
@@ -27,9 +25,7 @@ const PaymentTabs = ({ activeTab, onChange, allowedMethods = ["paystack"] }) => 
           }`}
         >
           <CreditCard size={16} className="md:w-[18px] md:h-[18px]" />
-          <div className="flex flex-col items-center">
-            <span className="font-medium">Pay With Paystack</span>
-          </div>
+          <span className="font-medium">Pay With Paystack</span>
         </button>
       )}
 

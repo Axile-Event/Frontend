@@ -25,7 +25,6 @@ import PaystackTab from "@/components/payment/PaystackTab";
 import ManualTransferTab from "@/components/payment/ManualTransferTab";
 import { Landmark, ShieldCheck } from "lucide-react";
 
-const isPaystackAvailable = true; // Maintenance flag
 
 // Platform service fee (charged to customer)
 const PLATFORM_FEE = 80;
@@ -45,15 +44,13 @@ export default function CheckoutPaymentPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { booking_id } = useParams();
+  const searchParams = useSearchParams();
 
   const [loading, setLoading] = useState(true);
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [bookingData, setBookingData] = useState(null);
   const [error, setError] = useState(null);
-  
-  // Get method from URL query param or default
-  const methodFromUrl = searchParams?.get("method");
-  const [activeTab, setActiveTab] = useState(methodFromUrl || "paystack");
+  const [activeTab, setActiveTab] = useState("paystack");
 
   useEffect(() => {
     const fetchBookingData = async () => {
@@ -71,7 +68,32 @@ export default function CheckoutPaymentPage() {
           storedBooking = localStorage.getItem(`booking_${booking_id}`);
         }
 
-        // Cross-subdomain sync: Check shared cookie if localStorage is empty
+        // Cross-subdomain sync: Try URL bridge first, then shared cookie
+        const urlSyncData = searchParams.get("booking_sync");
+        
+        if (urlSyncData) {
+          try {
+            const decoded = decodeURIComponent(urlSyncData);
+            storedBooking = decoded;
+
+            // Save to a LOCAL cookie so it survives refreshes & Paystack redirects
+            // This is key for the "return from Paystack" requirement
+            Cookies.set(`booking_sync_${decodedBookingId}`, decoded, { 
+              expires: 1/144, // 10 minutes
+              secure: window.location.protocol === "https:",
+              sameSite: 'Lax',
+              path: '/'
+            });
+
+            // Clean up the URL
+            const newUrl = new URL(window.location.href);
+            newUrl.searchParams.delete("booking_sync");
+            window.history.replaceState({}, '', newUrl.toString());
+          } catch (e) {
+            console.error("Failed to parse URL sync data", e);
+          }
+        }
+
         if (!storedBooking) {
           // Some IDs might come with a prefix like "booking:ID"
           const cleanId = decodedBookingId.includes(':') ? decodedBookingId.split(':').pop() : decodedBookingId;
@@ -85,8 +107,6 @@ export default function CheckoutPaymentPage() {
 
           if (syncCookie) {
             storedBooking = syncCookie;
-            // NOTE: We don't remove the cookie immediately anymore so that 
-            // the user can return here if they cancel at Paystack.
           }
         }
 
@@ -142,11 +162,7 @@ export default function CheckoutPaymentPage() {
             allowedMethods.includes(resolvedMethod)
           ) {
             setActiveTab(resolvedMethod);
-          } else if (allowedMethods.includes("paystack")) {
-            setActiveTab("paystack");
-          } else if (allowedMethods.includes("manual_bank_transfer")) {
-            setActiveTab("manual_bank_transfer");
-          } else if (allowedMethods.length > 0) {
+          } else if (!allowedMethods.includes("paystack") && allowedMethods.length > 0) {
             setActiveTab(allowedMethods[0]);
           }
 
@@ -344,7 +360,7 @@ export default function CheckoutPaymentPage() {
             <Button
               onClick={handlePayWithPaystack}
               disabled={paymentLoading}
-              className="h-14 px-10 text-sm font-black uppercase italic bg-rose-600 hover:bg-rose-700 shadow-xl shadow-rose-600/20 active:scale-95 transition-all rounded-2xl disabled:opacity-50 disabled:grayscale"
+              className="h-14 px-10 text-sm font-black uppercase italic bg-rose-600 hover:bg-rose-700 shadow-xl shadow-rose-600/20 active:scale-95 transition-all rounded-2xl"
             >
               {paymentLoading ? (
                 <Loader2 className="h-5 w-5 animate-spin text-white" />
