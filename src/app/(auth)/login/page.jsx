@@ -107,16 +107,32 @@ const LoginContent = () => {
           
           if (isAbsolute) {
             // Safety check: Only redirect to authorized domains
-             const allowedDomains = [
+            const allowedDomains = [
               process.env.NEXT_PUBLIC_LANDING_URL,
               process.env.NEXT_PUBLIC_MAIN_APP_URL,
               process.env.NEXT_PUBLIC_REFERRAL_URL
-            ].filter(Boolean).map(url => new URL(url).hostname);
+            ].filter(Boolean).map(url => {
+              try { return new URL(url).hostname; } catch(e) { return null; }
+            }).filter(Boolean);
             
             try {
-              const targetHostname = new URL(decodedUrl).hostname;
+              const targetUrl = new URL(decodedUrl);
+              const targetHostname = targetUrl.hostname;
+              const currentHostname = window.location.hostname;
+
               if (allowedDomains.includes(targetHostname) || targetHostname.endsWith('.axile.ng')) {
-                window.location.href = decodedUrl;
+                // If domains are different, we use the bridge to sync session
+                if (targetHostname !== currentHostname) {
+                  const syncData = encodeURIComponent(JSON.stringify({ 
+                    token: access || res.data.access, 
+                    refreshToken: refresh || res.data.refresh, 
+                    role: userRole 
+                  }));
+                  targetUrl.searchParams.set('ax_sync', syncData);
+                  window.location.href = targetUrl.toString();
+                } else {
+                  window.location.href = decodedUrl;
+                }
                 return;
               }
             } catch (e) {
@@ -189,12 +205,28 @@ const LoginContent = () => {
             process.env.NEXT_PUBLIC_LANDING_URL,
             process.env.NEXT_PUBLIC_MAIN_APP_URL,
             process.env.NEXT_PUBLIC_REFERRAL_URL
-          ].filter(Boolean).map(url => new URL(url).hostname);
+          ].filter(Boolean).map(url => {
+            try { return new URL(url).hostname; } catch(e) { return null; }
+          }).filter(Boolean);
           
           try {
-            const targetHostname = new URL(decodedUrl).hostname;
+            const targetUrl = new URL(decodedUrl);
+            const targetHostname = targetUrl.hostname;
+            const currentHostname = window.location.hostname;
+
             if (allowedDomains.includes(targetHostname) || targetHostname.endsWith('.axile.ng')) {
-              window.location.href = decodedUrl;
+               // If domains are different, we use the bridge to sync session
+               if (targetHostname !== currentHostname) {
+                const syncData = encodeURIComponent(JSON.stringify({ 
+                  token: access || response.data.access, 
+                  refreshToken: refresh || response.data.refresh, 
+                  role: userRole 
+                }));
+                targetUrl.searchParams.set('ax_sync', syncData);
+                window.location.href = targetUrl.toString();
+              } else {
+                window.location.href = decodedUrl;
+              }
               return;
             }
           } catch (e) {
