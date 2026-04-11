@@ -14,7 +14,8 @@ export function middleware(request) {
 
   // 3. Handle Event Redirects (already implemented)
   if (isEventPage) {
-    return NextResponse.redirect(new URL(pathname, 'https://axile.ng'))
+    const landingUrl = process.env.NEXT_PUBLIC_LANDING_URL || process.env.NEXT_PUBLIC_REFERRAL_URL || 'https://axile.ng';
+    return NextResponse.redirect(new URL(pathname, landingUrl))
   }
 
   // 4. Redirect Authenticated users away from Login/Signup
