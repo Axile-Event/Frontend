@@ -11,6 +11,20 @@ if (typeof window !== "undefined") {
   });
 }
 
+/**
+ * Get the correct cookie domain for cross-subdomain sharing.
+ * Production (.axile.ng): returns ".axile.ng"
+ * Dev/Vercel/localhost: returns undefined (current domain only)
+ */
+function getCookieDomain() {
+  if (typeof window === "undefined") return undefined;
+  const hostname = window.location.hostname;
+  if (hostname.endsWith(".axile.ng") || hostname === "axile.ng") {
+    return ".axile.ng";
+  }
+  return undefined;
+}
+
 export const useAuthStore = create(
   persist(
     (set, get) => ({
@@ -24,12 +38,15 @@ export const useAuthStore = create(
         // Shared cookie for cross-subdomain auth
         if (typeof window !== "undefined") {
           const cookieData = { token, refreshToken: refresh, role };
-          Cookies.set("axile_shared_auth", JSON.stringify(cookieData), { 
-            domain: ".axile.ng", 
+          const cookieOpts = { 
             expires: 7,
-            secure: true,
-            sameSite: 'Lax'
-          });
+            sameSite: 'Lax',
+            secure: window.location.protocol === 'https:'
+          };
+          const domain = getCookieDomain();
+          if (domain) cookieOpts.domain = domain;
+          
+          Cookies.set("axile_shared_auth", JSON.stringify(cookieData), cookieOpts);
 
           localStorage.removeItem("organizer-storage");
           localStorage.removeItem("Axile_pin_reminder_dismissed");
@@ -62,7 +79,10 @@ export const useAuthStore = create(
       },
       logout: () => {
         if (typeof window !== "undefined") {
-          Cookies.remove("axile_shared_auth", { domain: ".axile.ng" });
+          const removeOpts = {};
+          const domain = getCookieDomain();
+          if (domain) removeOpts.domain = domain;
+          Cookies.remove("axile_shared_auth", removeOpts);
         }
 
         if (stopTokenRefreshTimer) {

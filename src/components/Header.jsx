@@ -101,24 +101,24 @@ const Header = () => {
       <header className="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur-md">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           {/* Logo */}
-          <Link href="https://axile.ng" onClick={closeMenu} className="flex items-center">
+          <Link href={process.env.NEXT_PUBLIC_LANDING_URL || "https://axile.ng"} onClick={closeMenu} className="flex items-center">
             <Logo iconSize="h-18 w-auto" scale="scale-[2] md:scale-[2]" className="origin-left"/>
           </Link>
 
           <nav className="hidden md:flex items-center gap-6">
-            <Link href="https://axile.ng" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+            <Link href={process.env.NEXT_PUBLIC_LANDING_URL || "https://axile.ng"} className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
               Home
             </Link>
-            <Link href="https://axile.ng/events" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+            <Link href={`${process.env.NEXT_PUBLIC_LANDING_URL || "https://axile.ng"}/events`} className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
               Find Events
             </Link>
-            <Link href="/referral" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+            <Link href={`${process.env.NEXT_PUBLIC_LANDING_URL || "https://axile.ng"}/referral`} className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
               Referral
             </Link>
-            <Link href="/features" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+            <Link href={`${process.env.NEXT_PUBLIC_LANDING_URL || "https://axile.ng"}/features`} className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
               Features
             </Link>
-            <Link href="/hiring" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+            <Link href={`${process.env.NEXT_PUBLIC_LANDING_URL || "https://axile.ng"}/hiring`} className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
               Hiring
             </Link>
             {user ? (
@@ -251,7 +251,7 @@ const Header = () => {
                       <div className="space-y-1">
                         <p className="px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Menu</p>
                         <Link
-                          href="https://axile.ng"
+                          href={process.env.NEXT_PUBLIC_LANDING_URL || "https://axile.ng"}
                           onClick={closeMenu}
                           className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors w-full ${pathname === "/"
                             ? "bg-rose-600/10 text-rose-500"
@@ -262,7 +262,7 @@ const Header = () => {
                           Home
                         </Link>
                        <Link
-                         href="/referral"
+                         href={`${process.env.NEXT_PUBLIC_LANDING_URL || "https://axile.ng"}/referral`}
                          onClick={closeMenu}
                          className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors w-full ${pathname === "/referral"
                            ? "bg-rose-600/10 text-rose-500"
@@ -273,7 +273,7 @@ const Header = () => {
                          Referral
                        </Link>
                        <Link
-                         href="/features"
+                         href={`${process.env.NEXT_PUBLIC_LANDING_URL || "https://axile.ng"}/features`}
                          onClick={closeMenu}
                          className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors w-full ${pathname === "/features"
                            ? "bg-rose-600/10 text-rose-500"
@@ -315,7 +315,7 @@ const Header = () => {
                   ) : (
                     <div className="flex flex-col gap-3 mt-4">
                       <Link
-                        href="https://axile.ng"
+                        href={process.env.NEXT_PUBLIC_LANDING_URL || "https://axile.ng"}
                         onClick={closeMenu}
                         className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white transition-colors w-full"
                       >
@@ -323,7 +323,7 @@ const Header = () => {
                         Home
                       </Link>
                        <Link
-                         href="/referral"
+                         href={`${process.env.NEXT_PUBLIC_LANDING_URL || "https://axile.ng"}/referral`}
                          onClick={closeMenu}
                          className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white transition-colors w-full"
                        >
@@ -331,7 +331,7 @@ const Header = () => {
                          Referral Program
                        </Link>
                        <Link
-                         href="/features"
+                         href={`${process.env.NEXT_PUBLIC_LANDING_URL || "https://axile.ng"}/features`}
                          onClick={closeMenu}
                          className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white transition-colors w-full"
                        >
@@ -339,7 +339,7 @@ const Header = () => {
                          Features
                        </Link>
                         <Link
-                          href="https://axile.ng/events"
+                          href={`${process.env.NEXT_PUBLIC_LANDING_URL || "https://axile.ng"}/events`}
                           onClick={closeMenu}
                           className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white transition-colors w-full"
                         >
@@ -347,7 +347,7 @@ const Header = () => {
                           Discover Events
                         </Link>
                       <Link
-                        href="/hiring"
+                        href={`${process.env.NEXT_PUBLIC_LANDING_URL || "https://axile.ng"}/hiring`}
                         onClick={closeMenu}
                         className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white transition-colors w-full"
                       >

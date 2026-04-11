@@ -1,8 +1,6 @@
 import React from 'react';
 import { CreditCard, Banknote } from 'lucide-react';
 
-const isPaystackAvailable = false; // Maintenance flag
-
 const PaymentTabs = ({ activeTab, onChange, allowedMethods = ["paystack"] }) => {
   // Ensure we have an array for easier checking
   const methods = Array.isArray(allowedMethods) 
@@ -19,18 +17,15 @@ const PaymentTabs = ({ activeTab, onChange, allowedMethods = ["paystack"] }) => 
     <div className="flex p-1 bg-muted/30 rounded-lg md:rounded-xl border border-border/50">
       {hasPaystack && (
         <button
-          onClick={() => isPaystackAvailable && onChange('paystack')}
+          onClick={() => onChange('paystack')}
           className={`flex-1 flex items-center justify-center gap-1.5 md:gap-2 py-2 md:py-3 px-3 md:px-4 rounded-md md:rounded-lg text-sm md:text-base transition-all ${
             activeTab === 'paystack'
               ? 'bg-rose-600 text-white shadow-md font-bold'
               : 'text-muted-foreground hover:bg-muted/50'
-          } ${!isPaystackAvailable ? 'opacity-50 cursor-not-allowed' : ''}`}
+          }`}
         >
           <CreditCard size={16} className="md:w-[18px] md:h-[18px]" />
-          <div className="flex flex-col items-center">
-            <span className="font-medium">Pay With Paystack</span>
-            {!isPaystackAvailable && <span className="text-[8px] uppercase font-black text-rose-200">Wait till tomorrow</span>}
-          </div>
+          <span className="font-medium">Pay With Paystack</span>
         </button>
       )}
 
