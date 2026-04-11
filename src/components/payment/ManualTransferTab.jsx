@@ -29,9 +29,9 @@ const ManualTransferTab = ({ summary, bookingId, paymentReference }) => {
   } = summary || {};
 
   const bankDetails = {
-    bankName: "Globus Bank",
-    accountNumber: "1033678367",
-    accountName: "Axile Solutions Limited"
+    bankName: "Zenith Bank",
+    accountNumber: "1311804312",
+    accountName: "Axile"
   };
 
   const handleCopyAccount = () => {
