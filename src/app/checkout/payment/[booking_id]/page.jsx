@@ -23,7 +23,6 @@ import PaymentTabs from "@/components/payment/PaymentTabs";
 import PaystackTab from "@/components/payment/PaystackTab";
 import ManualTransferTab from "@/components/payment/ManualTransferTab";
 
-const isPaystackAvailable = false; // Maintenance flag
 
 // Platform service fee (charged to customer)
 const PLATFORM_FEE = 80;
@@ -48,7 +47,7 @@ export default function CheckoutPaymentPage() {
   const [paymentLoading, setPaymentLoading] = useState(false);
   const [bookingData, setBookingData] = useState(null);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState(isPaystackAvailable ? "paystack" : "manual_bank_transfer");
+  const [activeTab, setActiveTab] = useState("paystack");
 
   useEffect(() => {
     const fetchBookingData = async () => {
@@ -155,15 +154,10 @@ export default function CheckoutPaymentPage() {
           const resolvedMethod = parsed.payment_method;
           if (
             resolvedMethod &&
-            allowedMethods.includes(resolvedMethod) &&
-            (resolvedMethod !== 'paystack' || isPaystackAvailable)
+            allowedMethods.includes(resolvedMethod)
           ) {
             setActiveTab(resolvedMethod);
-          } else if (allowedMethods.includes("paystack") && isPaystackAvailable) {
-            setActiveTab("paystack");
-          } else if (allowedMethods.includes("manual_bank_transfer")) {
-            setActiveTab("manual_bank_transfer");
-          } else if (allowedMethods.length > 0) {
+          } else if (!allowedMethods.includes("paystack") && allowedMethods.length > 0) {
             setActiveTab(allowedMethods[0]);
           }
 
@@ -329,13 +323,11 @@ export default function CheckoutPaymentPage() {
             </div>
             <Button
               onClick={handlePayWithPaystack}
-              disabled={paymentLoading || !isPaystackAvailable}
-              className="h-14 px-10 text-sm font-black uppercase italic bg-rose-600 hover:bg-rose-700 shadow-xl shadow-rose-600/20 active:scale-95 transition-all rounded-2xl disabled:opacity-50 disabled:grayscale"
+              disabled={paymentLoading}
+              className="h-14 px-10 text-sm font-black uppercase italic bg-rose-600 hover:bg-rose-700 shadow-xl shadow-rose-600/20 active:scale-95 transition-all rounded-2xl"
             >
               {paymentLoading ? (
                 <Loader2 className="h-5 w-5 animate-spin text-white" />
-              ) : !isPaystackAvailable ? (
-                "Unavailable"
               ) : (
                 "Pay Now"
               )}
