@@ -81,10 +81,10 @@ const Header = () => {
   const displayRole = role ? role.charAt(0).toUpperCase() + role.slice(1).toLowerCase() : "User";
 
   const studentLinks = [
-    { name: "Overview", href: "/dashboard/student", icon: <Home className="h-5 w-5" /> },
-    { name: "Events", href: "/dashboard/student/events", icon: <Calendar className="h-5 w-5" /> },
-    { name: "My Tickets", href: "/dashboard/student/my-tickets", icon: <Ticket className="h-5 w-5" /> },
-    { name: "Profile", href: "/dashboard/student/profile", icon: <User className="h-5 w-5" /> },
+    { name: "Overview", href: "/dashboard/user", icon: <Home className="h-5 w-5" /> },
+    { name: "Events", href: "/dashboard/user/events", icon: <Calendar className="h-5 w-5" /> },
+    { name: "My Tickets", href: "/dashboard/user/my-tickets", icon: <Ticket className="h-5 w-5" /> },
+    { name: "Profile", href: "/dashboard/user/profile", icon: <User className="h-5 w-5" /> },
   ];
 
   const organizerLinks = [

@@ -4,7 +4,7 @@ import { SkeletonBox, SkeletonLine } from "../primitives";
 
 /**
  * TicketsPageSkeleton
- * Matches the exact layout of /dashboard/student/my-tickets/page.jsx:
+ * Matches the exact layout of /dashboard/user/my-tickets/page.jsx:
  * - Header with title and search
  * - Ticket cards grid (1/2/3 cols) with QR preview
  */

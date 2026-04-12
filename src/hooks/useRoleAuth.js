@@ -43,7 +43,7 @@ export function useRoleAuth(requiredRole) {
       if (userRole === 'organizer') {
         router.replace('/dashboard/org');
       } else if (userRole === 'student') {
-        router.replace('/dashboard/student');
+        router.replace('/dashboard/user');
       } else {
         // Unknown role - redirect to login
         router.replace('/login');

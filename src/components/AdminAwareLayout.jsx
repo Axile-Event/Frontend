@@ -8,7 +8,7 @@ export default function AdminAwareLayout({ children }) {
   const pathname = usePathname();
   const isAdmin = pathname?.startsWith("/lighthouse");
   const isResetPin = pathname === "/reset-pin";
-  const isStudentDashboard = pathname?.startsWith("/dashboard/student");
+  const isStudentDashboard = pathname?.startsWith("/dashboard/user");
   const isOrgDashboard = pathname?.startsWith("/dashboard/org");
 
   return (

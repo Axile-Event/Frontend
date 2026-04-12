@@ -15,18 +15,19 @@ import { useRouter } from "next/navigation";
 import Logo from "@/components/Logo";
 
 const UserDashboardNavLinks = [
-  { name: "Dashboard", link: "/dashboard/student", icon: <Home className="h-5 w-5 md:h-7 md:w-7" /> },
+  { name: "Dashboard", link: "/dashboard/user", icon: <Home className="h-5 w-5 md:h-7 md:w-7" /> },
   {
     name: "Events",
-    link: "/dashboard/student/events",
+    link: "/dashboard/user/events",
     icon: <Calendar className="h-5 w-5 md:h-7 md:w-7" />,
   },
   {
     name: "My Tickets",
-    link: "/dashboard/student/my-tickets",
+    link: "/dashboard/user/my-tickets",
     icon: <Ticket className="h-5 w-5 md:h-7 md:w-7" />,
   },
-  { name: "Profile", link: "/dashboard/student/profile", icon: <User className="h-5 w-5 md:h-7 md:w-7" /> },
+  { name: "Settings", link: "/dashboard/user/settings", icon: <Settings className="h-5 w-5 md:h-7 md:w-7" /> },
+  { name: "Profile", link: "/dashboard/user/profile", icon: <User className="h-5 w-5 md:h-7 md:w-7" /> },
 ];
 
 const Sidebar = ({ mobile }) => {
@@ -45,7 +46,7 @@ const Sidebar = ({ mobile }) => {
 
   if (mobile) {
     return (
-      <div className="flex flex-row justify-around bg-black border-t border-gray-800 py-2 w-full">
+      <div className="flex flex-row justify-around bg-background border-t border-border py-2 w-full">
         {UserDashboardNavLinks.map((link) => (
           <Link
             href={link.link}
@@ -76,7 +77,7 @@ const Sidebar = ({ mobile }) => {
             className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
               active && active.link === link.link 
                 ? "bg-rose-600 text-white font-bold shadow-lg shadow-rose-500/20" 
-                : "text-gray-400 hover:bg-gray-800 hover:text-white"
+                : "text-gray-400 hover:bg-accent hover:text-foreground"
             }`}
           >
             {link.icon}
@@ -85,18 +86,7 @@ const Sidebar = ({ mobile }) => {
         ))}
       </div>
 
-      <div className="mt-auto pt-8 space-y-2 border-t border-gray-800">
-        <Link
-          href={`/dashboard/student/settings`}
-          className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${
-            location === "/dashboard/student/settings" 
-              ? "bg-rose-600 text-white font-bold" 
-              : "text-gray-400 hover:bg-gray-800 hover:text-white"
-          }`}
-        >
-          <Settings className="h-5 w-5 md:h-7 md:w-7" />
-          <span className="text-sm font-medium">Settings</span>
-        </Link>
+      <div className="mt-auto pt-8 border-t border-border">
         <button 
           onClick={handleLogout}
           className="flex items-center gap-3 px-4 py-3 rounded-xl w-full text-left text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-all duration-200"

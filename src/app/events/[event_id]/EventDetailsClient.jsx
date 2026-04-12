@@ -303,7 +303,7 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
 
       toast.success("Ticket booked successfully!", { id: toastId });
       if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("tickets-updated"));
-      router.push("/dashboard/student/my-tickets");
+      router.push("/dashboard/user/my-tickets");
 
     } catch (error) {
       console.error("Booking error:", error);

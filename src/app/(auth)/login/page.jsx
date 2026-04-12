@@ -146,7 +146,7 @@ const LoginContent = () => {
           if (normalizedRole === "organizer" || normalizedRole === "org") {
             router.replace('/dashboard/org');
           } else if (normalizedRole === "student") {
-            router.replace('/dashboard/student');
+            router.replace('/dashboard/user');
           } else {
             router.replace('/dashboard');
           }
@@ -240,7 +240,7 @@ const LoginContent = () => {
         if (normalizedRole === "organizer" || normalizedRole === "org") {
           router.replace('/dashboard/org');
         } else if (normalizedRole === "student") {
-          router.replace('/dashboard/student');
+          router.replace('/dashboard/user');
         } else {
           router.replace('/dashboard');
         }

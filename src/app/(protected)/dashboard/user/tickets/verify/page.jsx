@@ -51,7 +51,7 @@ const VerifyPaymentContent = () => {
 
         // Auto redirect after 5 seconds
         setTimeout(() => {
-          router.push("/dashboard/student/my-tickets");
+          router.push("/dashboard/user/my-tickets");
         }, 5000);
 
       } catch (error) {
@@ -98,7 +98,7 @@ const VerifyPaymentContent = () => {
             )}
 
             <div className="pt-4 flex flex-col gap-2">
-              <Button onClick={() => router.push("/dashboard/student/my-tickets")} className="w-full">
+              <Button onClick={() => router.push("/dashboard/user/my-tickets")} className="w-full">
                 View My Tickets
               </Button>
               <p className="text-[10px] text-muted-foreground">Redirecting in a few seconds...</p>
@@ -117,10 +117,10 @@ const VerifyPaymentContent = () => {
             <p className="text-muted-foreground">{message}</p>
             
             <div className="pt-4 flex flex-col gap-2">
-              <Button onClick={() => router.push("/dashboard/student/my-tickets")} className="w-full">
+              <Button onClick={() => router.push("/dashboard/user/my-tickets")} className="w-full">
                 Check My Tickets
               </Button>
-              <Button variant="outline" onClick={() => router.push("/dashboard/student/events")} className="w-full">
+              <Button variant="outline" onClick={() => router.push("/dashboard/user/events")} className="w-full">
                 Back to Events
               </Button>
             </div>
@@ -144,3 +144,4 @@ const VerifyPaymentPage = () => {
 };
 
 export default VerifyPaymentPage;
+

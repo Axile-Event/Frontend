@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { X, Upload, Loader2, CheckCircle2, Landmark, Copy, Check, Info, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useRouter } from "next/navigation";
 import api from "@/lib/axios";
 import toast from "react-hot-toast";
 import CustomDropdown from "@/components/ui/CustomDropdown";
@@ -17,6 +18,7 @@ const ManualConfirmationModal = ({
   bankDetails,
 }) => {
   const { bookingId: storedBookingId } = useTempBookingStore();
+  const router = useRouter();
   
   // Normalize and decode booking ID for backend calls
   const rawBookingId = propBookingId || storedBookingId;
@@ -39,9 +41,9 @@ const ManualConfirmationModal = ({
 
   // Use bankDetails passed as prop, with fallback defaults
   const payeeDetails = bankDetails || {
-    accountName: "Axile Solutions Limited",
-    accountNumber: "1033678367",
-    bankName: "Globus Bank",
+    accountName: "Axile solution limited",
+    accountNumber: "1311804312",
+    bankName: "Zenith bank",
   };
 
   const handleCopyAccountNumber = () => {
@@ -133,7 +135,12 @@ const ManualConfirmationModal = ({
         amount: totalAmount || "",
         receipt: null,
       });
-      setTimeout(() => { setSuccess(false); onClose(); }, 4000);
+      toast.success("Payment submitted successfully! Redirecting to dashboard...");
+      setTimeout(() => { 
+        setSuccess(false); 
+        onClose(); 
+        router.push("/dashboard/user");
+      }, 2000);
     } catch (error) {
       toast.error(error.response?.data?.error || "Submission failed");
     } finally {
@@ -281,12 +288,7 @@ const ManualConfirmationModal = ({
                     </div>
                  </div>
 
-                 <div className="flex gap-3 p-4 bg-amber-500/5 border border-amber-500/10 rounded-2xl">
-                    <Info className="text-amber-500 shrink-0" size={16} />
-                    <p className="text-[10px] text-amber-200/60 leading-relaxed font-medium">
-                       <span className="text-amber-500 font-bold">6% processing fee</span> will be added automatically during manual verification.
-                    </p>
-                 </div>
+
               </div>
 
               <div className="pt-2">

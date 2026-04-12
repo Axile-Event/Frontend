@@ -29,9 +29,9 @@ const ManualTransferTab = ({ summary, bookingId, paymentReference }) => {
   } = summary || {};
 
   const bankDetails = {
-    bankName: "Globus Bank",
-    accountNumber: "1033678367",
-    accountName: "Axile Solutions Limited"
+    bankName: "Zenith bank",
+    accountNumber: "1311804312",
+    accountName: "Axile solution limited"
   };
 
   const handleCopyAccount = () => {
@@ -59,12 +59,7 @@ const ManualTransferTab = ({ summary, bookingId, paymentReference }) => {
           <p className="text-sm text-muted-foreground leading-relaxed">
             Please transfer <span className="text-rose-500 font-mono font-bold">₦{totalManual?.toLocaleString()}</span> to this account:
           </p>
-          <div className="flex gap-2 p-2.5 bg-amber-500/5 border border-amber-500/10 rounded-lg">
-            <Info size={14} className="text-amber-500 shrink-0 mt-0.5" />
-            <p className="text-[10px] text-amber-200/60 leading-relaxed">
-              <strong>Wait!</strong> An additional <strong>6% processing fee</strong> will be added to this amount by our verification system upon matching your transfer.
-            </p>
-          </div>
+
 
           <div className="grid grid-cols-1 gap-2">
             <div className="bg-background/50 p-4 rounded-xl border border-border/50 space-y-4">

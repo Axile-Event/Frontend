@@ -4,59 +4,63 @@ import { SkeletonBox, SkeletonLine, SkeletonCircle } from "../primitives";
 
 /**
  * StudentDashboardSkeleton
- * Matches the exact layout of /dashboard/student/page.jsx:
+ * Matches the exact layout of /dashboard/user/page.jsx:
  * - Welcome section with header + button (flex row on desktop)
  * - Upcoming tickets section with cards grid (1/2/3 cols)
  */
 export const StudentDashboardSkeleton = () => {
   return (
-    <div className="min-h-screen p-4 md:p-4 space-y-6 md:space-y-8 pt-6 md:pt-10">
+    <div className="min-h-screen space-y-6 md:space-y-10 pt-4 md:pt-6">
       {/* Welcome Section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-        <div className="space-y-2">
-          <SkeletonLine width="280px" height="2rem" />
-          <SkeletonLine width="220px" height="1rem" />
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="space-y-3">
+          <SkeletonLine width="300px" height="2.5rem" />
+          <SkeletonLine width="200px" height="1rem" />
         </div>
-        <SkeletonBox width="160px" height="48px" borderRadius="0.5rem" />
+        <SkeletonBox width="140px" height="48px" borderRadius="0.75rem" />
       </div>
 
-      {/* Upcoming Tickets Section */}
-      <div className="bg-[#111] rounded-xl p-6 border border-gray-800/50">
-        {/* Section Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2">
-            <SkeletonLine width="180px" height="1.5rem" />
-            <SkeletonBox width="32px" height="20px" borderRadius="999px" />
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="bg-[#111] border border-gray-800/50 p-6 rounded-2xl flex items-center justify-between">
+            <div className="space-y-2">
+              <SkeletonLine width="60px" height="0.75rem" />
+              <SkeletonLine width="40px" height="2rem" />
+            </div>
+            <SkeletonBox width="44px" height="44px" borderRadius="0.75rem" />
           </div>
-          <SkeletonLine width="80px" height="1rem" />
-        </div>
+        ))}
+      </div>
 
-        {/* Ticket Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3].map((i) => (
-            <div 
-              key={i} 
-              className="bg-[#1a1a1a] p-5 rounded-xl border border-gray-800"
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1 space-y-2">
-                  <SkeletonLine width="70%" height="1.25rem" />
-                  <div className="flex items-center gap-2">
-                    <SkeletonBox width="14px" height="14px" />
-                    <SkeletonLine width="100px" height="0.875rem" />
+      {/* Main Content Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-6">
+          <div className="flex items-center justify-between">
+            <SkeletonLine width="180px" height="1.5rem" />
+            <SkeletonLine width="60px" height="1rem" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="bg-[#111] border border-gray-800/50 p-6 rounded-2xl h-32 flex items-center gap-4">
+                <SkeletonBox width="80px" height="80px" borderRadius="0.75rem" className="flex-shrink-0" />
+                <div className="flex-1 space-y-3">
+                  <div className="space-y-2">
+                    <SkeletonLine width="80%" height="1.25rem" />
+                    <SkeletonLine width="40%" height="0.75rem" />
                   </div>
                 </div>
               </div>
-              
-              <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-800">
-                <div className="space-y-1">
-                  <SkeletonLine width="50px" height="0.625rem" />
-                  <SkeletonLine width="70px" height="0.75rem" />
-                </div>
-                <SkeletonBox width="32px" height="32px" borderRadius="0.5rem" />
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
+        </div>
+        <div className="space-y-6 text-white ">
+          <SkeletonLine width="150px" height="1.5rem" />
+          <div className="space-y-3">
+            <SkeletonBox width="100%" height="72px" borderRadius="1.25rem" />
+            <SkeletonBox width="100%" height="72px" borderRadius="1.25rem" />
+          </div>
+          <SkeletonBox width="100%" height="200px" borderRadius="1.5rem" />
         </div>
       </div>
     </div>

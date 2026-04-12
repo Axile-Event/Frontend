@@ -190,7 +190,7 @@ const SignUpContent = () => {
           if (normalizedRole === 'organizer' || normalizedRole === 'org') {
             router.replace("/dashboard/org");
           } else {
-            router.replace("/dashboard/student/my-tickets");
+            router.replace("/dashboard/user/my-tickets");
           }
         }
       } catch (err) {
