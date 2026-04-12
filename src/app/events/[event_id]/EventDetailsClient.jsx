@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import api from "@/lib/axios";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,9 +11,11 @@ import { Loader2, MapPin, Calendar, Clock, Ticket, Info, Share2, Copy, Check, X,
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import useAuthStore from "@/store/authStore";
+import useReferralStore from "@/store/referralStore";
 import { getImageUrl } from "@/lib/utils";
 import { EventDetailsSkeleton } from "@/components/skeletons";
 import useTempBookingStore from "@/store/tempBookingStore";
+import { getCookie } from "@/lib/utils";
 
 // Platform fee constants
 const PLATFORM_FEE = 80;
@@ -28,8 +30,10 @@ const calculatePaystackFee = (amount) => {
 
 const EventDetailsClient = ({ event_id, initialEvent }) => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const eventId = event_id;
   const { token, hydrated } = useAuthStore();
+  const { setReferral, getValidReferral } = useReferralStore();
 
   const [event, setEvent] = useState(initialEvent || null);
   const [loading, setLoading] = useState(!initialEvent);
@@ -51,6 +55,28 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
   // Temporary referral source state for event:TO-56363
   const [referralSource, setReferralSource] = useState("");
   const [otherReferral, setOtherReferral] = useState("");
+  const [refUsername, setRefUsername] = useState(null);
+
+  // Read referral username from cookie on mount (same as protected dashboard)
+  useEffect(() => {
+    const username = getCookie("ref_username");
+    if (username) {
+      setRefUsername(username);
+      console.log("Referral cookie found:", username);
+    }
+  }, []);
+
+  // Capture referral from URL query param (?ref=abc123) - same as protected dashboard
+  useEffect(() => {
+    if (typeof window !== 'undefined' && event?.event_id) {
+      const ref = searchParams.get('ref');
+      if (ref) {
+        // Store with the actual event_id from backend
+        setReferral(ref, event.event_id);
+        console.log("Referral captured from URL:", ref, "for event:", event.event_id);
+      }
+    }
+  }, [searchParams, event?.event_id, setReferral]);
 
   // Restore ticket selections from localStorage after login redirect
   useEffect(() => {
@@ -254,17 +280,25 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
         quantity: item.quantity,
       }));
       
+      // Check for valid referral code from URL parameter (same logic as protected dashboard)
+      const validReferral = getValidReferral(eventIdToUse);
+      
+      // Determine final referral identity - prefer cookie, fallback to URL param
+      let finalReferral = refUsername || validReferral;
+      
+      // Override with scoped source if it matches specific tracking event and choice was made
+      if (eventIdToUse === "event:TO-56363" && referralSource) {
+        finalReferral = referralSource === "Other" ? `Other: ${otherReferral}` : referralSource;
+      }
+      
       const payload = {
         event_id: eventIdToUse,
         items: items,
-        // Scoped referral source for event:TO-56363
-        ...(eventIdToUse === "event:TO-56363" && {
-          referral_source: referralSource === "Other" ? `Other: ${otherReferral}` : referralSource,
-          referral: referralSource === "Other" ? `Other: ${otherReferral}` : referralSource
-        })
+        // Include referral if available from cookie or URL
+        ...(finalReferral && { referral: finalReferral })
       };
       
-      console.log("Booking payload:", payload);
+      console.log("Booking payload:", payload, "References - refUsername:", refUsername, "validReferral:", validReferral);
 
       const response = await api.post("/tickets/book/", payload);
       
