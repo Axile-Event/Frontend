@@ -76,15 +76,15 @@ export default function Overview() {
         const analyticsData = analyticsRes.value.data.analytics || analyticsRes.value.data;
         analytics = { 
           ...analyticsData, 
-          total_revenue: orgWallet ? Number(orgWallet.total_balance) : totalNetRevenueFromEvents,
-          total_tickets_sold: totalTicketsFromEvents, 
-          total_events: eventsData.length 
+          total_revenue: analyticsData.organizer_revenue ?? 0,
+          total_tickets_sold: analyticsData.total_tickets_sold ?? totalTicketsFromEvents, 
+          total_events: analyticsData.total_events_created ?? eventsData.length 
         };
       } else {
         analytics = {
-          total_events: eventsData.length,
+          total_events_created: eventsData.length,
           total_tickets_sold: totalTicketsFromEvents,
-          total_revenue: orgWallet ? Number(orgWallet.total_balance) : totalNetRevenueFromEvents,
+          total_revenue: 0,
           revenue_by_event: [],
         };
       }
