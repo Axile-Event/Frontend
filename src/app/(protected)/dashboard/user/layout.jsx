@@ -6,7 +6,7 @@ import React from 'react'
 import Logo from '@/components/Logo'
 import { DashboardLayoutSkeleton, StudentDashboardSkeleton } from "@/components/skeletons";
 
-const StudentDashboardLayout = ({children}) => {
+const UserDashboardLayout = ({children}) => {
   const { loading, authorized } = useRoleAuth('student');
 
   if (loading || !authorized) {
@@ -21,7 +21,7 @@ const StudentDashboardLayout = ({children}) => {
    <>
     <section className='flex flex-col md:flex-row min-h-screen'>
       {/* sidebar content - Hidden on mobile, shown on desktop */}
-      <nav className='hidden md:block fixed left-0 top-16 w-64 h-[calc(100vh-4rem)] border-r border-gray-800 bg-black z-40 overflow-y-auto py-6'>
+      <nav className='hidden md:block fixed left-0 top-16 w-64 h-[calc(100vh-4rem)] border-r border-border bg-background z-40 overflow-y-auto py-6'>
         <Sidebar />
       </nav>
 
@@ -30,7 +30,7 @@ const StudentDashboardLayout = ({children}) => {
          <Sidebar mobile />
       </div>
       {/* main content */}
-      <main className='w-full md:ml-64 px-3 py-4 md:px-6 md:py-6 pt-20 pb-24 md:pt-6 md:pb-6'>
+      <main className='w-full md:ml-64 px-3 md:px-6 pt-6 pb-24 md:py-6'>
         {children}
       </main>
     </section>
@@ -38,4 +38,4 @@ const StudentDashboardLayout = ({children}) => {
   )
 }
 
-export default StudentDashboardLayout
+export default UserDashboardLayout

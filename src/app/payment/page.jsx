@@ -182,10 +182,10 @@ function PaymentCallbackContent() {
         router.push("/dashboard/org/my-event");
       } else if (token) {
         // Student with token: go to student tickets
-        router.push("/dashboard/student/my-tickets");
+        router.push("/dashboard/user/my-tickets");
       } else {
         // No token: prompt login then redirect to student tickets
-        router.push(`/login?callbackUrl=${encodeURIComponent("/dashboard/student/my-tickets")}`);
+        router.push(`/login?callbackUrl=${encodeURIComponent("/dashboard/user/my-tickets")}`);
       }
     } else {
       // Payment failed/cancelled

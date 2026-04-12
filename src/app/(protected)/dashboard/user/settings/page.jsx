@@ -100,19 +100,19 @@ const UserSettings = () => {
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 md:space-y-10 pb-20 md:pb-10">
+    <div className="max-w-4xl mx-auto space-y-6 md:space-y-8 pb-20 md:pb-10 pt-0 md:pt-2">
       <div>
-        <h1 className="text-2xl md:text-4xl font-extrabold tracking-tight mb-2 text-white">Settings</h1>
-        <p className="text-gray-400 text-sm md:text-base font-medium">Manage your personal information and event interests.</p>
+        <h1 className="text-xl md:text-2xl font-bold tracking-tight mb-1 text-white">Settings</h1>
+        <p className="text-zinc-500 text-xs md:text-sm font-medium">Manage your personal information and event interests.</p>
       </div>
 
       {/* Profile Information */}
-      <Card className="bg-[#0a0a0a] border-white/5 overflow-hidden">
-        <CardHeader className="border-b border-white/5 pb-6">
-          <CardTitle className="text-xl font-bold text-white">Profile Information</CardTitle>
-          <CardDescription className="text-gray-500">Update your account details and how others see you.</CardDescription>
+      <Card className="bg-zinc-900/50 border-border overflow-hidden">
+        <CardHeader className="border-b border-white/5 pb-5">
+          <CardTitle className="text-lg font-bold text-white">Profile Information</CardTitle>
+          <CardDescription className="text-zinc-500 text-xs">Update your account details and how others see you.</CardDescription>
         </CardHeader>
-        <CardContent className="p-6 md:p-8">
+        <CardContent className="p-5 md:p-8">
           <div className="flex flex-col md:flex-row gap-8 md:gap-12">
             {/* Avatar Section */}
             <div className="flex flex-col items-center gap-4">
@@ -121,73 +121,72 @@ const UserSettings = () => {
                   <User className="w-16 h-16 md:w-20 md:h-20 text-gray-700 transition-colors group-hover:text-rose-500" />
                 </div>
                 <button className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-3xl backdrop-blur-sm">
-                  <span className="text-white text-xs font-bold uppercase tracking-widest">Change</span>
+                  <span className="text-white text-[10px] font-bold">Change</span>
                 </button>
               </div>
               <div className="text-center">
                 <h4 className="text-white font-bold text-sm tracking-tight">{profile?.firstname} {profile?.lastname}</h4>
-                <p className="text-gray-500 text-[10px] uppercase font-black tracking-widest mt-1">User Account</p>
+                <p className="text-zinc-500 text-[10px] font-bold mt-1">User Account</p>
               </div>
             </div>
 
             {/* Form Fields */}
-            <div className="flex-1 space-y-6">
+            <div className="flex-1 space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="text-[10px] uppercase font-black tracking-widest text-gray-500 px-1">First Name</label>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-zinc-500 px-1">First Name</label>
                   <input 
                     type="text" 
                     value={profile?.firstname || ""} 
                     onChange={(e) => setProfile({...profile, firstname: e.target.value})}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-rose-500/50 focus:outline-none transition-colors text-sm font-medium"
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-white focus:border-rose-500 focus:outline-none transition-colors text-sm font-medium"
                     placeholder="Enter first name"
                   />
                 </div>
-                <div className="space-y-2">
-                  <label className="text-[10px] uppercase font-black tracking-widest text-gray-500 px-1">Last Name</label>
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-zinc-500 px-1">Last Name</label>
                   <input 
                     type="text" 
                     value={profile?.lastname || ""} 
                     onChange={(e) => setProfile({...profile, lastname: e.target.value})}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-rose-500/50 focus:outline-none transition-colors text-sm font-medium"
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-white focus:border-rose-500 focus:outline-none transition-colors text-sm font-medium"
                     placeholder="Enter last name"
                   />
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-[10px] uppercase font-black tracking-widest text-gray-500 px-1">Email Address</label>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-zinc-500 px-1">Email Address</label>
                 <input 
                   type="email" 
                   value={profile?.email || ""} 
                   readOnly
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-gray-400 cursor-not-allowed text-sm font-medium"
+                  className="w-full bg-zinc-900/50 border border-zinc-800 rounded-xl px-4 py-2.5 text-zinc-500 cursor-not-allowed text-sm font-medium"
                   placeholder="email@example.com"
                 />
-                <p className="text-[10px] text-gray-600 px-1 italic">Email cannot be changed manually.</p>
+                <p className="text-[10px] text-zinc-600 px-1">Email cannot be changed.</p>
               </div>
-
-              <div className="space-y-2">
-                <label className="text-[10px] uppercase font-black tracking-widest text-gray-500 px-1">Phone Number</label>
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-bold text-zinc-500 px-1">Phone Number</label>
                 <input 
                   type="tel" 
                   value={profile?.phone || ""} 
                   onChange={(e) => setProfile({...profile, phone: e.target.value})}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-rose-500/50 focus:outline-none transition-colors text-sm font-medium"
+                  className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-white focus:border-rose-500 focus:outline-none transition-colors text-sm font-medium"
                   placeholder="+234 ..."
                 />
               </div>
 
-              <div className="flex justify-end pt-4">
+              <div className="flex justify-end pt-2">
                 <Button 
                   onClick={handleSaveProfile} 
                   disabled={savingProfile} 
-                  className="bg-rose-600 hover:bg-rose-500 text-white font-bold h-12 px-8 rounded-xl shadow-lg shadow-rose-600/20 transition-all active:scale-95"
+                  className="bg-rose-600 hover:bg-rose-700 text-white font-bold h-10 px-6 rounded-lg shadow-lg shadow-rose-600/20 transition-all active:scale-95 text-xs"
                 >
                   {savingProfile ? (
-                    <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
+                    <><Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> Saving...</>
                   ) : (
-                    <><Save className="mr-2 h-4 w-4" /> Save Profile</>
+                    <><Save className="mr-2 h-3.5 w-3.5" /> Save Profile</>
                   )}
                 </Button>
               </div>
@@ -196,14 +195,14 @@ const UserSettings = () => {
         </CardContent>
       </Card>
 
-      <Card className="bg-[#0a0a0a] border-white/5">
-        <CardHeader className="border-b border-white/5 pb-6">
-          <CardTitle className="text-xl font-bold text-white">Event Preferences</CardTitle>
-          <CardDescription className="text-gray-500">
+      <Card className="bg-zinc-900/50 border-border">
+        <CardHeader className="border-b border-white/5 pb-5">
+          <CardTitle className="text-lg font-bold text-white">Event Preferences</CardTitle>
+          <CardDescription className="text-zinc-500 text-xs">
             Select the types of events you are interested in better recommendations.
           </CardDescription>
         </CardHeader>
-        <CardContent className="p-6 md:p-8 space-y-8">
+        <CardContent className="p-5 md:p-8 space-y-6">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {allEventTypes.map((type) => {
               const isSelected = preferences.includes(type.value);
@@ -235,14 +234,14 @@ const UserSettings = () => {
             })}
           </div>
 
-          <div className="flex justify-end pt-6 border-t border-white/5">
+          <div className="flex justify-end pt-4 border-t border-white/5">
             <Button 
                 onClick={handleSavePreferences} 
                 disabled={savingPreferences}
                 variant="outline"
-                className="border-white/10 hover:bg-white/5 text-gray-300 font-bold h-12 px-8 rounded-xl"
+                className="border-zinc-800 hover:bg-zinc-800 text-zinc-400 font-bold h-10 px-6 rounded-lg text-xs"
             >
-              {savingPreferences && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {savingPreferences && <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />}
               Save Preferences
             </Button>
           </div>
@@ -250,13 +249,13 @@ const UserSettings = () => {
       </Card>
       
       {/* Danger Zone */}
-      <Card className="bg-red-500/5 border-red-500/20">
-           <CardHeader>
-             <CardTitle className="text-lg font-black text-red-500 uppercase tracking-tighter">Danger Zone</CardTitle>
-             <CardDescription className="text-red-500/60 font-medium">Irreversible account actions. Be careful.</CardDescription>
+      <Card className="bg-red-500/5 border-red-500/10">
+           <CardHeader className="pb-4">
+             <CardTitle className="text-base font-bold text-red-500">Danger Zone</CardTitle>
+             <CardDescription className="text-red-500/60 text-xs">Irreversible account actions. Be careful.</CardDescription>
            </CardHeader>
-           <CardContent>
-              <Button variant="destructive" disabled className="w-full sm:w-auto bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/20 font-bold h-12 px-8 rounded-xl opacity-50 cursor-not-allowed">
+           <CardContent className="pb-6">
+              <Button variant="destructive" disabled className="w-full sm:w-auto bg-red-500/10 hover:bg-red-500/20 text-red-500 border border-red-500/10 font-bold h-10 px-6 rounded-lg opacity-50 cursor-not-allowed text-xs">
                  Delete Account (Coming Soon)
               </Button>
            </CardContent>
@@ -266,3 +265,4 @@ const UserSettings = () => {
 };
 
 export default UserSettings;
+

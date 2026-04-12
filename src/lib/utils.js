@@ -171,3 +171,19 @@ export function formatRewardLabel(event) {
   }
   return "";
 }
+
+/**
+ * Generates a URL-friendly slug from event name
+ * @param {string} name - Event name
+ * @returns {string} URL-friendly slug
+ */
+export function generateEventSlug(name) {
+  if (!name) return "";
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^\w\s-]/g, "") // Remove special characters
+    .replace(/\s+/g, "-") // Replace spaces with hyphens
+    .replace(/-+/g, "-") // Replace multiple hyphens with single
+    .replace(/^-+|-+$/g, ""); // Remove leading/trailing hyphens
+}

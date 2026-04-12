@@ -30,12 +30,16 @@ import { queryKeys } from '@/lib/query-keys';
 
 const defaultStats = {
   available_balance: '0.00',
-  pending_balance: '0.00',
   total_earnings: '0.00',
   total_withdrawn: '0.00',
-  has_bank_account: false,
-  bank_name: '',
+  pending_withdrawn_amount: '0.00',
+  total_balance: '0.00',
   bank_account_number: '',
+  bank_name: '',
+  account_name: '',
+  has_bank_account: false,
+  created_at: '',
+  updated_at: '',
 };
 
 export default function PayoutPage() {
@@ -149,12 +153,7 @@ export default function PayoutPage() {
       const res = await api.post('/wallet/withdraw/', { amount: pendingWithdrawal });
       
       // Handle new payout request response format per documentation
-      if (res.data.request_id) {
-        toast.success(res.data.message || "Payout request submitted successfully");
-        toast.success(`Request ID: ${res.data.request_id}`, { duration: 5000 });
-      } else {
-        toast.success(res.data.message || "Payout request submitted successfully");
-      }
+      toast.success("Payout request submitted successfully. Your payment will be processed within 1-3 business days.");
       
       setWithdrawAmount('');
       setPendingWithdrawal(null);
@@ -204,7 +203,7 @@ export default function PayoutPage() {
         />
         <StatCard 
           label="Pending payouts" 
-          amount={totalPendingRequests.toFixed(2)} 
+          amount={stats.pending_withdrawn_amount} 
           icon={<Clock className="w-5 h-5 text-amber-500" />}
           description="Awaiting admin approval"
           hideBalances={hideBalances}
