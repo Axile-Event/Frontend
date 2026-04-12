@@ -23,7 +23,7 @@ import PaymentTabs from "@/components/payment/PaymentTabs";
 import PaystackTab from "@/components/payment/PaystackTab";
 import ManualTransferTab from "@/components/payment/ManualTransferTab";
 
-const isPaystackAvailable = false; // Maintenance flag
+const isPaystackAvailable = true; // Maintenance flag
 
 // Platform service fee (charged to customer)
 const PLATFORM_FEE = 80;

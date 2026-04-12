@@ -1,7 +1,7 @@
 import React from 'react';
 import { CreditCard, Banknote } from 'lucide-react';
 
-const isPaystackAvailable = false; // Maintenance flag
+const isPaystackAvailable = true; // Maintenance flag
 
 const PaymentTabs = ({ activeTab, onChange, allowedMethods = ["paystack"] }) => {
   // Ensure we have an array for easier checking

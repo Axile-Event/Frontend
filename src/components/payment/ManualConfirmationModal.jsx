@@ -41,9 +41,9 @@ const ManualConfirmationModal = ({
 
   // Use bankDetails passed as prop, with fallback defaults
   const payeeDetails = bankDetails || {
-    accountName: "Axile Solutions Limited",
-    accountNumber: "1033678367",
-    bankName: "Globus Bank",
+    accountName: "Axile solution limited",
+    accountNumber: "1311804312",
+    bankName: "Zenith bank",
   };
 
   const handleCopyAccountNumber = () => {
