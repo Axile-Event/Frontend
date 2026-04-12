@@ -80,6 +80,13 @@ const UserDashboardOverview = () => {
                       profile?.Preferred_name ||
                       "User";
 
+  const getStatusDisplay = (status) => {
+    if (status?.toLowerCase() === "pending") {
+      return "Please hold on while we verify your payment";
+    }
+    return status || "Ready";
+  };
+
   return (
     <div className="min-h-screen space-y-4 md:space-y-8 pt-0 md:pt-2 pb-12">
       {/* Welcome Section */}
@@ -184,7 +191,7 @@ const UserDashboardOverview = () => {
                      <div className="flex flex-col">
                         <span className="text-[10px] text-zinc-500 font-bold leading-none mb-1">Status</span>
                         <span className={`text-xs font-bold ${ticket.status === 'confirmed' ? 'text-green-500' : 'text-amber-500'}`}>
-                          {ticket.status || 'Ready'}
+                          {getStatusDisplay(ticket.status)}
                         </span>
                      </div>
                      <Link href={`/dashboard/user/my-tickets`} className="w-10 h-10 bg-zinc-900 border border-zinc-800 rounded-xl flex items-center justify-center hover:bg-rose-600 hover:border-rose-500 transition-all group/btn">
