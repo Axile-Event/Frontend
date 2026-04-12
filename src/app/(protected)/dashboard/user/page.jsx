@@ -80,11 +80,28 @@ const UserDashboardOverview = () => {
                       profile?.Preferred_name ||
                       "User";
 
-  const getStatusDisplay = (status) => {
-    if (status?.toLowerCase() === "pending") {
+  const getStatusDisplay = (ticket) => {
+    if (!ticket) return "Ready";
+    
+    const status = ticket.status?.toLowerCase() || "pending";
+    const paymentMethod = ticket.payment_method?.toLowerCase();
+
+    // Manual transfer payment waiting for verification
+    if (paymentMethod === "manual_bank_transfer" && status === "pending") {
       return "Please hold on while we verify your payment";
     }
-    return status || "Ready";
+    
+    // Paystack payment not completed
+    if (paymentMethod === "paystack" && status === "pending") {
+      return "Pending";
+    }
+    
+    // Confirmed payment
+    if (status === "confirmed") {
+      return "Confirmed";
+    }
+    
+    return status.charAt(0).toUpperCase() + status.slice(1) || "Ready";
   };
 
   return (
@@ -191,7 +208,7 @@ const UserDashboardOverview = () => {
                      <div className="flex flex-col">
                         <span className="text-[10px] text-zinc-500 font-bold leading-none mb-1">Status</span>
                         <span className={`text-xs font-bold ${ticket.status === 'confirmed' ? 'text-green-500' : 'text-amber-500'}`}>
-                          {getStatusDisplay(ticket.status)}
+                          {getStatusDisplay(ticket)}
                         </span>
                      </div>
                      <Link href={`/dashboard/user/my-tickets`} className="w-10 h-10 bg-zinc-900 border border-zinc-800 rounded-xl flex items-center justify-center hover:bg-rose-600 hover:border-rose-500 transition-all group/btn">
