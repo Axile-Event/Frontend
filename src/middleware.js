@@ -11,7 +11,7 @@ export function middleware(request) {
   const isAuthPage = pathname === '/login' || pathname === '/signup'
   const isProtectedPage = pathname.startsWith('/dashboard') || pathname.startsWith('/profile') || pathname.startsWith('/settings')
   const isEventPage = pathname === '/events' || pathname.startsWith('/events/')
-  const isLandingPage = pathname === '/features' || pathname === '/referral' || pathname === '/hiring'
+  const isLandingPage = pathname === '/features' || pathname === '/hiring'
 
   // 3. Handle Landing Page Redirects
   if (isEventPage || isLandingPage) {

@@ -79,10 +79,13 @@ export const useAuthStore = create(
       },
       logout: () => {
         if (typeof window !== "undefined") {
-          const removeOpts = {};
+          // 1. Remove from parent domain (.axile.ng)
           const domain = getCookieDomain();
-          if (domain) removeOpts.domain = domain;
-          Cookies.remove("axile_shared_auth", removeOpts);
+          if (domain) {
+            Cookies.remove("axile_shared_auth", { domain });
+          }
+          // 2. Remove from current subdomain (just in case)
+          Cookies.remove("axile_shared_auth", { path: '/' });
         }
 
         if (stopTokenRefreshTimer) {
@@ -110,7 +113,9 @@ export const useAuthStore = create(
         const shared = Cookies.get("axile_shared_auth");
         if (shared) {
           try {
-            const { token, refreshToken, role } = JSON.parse(shared);
+            // Handle URL encoded cookies
+            const decoded = shared.startsWith("%") ? decodeURIComponent(shared) : shared;
+            const { token, refreshToken, role } = JSON.parse(decoded);
             if (token) {
               set({ token, refreshToken, role, isAuthenticated: true });
               if (startTokenRefreshTimer) startTokenRefreshTimer();

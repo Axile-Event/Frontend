@@ -59,7 +59,7 @@ const ReferralPage = () => {
               scale: [1, 1.15, 1],
               opacity: [0.2, 0.4, 0.2],
             }}
-            //done
+            // Background transitions handled by framer-motion
             transition={{ duration: 10, repeat: Infinity }}
             className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[120px]"
           />
@@ -112,7 +112,7 @@ const ReferralPage = () => {
               variants={fadeInScale}
               className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4"
             >
-              <a href="https://referral.axile.ng" target="_blank" rel="noopener noreferrer">
+              <a href={process.env.NEXT_PUBLIC_REFERRAL_URL || "https://referral.axile.ng"} target="_blank" rel="noopener noreferrer">
                 <Button
                   size="lg"
                   className="h-14 px-10 text-lg bg-primary hover:bg-primary/90 shadow-lg shadow-primary/30 hover:shadow-primary/50 transition-all rounded-2xl"
@@ -275,12 +275,14 @@ const ReferralPage = () => {
                 value="item-1"
                 className="border border-border rounded-xl bg-card overflow-hidden hover:border-primary/30 transition-colors"
               >
-                <Accordion.Trigger className="w-full px-6 py-4 flex items-center justify-between hover:bg-muted/50 transition-colors group cursor-pointer">
-                  <span className="text-left font-semibold text-foreground group-hover:text-primary transition-colors">
-                    Do I need an account?
-                  </span>
-                  <ChevronDown className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-all duration-300 group-data-[state=open]:rotate-180" />
-                </Accordion.Trigger>
+                <Accordion.Header>
+                  <Accordion.Trigger className="w-full px-6 py-4 flex items-center justify-between hover:bg-muted/50 transition-colors group cursor-pointer">
+                    <span className="text-left font-semibold text-foreground group-hover:text-primary transition-colors">
+                      Do I need an account?
+                    </span>
+                    <ChevronDown className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-all duration-300 group-data-[state=open]:rotate-180" />
+                  </Accordion.Trigger>
+                </Accordion.Header>
                 <Accordion.Content className="px-6 py-4 border-t border-border bg-muted/20 text-muted-foreground leading-relaxed">
                   Yes, you'll need a quick account to get started. Sign up takes
                   less than 2 minutes, and you can start sharing immediately
@@ -293,12 +295,14 @@ const ReferralPage = () => {
                 value="item-2"
                 className="border border-border rounded-xl bg-card overflow-hidden hover:border-primary/30 transition-colors"
               >
-                <Accordion.Trigger className="w-full px-6 py-4 flex items-center justify-between hover:bg-muted/50 transition-colors group cursor-pointer">
-                  <span className="text-left font-semibold text-foreground group-hover:text-primary transition-colors">
-                    When do I get paid?
-                  </span>
-                  <ChevronDown className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-all duration-300 group-data-[state=open]:rotate-180" />
-                </Accordion.Trigger>
+                <Accordion.Header>
+                  <Accordion.Trigger className="w-full px-6 py-4 flex items-center justify-between hover:bg-muted/50 transition-colors group cursor-pointer">
+                    <span className="text-left font-semibold text-foreground group-hover:text-primary transition-colors">
+                      When do I get paid?
+                    </span>
+                    <ChevronDown className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-all duration-300 group-data-[state=open]:rotate-180" />
+                  </Accordion.Trigger>
+                </Accordion.Header>
                 <Accordion.Content className="px-6 py-4 border-t border-border bg-muted/20 text-muted-foreground leading-relaxed">
                   Earnings appear in your dashboard instantly. You can withdraw
                   to your bank account once you reach the minimum amount. Check
@@ -339,7 +343,7 @@ const ReferralPage = () => {
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-              <a href="https://referral.axile.ng" target="_blank" rel="noopener noreferrer">
+              <a href={process.env.NEXT_PUBLIC_REFERRAL_URL || "https://referral.axile.ng"} target="_blank" rel="noopener noreferrer">
                 <Button
                   size="lg"
                   className="h-16 px-12 text-xl rounded-[1.2rem] bg-primary hover:bg-primary/90 shadow-2xl shadow-primary/30 hover:shadow-primary/50 transition-all font-black"
