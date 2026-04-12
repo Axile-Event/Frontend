@@ -18,7 +18,8 @@ import { Loader2, MapPin, Calendar, Clock, Ticket, Info, CheckCircle2, Share2, C
 import PaymentTabs from "@/components/payment/PaymentTabs";
 import toast from "react-hot-toast";
 import { motion, AnimatePresence } from "framer-motion";
-import { getImageUrl, getCookie, generateEventSlug } from "@/lib/utils";
+import { getImageUrl, generateEventSlug } from "@/lib/utils";
+import { getCookie, setCookie } from "@/lib/utils/cookies";
 import { EventDetailsSkeleton } from "@/components/skeletons";
 import { useReferral, cleanEventId } from "@/hooks/useReferral";
 
@@ -119,6 +120,7 @@ const EventDetailsPage = () => {
     const username = getCookie("ref_username");
     if (username) {
       setRefUsername(username);
+      console.log("[Referral] ref_username detected from cookie:", username);
     }
   }, []);
 
@@ -271,10 +273,12 @@ const EventDetailsPage = () => {
         quantity: item.quantity,
       }));
       
+      // Read ref_username cookie directly at time of booking
+      const currentRefCode = getCookie("ref_username");
       const validReferral = getValidReferral(eventIdToUse);
 
       // Determine final referral identity
-      let finalReferral = refUsername || validReferral;
+      let finalReferral = currentRefCode || validReferral;
       
       // Override with scoped source if it matches specific tracking event and choice was made
       if (eventIdToUse === "event:TO-56363" && referralSource) {
@@ -287,10 +291,6 @@ const EventDetailsPage = () => {
         ...(isPaidCheckout && { payment_method: checkoutPaymentMethod }),
         // Send referral username/ID in standard 'referral' field
         ...(finalReferral && { referral: finalReferral }),
-        // For maximum compatibility with all backend endpoints
-        ...(finalReferral && { referral_code: finalReferral }),
-        // Also send referral_username if we have the cookie-based identity
-        ...(refUsername && { referral_username: refUsername }),
       };
       
       console.log("Booking payload:", payload);
