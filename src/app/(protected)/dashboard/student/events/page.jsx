@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Loader2, MapPin, Calendar as CalendarIcon, Search, Clock } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { getImageUrl } from "@/lib/utils";
+import { getImageUrl, generateEventSlug } from "@/lib/utils";
 import { EventsGridSkeleton } from "@/components/skeletons";
 
 const EventsPage = () => {
@@ -214,9 +214,10 @@ const EventCard = ({ event, index, isPast = false }) => (
     animate={{ opacity: 1, y: 0 }}
     transition={{ duration: 0.3, delay: index * 0.05 }}
   >
-<Link href={`/dashboard/student/events/${event.event_id}`}>
+<Link href={`/dashboard/student/events/${event.event_slug || generateEventSlug(event.event_name)}`}>
     <div className={`group relative aspect-4/3 overflow-hidden rounded-xl md:rounded-2xl bg-muted cursor-pointer transition-all duration-300 ${isPast ? 'grayscale opacity-70 hover:grayscale-0 hover:opacity-100' : ''}`}>
       {/* Background Image */}
+      
       {event.event_image ? (
         <img
           src={getImageUrl(event.event_image)}

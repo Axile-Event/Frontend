@@ -237,7 +237,7 @@ export default function CheckoutPaymentPage() {
             <Button variant="outline" onClick={() => router.back()} className="rounded-xl border-white/10 text-white hover:bg-white/5 uppercase text-xs font-bold px-6 h-12">
               Go Back
             </Button>
-            <Button onClick={() => router.push("/dashboard/student/events")} className="rounded-xl bg-rose-600 hover:bg-rose-700 text-white uppercase text-xs font-bold px-6 h-12">
+            <Button onClick={() => router.push("/dashboard/user/events")} className="rounded-xl bg-rose-600 hover:bg-rose-700 text-white uppercase text-xs font-bold px-6 h-12">
               Browse Events
             </Button>
           </div>

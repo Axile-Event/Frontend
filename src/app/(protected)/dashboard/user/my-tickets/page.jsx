@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, Calendar, MapPin, Ticket, QrCode, Search } from "lucide-react";
+import { Calendar, MapPin, Ticket, Search } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
@@ -108,7 +108,7 @@ const MyTicketsPage = () => {
               You haven't booked any events yet. Browse our events to find something interesting!
             </p>
           </div>
-          <Link href="/dashboard/student/events">
+          <Link href="/dashboard/user/events">
             <Button className="h-9 md:h-10 text-sm md:text-base">Explore Events</Button>
           </Link>
         </div>
@@ -288,3 +288,4 @@ const MyTicketsPage = () => {
 };
 
 export default MyTicketsPage;
+

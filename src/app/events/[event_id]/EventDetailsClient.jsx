@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import api from "@/lib/axios";
+import { getCookie, setCookie } from "@/lib/utils/cookies";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -44,6 +45,7 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
   // Booking state - now tracks quantities per category
   const [categories, setCategories] = useState([]);
   const [ticketSelections, setTicketSelections] = useState({}); // { category_id: quantity }
+  const [refUsername, setRefUsername] = useState("");
   const [copied, setCopied] = useState(false);
   const [isImageExpanded, setIsImageExpanded] = useState(false);
   const [shareUrl, setShareUrl] = useState("");
@@ -51,6 +53,23 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
   // Temporary referral source state for event:TO-56363
   const [referralSource, setReferralSource] = useState("");
   const [otherReferral, setOtherReferral] = useState("");
+  const { event_id: rawEventId } = useParams();
+  const searchParams = useSearchParams();
+
+  // Referral detection (Cookie & Query Param)
+  useEffect(() => {
+    const queryRef = searchParams.get("ref");
+    const cookieRef = getCookie("ref_username");
+    
+    if (queryRef) {
+      setRefUsername(queryRef);
+      setCookie("ref_username", queryRef, 7);
+      console.log("[Referral] ref_username captured from URL:", queryRef);
+    } else if (cookieRef) {
+      setRefUsername(cookieRef);
+      console.log("[Referral] ref_username detected from cookie:", cookieRef);
+    }
+  }, [searchParams]);
 
   // Restore ticket selections from localStorage after login redirect
   useEffect(() => {
@@ -259,10 +278,16 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
         items: items,
         // Scoped referral source for event:TO-56363
         ...(eventIdToUse === "event:TO-56363" && {
+          referral: refUsername, // Pass referee username as 'referral' to backend
           referral_source: referralSource === "Other" ? `Other: ${otherReferral}` : referralSource,
           referral: referralSource === "Other" ? `Other: ${otherReferral}` : referralSource
         })
       };
+
+      // Ensure referral is included if not already handled by TO-56363 logic
+      if (refUsername && !payload.referral) {
+        payload.referral = refUsername;
+      }
       
       console.log("Booking payload:", payload);
 
@@ -303,7 +328,7 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
 
       toast.success("Ticket booked successfully!", { id: toastId });
       if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("tickets-updated"));
-      router.push("/dashboard/student/my-tickets");
+      router.push("/dashboard/user/my-tickets");
 
     } catch (error) {
       console.error("Booking error:", error);
@@ -385,6 +410,24 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
               </span>
             </div>
           </div>
+          
+          {/* Referral Badge */}
+          <AnimatePresence>
+            {refUsername && (
+              <motion.div 
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-rose-500/10 border border-rose-500/20 rounded-2xl p-4 flex items-center justify-center gap-3 shadow-xl shadow-rose-500/5"
+              >
+                <div className="w-8 h-8 rounded-full bg-rose-500 flex items-center justify-center text-white font-bold text-sm">
+                  {refUsername.charAt(0).toUpperCase()}
+                </div>
+                <p className="text-sm font-medium">
+                  You were referred by <span className="text-rose-500 font-bold">@{refUsername}</span>
+                </p>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
             {/* Main Content - Left Column */}

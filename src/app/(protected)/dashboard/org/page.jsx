@@ -76,15 +76,15 @@ export default function Overview() {
         const analyticsData = analyticsRes.value.data.analytics || analyticsRes.value.data;
         analytics = { 
           ...analyticsData, 
-          total_revenue: orgWallet ? Number(orgWallet.total_balance) : totalNetRevenueFromEvents,
-          total_tickets_sold: totalTicketsFromEvents, 
-          total_events: eventsData.length 
+          total_revenue: analyticsData.organizer_revenue ?? 0,
+          total_tickets_sold: analyticsData.total_tickets_sold ?? totalTicketsFromEvents, 
+          total_events: analyticsData.total_events_created ?? eventsData.length 
         };
       } else {
         analytics = {
-          total_events: eventsData.length,
+          total_events_created: eventsData.length,
           total_tickets_sold: totalTicketsFromEvents,
-          total_revenue: orgWallet ? Number(orgWallet.total_balance) : totalNetRevenueFromEvents,
+          total_revenue: 0,
           revenue_by_event: [],
         };
       }
@@ -531,7 +531,7 @@ export default function Overview() {
                     <div>
                        <p className="text-[10px] text-gray-500 font-bold mb-1">Pending</p>
                        <p className="text-xl font-black text-amber-500 font-mono">
-                          {hideBalances ? '₦••••••' : `₦${Number(orgWallet?.pending_balance || 0).toLocaleString()}`}
+                          {hideBalances ? '₦••••••' : `₦${Number(orgWallet?.pending_withdrawn_amount || 0).toLocaleString()}`}
                        </p>
                     </div>
                     <div className="p-2 bg-amber-500/10 rounded-xl">
