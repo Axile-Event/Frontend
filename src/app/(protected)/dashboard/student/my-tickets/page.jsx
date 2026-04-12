@@ -42,11 +42,28 @@ const MyTicketsPage = () => {
     }
   };
 
-  const getStatusDisplay = (status) => {
-    if (status?.toLowerCase() === "pending") {
+  const getStatusDisplay = (ticket) => {
+    if (!ticket) return "Ready";
+    
+    const status = ticket.status?.toLowerCase() || "pending";
+    const paymentMethod = ticket.payment_method?.toLowerCase();
+
+    // Manual transfer payment waiting for verification
+    if (paymentMethod === "manual_bank_transfer" && status === "pending") {
       return "Please wait while we verify your payment";
     }
-    return status;
+    
+    // Paystack payment not completed
+    if (paymentMethod === "paystack" && status === "pending") {
+      return "Pending";
+    }
+    
+    // Confirmed payment
+    if (status === "confirmed") {
+      return "Confirmed";
+    }
+    
+    return status.charAt(0).toUpperCase() + status.slice(1) || "Ready";
   };
 
   const filteredTickets = tickets.filter((ticket) =>
@@ -123,7 +140,7 @@ const MyTicketsPage = () => {
                       )}`}
                       title={ticket.status}
                     >
-                      {getStatusDisplay(ticket.status)}
+                      {getStatusDisplay(ticket)}
                     </span>
                   </div>
                   <CardDescription className="text-[10px] md:text-xs">
@@ -258,7 +275,7 @@ const MyTicketsPage = () => {
                         <p className={`mt-2 font-medium ${
                             selectedTicket.status === 'confirmed' ? 'text-green-500' : 'text-yellow-500'
                         }`}>
-                            Status: {getStatusDisplay(selectedTicket.status)}
+                            Status: {getStatusDisplay(selectedTicket)}
                         </p>
                     </div>
 

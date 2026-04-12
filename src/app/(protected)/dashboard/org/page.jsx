@@ -531,7 +531,7 @@ export default function Overview() {
                     <div>
                        <p className="text-[10px] text-gray-500 font-bold mb-1">Pending</p>
                        <p className="text-xl font-black text-amber-500 font-mono">
-                          {hideBalances ? '₦••••••' : `₦${Number(orgWallet?.pending_balance || 0).toLocaleString()}`}
+                          {hideBalances ? '₦••••••' : `₦${Number(orgWallet?.pending_withdrawn_amount || 0).toLocaleString()}`}
                        </p>
                     </div>
                     <div className="p-2 bg-amber-500/10 rounded-xl">
