@@ -149,12 +149,7 @@ export default function PayoutPage() {
       const res = await api.post('/wallet/withdraw/', { amount: pendingWithdrawal });
       
       // Handle new payout request response format per documentation
-      if (res.data.request_id) {
-        toast.success(res.data.message || "Payout request submitted successfully");
-        toast.success(`Request ID: ${res.data.request_id}`, { duration: 5000 });
-      } else {
-        toast.success(res.data.message || "Payout request submitted successfully");
-      }
+      toast.success("Payout request submitted successfully. Please wait within 24 hours while we process your payment.");
       
       setWithdrawAmount('');
       setPendingWithdrawal(null);

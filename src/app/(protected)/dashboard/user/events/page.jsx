@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import api from "@/lib/axios";
 import { Input } from "@/components/ui/input";
-import { Loader2, MapPin, Calendar as CalendarIcon, Search, Clock, ArrowRight } from "lucide-react";
+import { MapPin, Calendar as CalendarIcon, Search, Clock, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { getImageUrl, generateEventSlug } from "@/lib/utils";

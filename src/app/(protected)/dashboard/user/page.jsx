@@ -3,11 +3,10 @@
 import React, { useEffect } from "react";
 import api from "@/lib/axios";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Loader2, Ticket, Calendar, ArrowRight, User } from "lucide-react";
+import { Ticket, Calendar, ArrowRight, User } from "lucide-react";
 import { motion } from "framer-motion";
 import useAuthStore from "@/store/authStore";
 import Link from "next/link";
-import toast from "react-hot-toast";
 import { StudentDashboardSkeleton } from "@/components/skeletons";
 import { queryKeys } from "@/lib/query-keys";
 import { getImageUrl } from "@/lib/utils";

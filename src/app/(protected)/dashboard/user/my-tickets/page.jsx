@@ -6,7 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2, Calendar, MapPin, Ticket, QrCode, Search } from "lucide-react";
+import { Calendar, MapPin, Ticket, Search } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
