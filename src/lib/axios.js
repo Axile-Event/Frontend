@@ -242,8 +242,14 @@ api.interceptors.response.use(
           .catch((err) => {
             processQueue(err, null);
 
-            // ONLY logout if refresh token itself is invalid
-            if (isTokenNotValidResponse(err?.response)) {
+            // Logout if refresh token itself is invalid or is 401 with different error patterns
+            const shouldLogout = isTokenNotValidResponse(err?.response) ||
+              (err?.response?.status === 401 && 
+                (err?.response?.data?.detail?.includes("Invalid") ||
+                 err?.response?.data?.detail?.includes("Expired") ||
+                 err?.response?.data?.code === "token_type_not_valid"));
+
+            if (shouldLogout) {
               useAuthStore.getState().logout();
               localStorage.removeItem("auth-storage");
 
@@ -254,6 +260,8 @@ api.interceptors.response.use(
                 "/login",
                 "/signup",
                 "/verify-otp",
+                "/forgot-password",
+                "/reset-password",
                 "/hiring",
               ];
               const currentPath =
@@ -261,7 +269,13 @@ api.interceptors.response.use(
               const isPublicPath =
                 publicPaths.includes(currentPath) ||
                 currentPath.startsWith("/events/") ||
-                currentPath.startsWith("/hiring/");
+                currentPath.startsWith("/hiring/") ||
+                currentPath.startsWith("/contact/") ||
+                currentPath.startsWith("/pricing/") ||
+                currentPath.startsWith("/features/") ||
+                currentPath.startsWith("/referral/") ||
+                currentPath.startsWith("/privacy/") ||
+                currentPath.startsWith("/terms/");
 
               if (typeof window !== "undefined" && !isPublicPath) {
                 window.location.href = "/login";

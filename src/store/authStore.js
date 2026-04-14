@@ -4,11 +4,44 @@ import Cookies from "js-cookie";
 
 // Import token refresh timer functions (dynamic import to avoid circular dependency)
 let startTokenRefreshTimer, stopTokenRefreshTimer;
+
+// Max wait for dynamic import to complete
+const MAX_IMPORT_WAIT = 5000;
+let importPromise = null;
+
 if (typeof window !== "undefined") {
-  import("../lib/axios").then((module) => {
+  importPromise = import("../lib/axios").then((module) => {
     startTokenRefreshTimer = module.startTokenRefreshTimer;
     stopTokenRefreshTimer = module.stopTokenRefreshTimer;
+    return true;
   });
+}
+
+/**
+ * Ensures timer functions are available and starts the refresh timer
+ */
+async function ensureTimerAndStart() {
+  if (startTokenRefreshTimer) {
+    startTokenRefreshTimer();
+    return;
+  }
+
+  // Wait for dynamic import up to MAX_IMPORT_WAIT
+  if (importPromise) {
+    try {
+      await Promise.race([
+        importPromise,
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error("Import timeout")), MAX_IMPORT_WAIT)
+        )
+      ]);
+      if (startTokenRefreshTimer) {
+        startTokenRefreshTimer();
+      }
+    } catch (e) {
+      console.warn("Failed to start token refresh timer:", e);
+    }
+  }
 }
 
 /**
@@ -73,9 +106,8 @@ export const useAuthStore = create(
           isAuthenticated: true,
         });
 
-        if (startTokenRefreshTimer) {
-          startTokenRefreshTimer();
-        }
+        // Use the async function to start timer
+        ensureTimerAndStart();
       },
       logout: () => {
         if (typeof window !== "undefined") {
@@ -118,7 +150,7 @@ export const useAuthStore = create(
             const { token, refreshToken, role } = JSON.parse(decoded);
             if (token) {
               set({ token, refreshToken, role, isAuthenticated: true });
-              if (startTokenRefreshTimer) startTokenRefreshTimer();
+              ensureTimerAndStart();
             }
           } catch (e) {
             console.error("Failed to sync shared auth", e);
@@ -130,8 +162,14 @@ export const useAuthStore = create(
       name: "auth-storage",
       onRehydrateStorage: () => (state) => {
         state.setHydrated();
+        
         // Check for shared cookie on hydration
         state.syncWithCookie();
+        
+        // Restart refresh timer if user is authenticated
+        if (state.token && state.refreshToken) {
+          ensureTimerAndStart();
+        }
       },
     }
   )
