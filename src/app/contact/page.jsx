@@ -8,6 +8,66 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
 const ContactPage = () => {
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [formData, setFormData] = React.useState({
+    name: "",
+    email: "",
+    subject: "",
+    message: ""
+  });
+
+  const handleChange = (e) => {
+    const { id, value } = e.target;
+    // Map id to state keys if they differ
+    const keyMap = {
+      "full-name": "name",
+      "email-address": "email",
+      "subject": "subject",
+      "message": "message"
+    };
+    const key = keyMap[id] || id;
+    setFormData(prev => ({ ...prev, [key]: value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch("/api/send-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          to: "contact@axile.ng",
+          subject: `New Contact Form: ${formData.subject}`,
+          html: `
+            <div style="font-family: sans-serif; padding: 20px; color: #333;">
+              <h2 style="color: #e11d48;">New Contact Inquiry</h2>
+              <p><strong>Name:</strong> ${formData.name}</p>
+              <p><strong>Email:</strong> ${formData.email}</p>
+              <p><strong>Subject:</strong> ${formData.subject}</p>
+              <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
+              <p><strong>Message:</strong></p>
+              <p style="white-space: pre-wrap;">${formData.message}</p>
+            </div>
+          `
+        })
+      });
+
+      if (response.ok) {
+        import("react-hot-toast").then((m) => m.toast.success("Message sent! We'll get back to you soon."));
+        setFormData({ name: "", email: "", subject: "", message: "" });
+      } else {
+        import("react-hot-toast").then((m) => m.toast.error("Failed to send message. Please try again."));
+      }
+    } catch (error) {
+      console.error(error);
+      import("react-hot-toast").then((m) => m.toast.error("An error occurred. Please try again."));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground pt-32 pb-20">
       {/* Background Decor */}
@@ -51,7 +111,7 @@ const ContactPage = () => {
               <ContactCard
                 icon={<Mail className="h-6 w-6 text-primary" />}
                 title="Email Us"
-                description="axile.nig@gmail.com"
+                description="contact@axile.ng"
               />
               <ContactCard
                 icon={<MessageSquare className="h-6 w-6 text-purple-500" />}
@@ -73,40 +133,67 @@ const ContactPage = () => {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="p-8 rounded-3xl bg-card border border-border"
           >
-            <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
+            <form className="space-y-6" onSubmit={handleSubmit}>
               <div className="grid md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Full Name</label>
-                  <Input placeholder="John Doe" className="bg-muted/50 border-border" />
+                  <label htmlFor="full-name" className="text-sm font-medium">Full Name</label>
+                  <Input 
+                    id="full-name" 
+                    placeholder="John Doe" 
+                    className="bg-muted/50 border-border" 
+                    value={formData.name}
+                    onChange={handleChange}
+                    required
+                  />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Email Address</label>
-                  <Input type="email" placeholder="john@example.com" className="bg-muted/50 border-border" />
+                  <label htmlFor="email-address" className="text-sm font-medium">Email Address</label>
+                  <Input 
+                    id="email-address"
+                    type="email" 
+                    placeholder="hello@axile.ng" 
+                    className="bg-muted/50 border-border" 
+                    value={formData.email}
+                    onChange={handleChange}
+                    required
+                  />
                 </div>
               </div>
               
               <div className="space-y-2">
-                <label className="text-sm font-medium">Subject</label>
-                <Input placeholder="How can we help?" className="bg-muted/50 border-border" />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Message</label>
-                <Textarea 
-                  placeholder="Tell us more about your inquiry..." 
-                  className="min-h-[150px] bg-muted/50 border-border"
+                <label htmlFor="subject" className="text-sm font-medium">Subject</label>
+                <Input 
+                  id="subject"
+                  placeholder="How can we help?" 
+                  className="bg-muted/50 border-border" 
+                  value={formData.subject}
+                  onChange={handleChange}
+                  required
                 />
               </div>
 
-              <Button className="w-full h-12 text-lg rounded-xl flex items-center gap-2">
-                Send Message
-                <Send className="h-4 w-4" />
+              <div className="space-y-2">
+                <label htmlFor="message" className="text-sm font-medium">Message</label>
+                <Textarea 
+                  id="message"
+                  placeholder="Tell us more about your inquiry..." 
+                  className="min-h-[150px] bg-muted/50 border-border"
+                  value={formData.message}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+
+              <Button type="submit" className="w-full h-12 text-lg rounded-xl flex items-center gap-2" disabled={isSubmitting}>
+                {isSubmitting ? "Sending..." : "Send Message"}
+                {!isSubmitting && <Send className="h-4 w-4" />}
               </Button>
             </form>
           </motion.div>
         </div>
       </div>
     </div>
+
   );
 };
 
