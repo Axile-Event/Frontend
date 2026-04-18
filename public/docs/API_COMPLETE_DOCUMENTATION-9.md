@@ -5133,7 +5133,7 @@ Admin endpoints require:
 **Request Body:**
 ```json
 {
-  "email": "admin@example.com",
+  "email": "admin@axile.ng",
   "password": "admin_password"
 }
 ```
@@ -5142,7 +5142,7 @@ Admin endpoints require:
 ```json
 {
   "message": "Login successful",
-  "email": "admin@example.com",
+  "email": "admin@axile.ng",
   "is_staff": true,
   "access": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
   "refresh": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
@@ -6553,9 +6553,9 @@ await processWithdrawal('WDR-ABC123', 'failed', 'Invalid bank details');
     "max_events_per_organizer": 50,
     "min_withdrawal_amount": "1000.00",
     "max_withdrawal_amount": "1000000.00",
-    "support_email": "support@axile.app",
+    "support_email": "support@axile.ng",
     "updated_at": "2024-12-15T10:00:00Z",
-    "updated_by": "admin@example.com"
+    "updated_by": "admin@axile.ng"
   },
   "message": "System settings retrieved successfully"
 }
@@ -6647,9 +6647,9 @@ async function getSystemSettings() {
     "max_events_per_organizer": 50,
     "min_withdrawal_amount": "1000.00",
     "max_withdrawal_amount": "1000000.00",
-    "support_email": "support@axile.app",
+    "support_email": "support@axile.ng",
     "updated_at": "2024-12-15T11:00:00Z",
-    "updated_by": "admin@example.com"
+    "updated_by": "admin@axile.ng"
   },
   "message": "System settings updated successfully",
   "caches_invalidated": true
@@ -6755,7 +6755,7 @@ GET /api/admin/audit-logs/?page=2&page_size=50          # Paginated
   "logs": [
     {
       "id": 1,
-      "admin_email": "admin@example.com",
+      "admin_email": "admin@axile.ng",
       "action": "settings_update",
       "target_type": "settings",
       "target_id": "system_settings",
@@ -6776,7 +6776,7 @@ GET /api/admin/audit-logs/?page=2&page_size=50          # Paginated
     },
     {
       "id": 2,
-      "admin_email": "admin@example.com",
+      "admin_email": "admin@axile.ng",
       "action": "user_disable",
       "target_type": "user",
       "target_id": "organiser:ABC12-XYZ34",
@@ -6893,7 +6893,7 @@ GET /api/admin/payment-forms/?page=2&page_size=50               # Paginated
       "status": "confirmed",
       "admin_notes": "Payment verified",
       "confirmed_at": "2024-12-14T16:00:00Z",
-      "confirmed_by": "admin@example.com"
+      "confirmed_by": "admin@axile.ng"
     }
   ],
   "pagination": {

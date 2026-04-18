@@ -51,7 +51,7 @@ const ContactPage = () => {
               <ContactCard
                 icon={<Mail className="h-6 w-6 text-primary" />}
                 title="Email Us"
-                description="axile.nig@gmail.com"
+                description="contact@axile.ng"
               />
               <ContactCard
                 icon={<MessageSquare className="h-6 w-6 text-purple-500" />}
@@ -81,7 +81,7 @@ const ContactPage = () => {
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Email Address</label>
-                  <Input type="email" placeholder="john@example.com" className="bg-muted/50 border-border" />
+                  <Input type="email" placeholder="hello@axile.ng" className="bg-muted/50 border-border" />
                 </div>
               </div>
               
