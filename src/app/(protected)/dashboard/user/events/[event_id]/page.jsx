@@ -205,7 +205,7 @@ const EventDetailsPage = () => {
   // Calculate order summary with fees
   const orderSummary = useMemo(() => {
     if (!event?.ticket_categories) {
-      return { selectedItems: [], subtotal: 0, platformFee: 0, total: 0, totalQuantity: 0 };
+      return { selectedItems: [], subtotal: 0, platformFee: 0, paystackFee: 0, total: 0, totalQuantity: 0 };
     }
 
     const selectedItems = Object.entries(ticketSelections)
@@ -227,14 +227,17 @@ const EventDetailsPage = () => {
     const subtotal = selectedItems.reduce((sum, item) => sum + item.total, 0);
     const totalQuantity = selectedItems.reduce((sum, item) => sum + item.quantity, 0);
     
-    // Calculate combined platform fee (service fee + Paystack fee)
-    // Paystack calculates fee on total amount INCLUDING platform service fee
-    const paystackFee = event.pricing_type === 'free' ? 0 : calculatePaystackFee(subtotal + PLATFORM_SERVICE_FEE);
-    const platformFee = event.pricing_type === 'free' ? 0 : PLATFORM_SERVICE_FEE + paystackFee;
+    // Calculate fees based on payment method
+    // For manual transfers: only platform fee (80 naira)
+    // For Paystack: platform fee (80) + Paystack processing fee
+    const isManualTransfer = checkoutPaymentMethod === 'manual_bank_transfer';
+    const platformServiceFee = event.pricing_type === 'free' ? 0 : PLATFORM_SERVICE_FEE;
+    const paystackFee = (event.pricing_type === 'free' || isManualTransfer) ? 0 : calculatePaystackFee(subtotal + PLATFORM_SERVICE_FEE);
+    const platformFee = platformServiceFee + paystackFee;
     const total = subtotal + platformFee;
 
-    return { selectedItems, subtotal, platformFee, total, totalQuantity };
-  }, [ticketSelections, event]);
+    return { selectedItems, subtotal, platformFee, paystackFee, total, totalQuantity };
+  }, [ticketSelections, event, checkoutPaymentMethod]);
 
   const handleBookTicket = async () => {
     if (orderSummary.totalQuantity < 1) {
@@ -732,10 +735,18 @@ const EventDetailsPage = () => {
                         <span className="text-foreground">₦{orderSummary.subtotal.toLocaleString()}</span>
                       </div>
                       {orderSummary.platformFee > 0 && (
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">Platform Fee</span>
-                          <span className="text-foreground">₦{Math.round(orderSummary.platformFee).toLocaleString()}</span>
-                        </div>
+                        <>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Service Fee</span>
+                            <span className="text-foreground">₦{PLATFORM_SERVICE_FEE.toLocaleString()}</span>
+                          </div>
+                          {orderSummary.paystackFee > 0 && (
+                            <div className="flex justify-between text-sm">
+                              <span className="text-muted-foreground">Paystack Fee</span>
+                              <span className="text-foreground">₦{Math.round(orderSummary.paystackFee).toLocaleString()}</span>
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
 
@@ -746,7 +757,7 @@ const EventDetailsPage = () => {
                         </span>
                         {orderSummary.platformFee > 0 && (
                           <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">
-                            incl. ₦{Math.round(orderSummary.platformFee).toLocaleString()} booking fee
+                            incl. ₦{PLATFORM_SERVICE_FEE}{orderSummary.paystackFee > 0 ? ` + ₦${Math.round(orderSummary.paystackFee).toLocaleString()}` : ""} fee
                           </span>
                         )}
                       </div>
@@ -870,7 +881,7 @@ const EventDetailsPage = () => {
                     </span>
                     {orderSummary.platformFee > 0 && (
                       <span className="text-[10px] text-muted-foreground font-medium self-end mb-0.5">
-                        + ₦{Math.round(orderSummary.platformFee).toLocaleString()} fee
+                        (₦{PLATFORM_SERVICE_FEE}{orderSummary.paystackFee > 0 ? ` + ₦${Math.round(orderSummary.paystackFee).toLocaleString()}` : ""} fee)
                       </span>
                     )}
                   </div>
