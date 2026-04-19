@@ -130,15 +130,19 @@ export default function CheckoutPaymentPage() {
           const paystackFee = calculatePaystackFee(subtotal + serviceFee);
           const totalPaystack = subtotal + serviceFee + paystackFee;
           let totalManual = subtotal + serviceFee;
-          const serverManualRaw =
-            parsed.total_manual_amount ?? parsed.total_amount;
+          
+          // Only use server manual amount if it's specifically set and doesn't include Paystack fees
+          // For manual transfers, the fee should ONLY be the platform fee (80 naira), not Paystack fees
           if (
             parsed.payment_method === "manual_bank_transfer" &&
-            serverManualRaw != null &&
-            serverManualRaw !== ""
+            parsed.total_manual_amount != null &&
+            parsed.total_manual_amount !== ""
           ) {
-            const n = parseFloat(serverManualRaw);
-            if (!Number.isNaN(n)) totalManual = n;
+            const n = parseFloat(parsed.total_manual_amount);
+            if (!Number.isNaN(n) && n === subtotal + serviceFee) {
+              totalManual = n;
+            }
+            // Otherwise, use calculated value: subtotal + 80 naira platform fee only
           }
 
           // Determine allowed methods - prioritize the specific method selected on the event page
