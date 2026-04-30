@@ -7,7 +7,7 @@ import api from "@/lib/axios";
 import { useForm } from "react-hook-form";
 import { queryKeys } from "@/lib/query-keys";
 import toast from "react-hot-toast";
-import { ChevronLeft, Save, Loader2, X, Plus, Edit2, Trash2, Camera, MapPin, Eye, ImageIcon, Zap, Ticket, Calendar, Megaphone, CreditCard, Banknote, CheckCircle2 } from "lucide-react";
+import { ChevronLeft, Save, Loader2, X, Plus, Edit2, Trash2, Camera, MapPin, Eye, ImageIcon, Zap, Ticket, Calendar, Megaphone, CreditCard, Banknote, CheckCircle2, Tag } from "lucide-react";
 import Loading from "@/components/ui/Loading";
 import { Skeleton } from "@/components/ui/skeleton";
 import DateTimePicker from "@/components/ui/DateTimePicker";
@@ -1323,7 +1323,28 @@ export default function EditEventPage() {
                   </div>
                 </div>
               )}
-          </div>
+
+              {/* Coupon Preview */}
+              {watch("enable_coupon") && watch("coupon_code") && (
+                <div className="pt-4 border-t border-white/5">
+                  <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-2">
+                    Available Discount
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <div className="px-3 py-1.5 bg-rose-500/10 border border-rose-500/20 rounded-lg">
+                      <span className="text-[10px] font-bold text-rose-400 flex items-center gap-1.5 uppercase">
+                        <Tag className="w-3 h-3" />
+                        {watch("discount_type") === "percentage"
+                          ? `${watch("discount_value") || 0}% OFF`
+                          : `₦${Number(watch("discount_value") || 0).toLocaleString()} OFF`}
+                        <span className="mx-1 text-gray-500 text-[8px]">with</span>
+                        <span className="text-white font-mono tracking-tighter">{watch("coupon_code")}</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
 
           <div className="bg-rose-500/5 border border-rose-500/10 rounded-xl p-4 text-xs text-rose-300 font-medium text-center">
             Values update in real-time as you type.

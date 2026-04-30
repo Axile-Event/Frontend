@@ -35,6 +35,7 @@ import {
   Layers,
   CreditCard,
   Banknote,
+  Tag,
 } from "lucide-react";
 import DateTimePicker from "@/components/ui/DateTimePicker";
 import { CouponSetup } from "@/components/events/coupon-setup";
@@ -124,6 +125,9 @@ export default function CreateEvent() {
         if (savedReferral) {
           setReferralConfig(prev => ({ ...prev, ...savedReferral }));
         }
+        if (savedDraft.couponConfig) {
+          resetCouponForm(savedDraft.couponConfig);
+        }
         toast.success("Draft restored. You can continue editing.", {
           id: "draft-restored-toast",
           icon: '📝',
@@ -140,9 +144,10 @@ export default function CreateEvent() {
   useEffect(() => {
     if (!hasLoadedDraft || typeof window === "undefined") return;
     
-    const draft = { form, categories, referralConfig };
+    const couponConfig = getCouponValues();
+    const draft = { form, categories, referralConfig, couponConfig };
     localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-  }, [form, categories, referralConfig, hasLoadedDraft]);
+  }, [form, categories, referralConfig, hasLoadedDraft, watch()]);
 
   // Fetch config (GET /config/) and populate eventTypes/pricingTypes.
   useEffect(() => {
@@ -1506,6 +1511,27 @@ if (/^\d*\.?\d*$/.test(numericValue)) {
                           </div>
                         )
                     )}
+                  </div>
+                </div>
+              )}
+
+              {/* Coupon Preview */}
+              {watch("enable_coupon") && watch("coupon_code") && (
+                <div className="pt-4 border-t border-white/5">
+                  <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-2">
+                    Available Discount
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <div className="px-3 py-1.5 bg-rose-500/10 border border-rose-500/20 rounded-lg">
+                      <span className="text-[10px] font-bold text-rose-400 flex items-center gap-1.5 uppercase">
+                        <Tag className="w-3 h-3" />
+                        {watch("discount_type") === "percentage"
+                          ? `${watch("discount_value") || 0}% OFF`
+                          : `₦${Number(watch("discount_value") || 0).toLocaleString()} OFF`}
+                        <span className="mx-1 text-gray-500 text-[8px]">with</span>
+                        <span className="text-white font-mono tracking-tighter">{watch("coupon_code")}</span>
+                      </span>
+                    </div>
                   </div>
                 </div>
               )}
