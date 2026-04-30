@@ -4,6 +4,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import api from "@/lib/axios";
+import { useForm } from "react-hook-form";
 import { queryKeys } from "@/lib/query-keys";
 import toast from "react-hot-toast";
 import { ChevronLeft, Save, Loader2, X, Plus, Edit2, Trash2, Camera, MapPin, Eye, ImageIcon, Zap, Ticket, Calendar, Megaphone, CreditCard, Banknote, CheckCircle2 } from "lucide-react";
@@ -16,6 +17,8 @@ import ReferralToggle from "@/components/organizer/ReferralToggle";
 import ReferralConfigFields from "@/components/organizer/ReferralConfigFields";
 import { appendReferralFields, validateReferralConfig } from "@/lib/referral";
 import { motion, AnimatePresence } from "framer-motion";
+import { CouponSetup } from "@/components/events/coupon-setup";
+import { createEventCoupon, getEventCoupons, deleteCoupon as deleteCouponApi } from "@/lib/api/coupons";
 
 const FALLBACK_EVENT_TYPES = [
   { value: "conference", label: "Conference" },
@@ -59,6 +62,19 @@ export default function EditEventPage() {
     referral_reward_type: "",
     referral_reward_amount: "",
     referral_reward_percentage: "",
+  });
+  const [existingCoupons, setExistingCoupons] = useState([]);
+
+  // Coupon form state
+  const { control, watch, setValue, getValues: getCouponValues, reset: resetCouponForm } = useForm({
+    defaultValues: {
+      enable_coupon: false,
+      discount_type: "percentage",
+      discount_value: "",
+      coupon_code: "",
+      usage_limit: null,
+      expiry_date: null,
+    }
   });
   const [imageFile, setImageFile] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -216,8 +232,30 @@ export default function EditEventPage() {
       }
     };
 
+    const fetchCoupons = async () => {
+      try {
+        const coupons = await getEventCoupons(eventId);
+        if (isMountedRef.current) {
+          setExistingCoupons(coupons || []);
+        }
+      } catch (err) {
+        console.error("Failed to load coupons:", err);
+      }
+    };
+
     fetchEvent();
+    fetchCoupons();
   }, [eventId]);
+
+  const handleDeleteCoupon = async (couponCode) => {
+    try {
+      await deleteCouponApi(couponCode);
+      setExistingCoupons((prev) => prev.filter((c) => c.coupon_code !== couponCode));
+      toast.success("Coupon deleted successfully");
+    } catch (err) {
+      toast.error("Failed to delete coupon");
+    }
+  };
 
 
   const handleChange = (field) => (e) => {
@@ -477,6 +515,28 @@ export default function EditEventPage() {
           router.push("/dashboard/org/my-event");
         } else {
           router.push(`/dashboard/org/my-event/${eventId}`);
+        }
+
+        // Handle Coupon Creation (for new coupons added during edit)
+        const couponData = getCouponValues();
+        if (couponData.enable_coupon) {
+          try {
+            await createEventCoupon(eventId, {
+              discount_type: couponData.discount_type,
+              discount_value: Number(couponData.discount_value),
+              coupon_code: couponData.coupon_code,
+              usage_limit: couponData.usage_limit,
+              expiry_date: couponData.expiry_date,
+            });
+            toast.success("New coupon created successfully");
+            // Refresh coupons list
+            const coupons = await getEventCoupons(eventId);
+            setExistingCoupons(coupons || []);
+            resetCouponForm();
+          } catch (couponErr) {
+            console.error("Coupon creation failed:", couponErr);
+            toast.error("Event saved, but coupon setup failed.");
+          }
         }
       } else {
         toast.error(`Unexpected server response: ${response?.status}`);
@@ -1102,6 +1162,15 @@ export default function EditEventPage() {
 
             </div>
 
+            {/* Coupon Setup Section */}
+            <CouponSetup 
+              control={control}
+              watch={watch}
+              setValue={setValue}
+              existingCoupons={existingCoupons}
+              onDeleteCoupon={handleDeleteCoupon}
+            />
+
 
             <div className="flex flex-col sm:flex-row gap-4 mt-6">
               <button
@@ -1254,7 +1323,6 @@ export default function EditEventPage() {
                   </div>
                 </div>
               )}
-            </div>
           </div>
 
           <div className="bg-rose-500/5 border border-rose-500/10 rounded-xl p-4 text-xs text-rose-300 font-medium text-center">
