@@ -1,0 +1,211 @@
+# Frontend guide: ticket coupons
+
+This document describes how the **ticket coupon** feature behaves on the API so web/mobile clients can integrate organizers creating codes and attendees applying them at checkout.
+
+Base URL prefix (same as the rest of the app):
+
+`/tickets/`
+
+Authentication uses **`Authorization: Bearer <access_token>`** unless noted otherwise.
+
+---
+
+## Concepts
+
+| Concept | Meaning |
+|--------|---------|
+| **Coupon** | Belongs to one **event**. Optionally scoped to **one ticket category**; if omitted, it applies to **all categories** on that event. |
+| **Discount type** | `"fixed"` = flat currency amount off the **eligible** subtotal; `"percent"` = percentage (0–100) off the **eligible** subtotal. |
+| **Eligible subtotal** | Sum of line items that match the coupon (whole cart, or only the configured category). |
+| **One use per user** | Each authenticated **student** can redeem a given coupon code **at most once**, counted when the booking is **confirmed** (paid or free completion path). |
+| **Pending checkout** | While the student has **pending** tickets that reference this coupon, they cannot start another booking with the **same** coupon until those pending tickets are gone or confirmed (e.g. cleanup/expiry clears pending rows). |
+
+**Important:** Coupon checkout is implemented on **student self-booking** (`POST /tickets/book/`). Organizer “book for attendee” / bulk flows **do not** accept `coupon_code` yet.
+
+---
+
+## Organizer: create a coupon
+
+**Endpoint:** `POST /tickets/organizer/coupons/`  
+**Auth:** Organizer JWT (`IsOrganizer`).
+
+### Request body (JSON)
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `event_id` | string | yes | Event id (same format as elsewhere, e.g. `event:…`). |
+| `discount_type` | string | yes | `"fixed"` or `"percent"`. |
+| `discount_value` | number | yes | Decimal ≥ `0.01`. For `percent`, must be ≤ `100`. |
+| `category_id` | string \| null | no | Ticket **category** id for this event (e.g. `category:…`). Omit or empty for **all categories**. |
+| `starts_at` | ISO 8601 datetime \| null | no | Coupon valid from this instant (server timezone aware). |
+| `ends_at` | ISO 8601 datetime \| null | no | Coupon valid until this instant; must be **after** `starts_at` if both set. |
+| `max_redemptions` | integer \| null | no | Global cap across **all** users; omit for unlimited. Minimum `1` when sent. |
+
+### Response — `201 Created`
+
+Returns a single coupon object (shape below). The **`code`** is generated server-side (event-name-style initials + `-` + 4 digits). Show this to the organizer so they can share it.
+
+### Example
+
+```json
+POST /tickets/organizer/coupons/
+{
+  "event_id": "event:TE-12345",
+  "discount_type": "percent",
+  "discount_value": "15.00",
+  "category_id": "category:ABC12-XYZ34"
+}
+```
+
+---
+
+## Organizer: list coupons for an event
+
+**Endpoint:** `GET /tickets/organizer/coupons/?event_id=<event_id>`  
+**Auth:** Organizer JWT.
+
+### Query parameters
+
+| Param | Required | Description |
+|-------|----------|-------------|
+| `event_id` | yes | Same event id string used elsewhere. |
+
+### Response — `200 OK`
+
+```json
+{
+  "coupons": [
+    {
+      "code": "TC-4821",
+      "event_id": "event:TE-12345",
+      "category_id": "category:ABC12-XYZ34",
+      "discount_type": "percent",
+      "discount_value": "15.00",
+      "is_active": true,
+      "starts_at": null,
+      "ends_at": null,
+      "max_redemptions": 100,
+      "redemptions_count": 12,
+      "created_at": "...",
+      "updated_at": "..."
+    }
+  ],
+  "count": 1
+}
+```
+
+Use `redemptions_count` / `max_redemptions` for organizer dashboards. There is **no** deactivate/update endpoint in this feature slice; only listing + create are exposed.
+
+---
+
+## Student: apply coupon at checkout
+
+**Endpoint:** `POST /tickets/book/`  
+**Auth:** Student JWT (same as normal booking).
+
+### Extra body field
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `coupon_code` | string | no | Public code (case-insensitive on server). Omit or blank for normal booking. |
+
+Whitespace-only values are treated as “no coupon.”
+
+### Existing booking fields (unchanged)
+
+- `event_id` (required)
+- `items`: `[{ "category_name": string, "quantity": number }]`
+- `referral` (optional)
+- `payment_method`: `"paystack"` \| `"manual_bank_transfer"` when the event allows multiple methods (same rules as before)
+
+### Success responses
+
+Behavior matches existing booking, plus optional **`coupon`** metadata when a coupon was applied.
+
+**Coupon object** (when present):
+
+| Field | Type | Meaning |
+|-------|------|---------|
+| `code` | string | Applied coupon code. |
+| `discount_amount` | number | Discount applied to the **eligible** portion of the cart (base currency, before platform/Paystack fees). |
+| `subtotal_after_discount` | number | Total **ticket base** subtotal for this booking **after** discount (sum of stored ticket line amounts). |
+
+**Paid — Paystack (`200 OK`):**
+
+- Same as today: `payment_url`, `payment_reference`, `tickets`, `booking_id`, etc.
+- Each ticket in `tickets` includes **`total_price`** already discounted per unit logic used server-side.
+- Optional top-level `coupon` object as above.
+
+**Paid — manual bank transfer (`201 Created`):**
+
+- `total_amount`: amount the user must transfer (**includes** platform piece per existing rules; **no** Paystack fee).
+- Optional `coupon`.
+
+**Free / zero total base (`201 Created`):**
+
+- Tickets created **confirmed** immediately when `pricing_type` is free **or** discounted base is **0**.
+- Server records coupon redemption in this path without Paystack.
+
+**Payment not configured (`201 Created`):**
+
+- Fallback payload includes `base_ticket_price`, `total_amount`, etc.; discounted base is reflected there when coupon applied.
+
+### Errors — `400 Bad Request`
+
+Typical shapes:
+
+```json
+{ "error": "Invalid coupon code for this event." }
+```
+
+```json
+{ "error": "You have already used this coupon." }
+```
+
+Other messages cover expiry, inactive coupon, wrong event/category mix in cart, global max redemptions reached, pending booking conflict, validation failures on `items`, payment method rules, etc.
+
+Serializer validation errors use DRF’s usual `{ "field": ["…"] }` shape where applicable.
+
+---
+
+## How pricing works for the UI
+
+1. **Authoritative totals** after apply only exist **after** a successful `POST /tickets/book/` (or you duplicate server rules client-side for estimates only).
+2. **`tickets[].total_price`** in the booking response is the **discounted** per-ticket line used for payment aggregation (each row is quantity `1` in this API).
+3. **`category_price`** on ticket serializers (if exposed in your client types) may still reflect the **catalog** category price from the related category; use **`total_price`** for “what this line costs in this booking.”
+4. **Fees:** Final Paystack charge is computed server-side from the **discounted** ticket base plus platform/Paystack rules—do not assume fees are calculated on pre-discount list prices.
+
+There is **no** dedicated “preview coupon” endpoint yet. Options:
+
+- Call **`POST /tickets/book/`** only when the user confirms (simplest).
+- Or add a future **`POST /tickets/coupons/validate/`** (not implemented) if product needs live preview without reserving inventory.
+
+---
+
+## UX checklist
+
+- **Organizer:** After create, show **`code`**, discount summary, optional category scope, and validity window.
+- **Checkout:** Input for optional promo code; on submit include `coupon_code`; surface `{ error }` from API clearly.
+- **Paid flow:** Redirect/open `payment_url` as today; amount matches discounted totals.
+- **Already used:** Expect clear error; disable re-entry for that code for that logged-in user.
+- **Mixed cart + category-scoped coupon:** Discount applies only to matching categories; `discount_amount` describes savings on the eligible portion—avoid implying “X off entire cart” unless coupon is event-wide.
+
+---
+
+## Quick reference
+
+| Action | Method & path |
+|--------|----------------|
+| Create coupon | `POST /tickets/organizer/coupons/` |
+| List coupons | `GET /tickets/organizer/coupons/?event_id=…` |
+| Book with coupon | `POST /tickets/book/` + `coupon_code` |
+
+---
+
+## Related backend modules
+
+- Models: `radar.ticket.models` (`TicketCoupon`, `CouponRedemption`, `Ticket.applied_coupon`)
+- Logic: `radar.ticket.coupon_service`
+- Views: `TicketBookingView`, `OrganizerTicketCouponListCreateView`
+
+@samkiell @LupoNetn @Abraham123-dev 
