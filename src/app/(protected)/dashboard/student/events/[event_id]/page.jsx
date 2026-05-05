@@ -22,6 +22,9 @@ import { getImageUrl, generateEventSlug } from "@/lib/utils";
 import { getCookie, setCookie } from "@/lib/utils/cookies";
 import { EventDetailsSkeleton } from "@/components/skeletons";
 import { useReferral, cleanEventId } from "@/hooks/useReferral";
+import { CouponInput } from "@/components/checkout/coupon-input";
+import { SavingsCallout } from "@/components/checkout/savings-callout";
+
 
 // Platform fee constants
 const PLATFORM_SERVICE_FEE = 80; // ₦80 service fee
@@ -88,6 +91,10 @@ const EventDetailsPage = () => {
   // Temporary referral source state for event:TO-56363
   const [referralSource, setReferralSource] = useState("");
   const [otherReferral, setOtherReferral] = useState("");
+
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  // appliedCoupon shape: { code: string, result: validationResponse }
+
 
   const [checkoutPaymentMethod, setCheckoutPaymentMethod] = useState(null);
 
@@ -231,10 +238,27 @@ const EventDetailsPage = () => {
     // Paystack calculates fee on total amount INCLUDING platform service fee
     const paystackFee = event.pricing_type === 'free' ? 0 : calculatePaystackFee(subtotal + PLATFORM_SERVICE_FEE);
     const platformFee = event.pricing_type === 'free' ? 0 : PLATFORM_SERVICE_FEE + paystackFee;
-    const total = subtotal + platformFee;
+    let total = subtotal + platformFee;
+    let discount = 0;
 
-    return { selectedItems, subtotal, platformFee, total, totalQuantity };
-  }, [ticketSelections, event]);
+    if (appliedCoupon && appliedCoupon.result) {
+      discount = appliedCoupon.result.savings || 0;
+      total = Math.max(0, appliedCoupon.result.discounted_total + platformFee);
+    }
+
+    return { 
+      selectedItems, 
+      subtotal, 
+      platformFee, 
+      total, 
+      totalQuantity,
+      discount,
+      discountLabel: appliedCoupon?.result?.discount_type === 'percentage' 
+        ? `${appliedCoupon.result.discount_value}% off`
+        : 'Fixed discount'
+    };
+  }, [ticketSelections, event, appliedCoupon]);
+
 
   const handleBookTicket = async () => {
     if (orderSummary.totalQuantity < 1) {
@@ -291,7 +315,9 @@ const EventDetailsPage = () => {
         ...(isPaidCheckout && { payment_method: checkoutPaymentMethod }),
         // Send referral username/ID in standard 'referral' field
         ...(finalReferral && { referral: finalReferral }),
+        ...(appliedCoupon && { coupon_code: appliedCoupon.code }),
       };
+
       
       console.log("Booking payload:", payload);
 
@@ -342,7 +368,9 @@ const EventDetailsPage = () => {
 
       // Handle Free Event (Success)
       if (validReferral) clearReferral();
+      if (appliedCoupon) setAppliedCoupon(null);
       toast.success("Ticket booked successfully!", { id: toastId });
+
       if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("tickets-updated"));
       router.push("/dashboard/student/my-tickets");
       
@@ -354,7 +382,12 @@ const EventDetailsPage = () => {
          errorMessage = "No more tickets available";
       }
       
-      toast.error(errorMessage, { id: toastId });
+      if (appliedCoupon && (errorMessage.toLowerCase().includes("coupon") || error.response?.status === 400)) {
+        toast.error("Coupon could not be applied. Booking placed without discount.", { id: toastId });
+      } else {
+        toast.error(errorMessage, { id: toastId });
+      }
+
     } finally {
       setBookingLoading(false);
     }
@@ -726,7 +759,33 @@ const EventDetailsPage = () => {
                       ))}
                     </div>
 
+                    {/* Coupon Section */}
+                    {isEventPaid && orderSummary.totalQuantity > 0 && (
+                      <div className="border-t border-border/50 pt-4 space-y-4">
+                        <CouponInput 
+                          eventId={event?.event_id}
+                          items={orderSummary.selectedItems.map(i => ({ category_name: i.name, quantity: i.quantity }))}
+                          onCouponApplied={(result, code) => setAppliedCoupon({ code, result })}
+                          onCouponRemoved={() => setAppliedCoupon(null)}
+                          disabled={bookingLoading}
+                        />
+                        
+                        <AnimatePresence>
+                          {appliedCoupon && (
+                            <motion.div
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: "auto" }}
+                              exit={{ opacity: 0, height: 0 }}
+                            >
+                              <SavingsCallout savings={orderSummary.discount} />
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    )}
+
                     <div className="border-t border-border/50 pt-4 space-y-2">
+
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Subtotal</span>
                         <span className="text-foreground">₦{orderSummary.subtotal.toLocaleString()}</span>
@@ -737,13 +796,21 @@ const EventDetailsPage = () => {
                           <span className="text-foreground">₦{Math.round(orderSummary.platformFee).toLocaleString()}</span>
                         </div>
                       )}
+                      {orderSummary.discount > 0 && (
+                        <div className="flex justify-between text-sm font-medium text-emerald-600">
+                          <span>Discount ({orderSummary.discountLabel})</span>
+                          <span>-₦{orderSummary.discount.toLocaleString()}</span>
+                        </div>
+                      )}
                     </div>
+
 
                     <div className="border-t border-border/50 pt-4">
                       <div className="flex flex-col items-end">
                         <span className="text-2xl font-bold text-rose-500">
-                          ₦{Math.round(orderSummary.total).toLocaleString()}
+                          {orderSummary.total === 0 ? "Free" : `₦${Math.round(orderSummary.total).toLocaleString()}`}
                         </span>
+
                         {orderSummary.platformFee > 0 && (
                           <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">
                             incl. ₦{Math.round(orderSummary.platformFee).toLocaleString()} booking fee
@@ -782,10 +849,11 @@ const EventDetailsPage = () => {
                   ) : orderSummary.totalQuantity > 0 ? (
                     <>
                       <Ticket className="mr-2 h-5 w-5" />
-                      {event.pricing_type === 'free' 
+                      {event.pricing_type === 'free' || orderSummary.total === 0
                         ? `Get ${orderSummary.totalQuantity} Ticket${orderSummary.totalQuantity > 1 ? 's' : ''}`
                         : `Pay ₦${Math.round(orderSummary.total).toLocaleString()}`
                       }
+
                     </>
                   ) : (
                     "Select Tickets"
