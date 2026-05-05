@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
+import { useForm } from "react-hook-form";
 import { motion, AnimatePresence } from "framer-motion";
 import api from "../../../../../lib/axios";
 import { queryKeys } from "@/lib/query-keys";
@@ -34,8 +35,11 @@ import {
   Layers,
   CreditCard,
   Banknote,
+  Tag,
 } from "lucide-react";
 import DateTimePicker from "@/components/ui/DateTimePicker";
+import { CouponSetup } from "@/components/events/coupon-setup";
+import { createEventCoupon } from "@/lib/api/coupons";
 
 const FALLBACK_EVENT_TYPES = [
   { value: "conference", label: "Conference" },
@@ -88,6 +92,18 @@ export default function CreateEvent() {
   const [createdEventId, setCreatedEventId] = useState(null);
   const [showPinPrompt, setShowPinPrompt] = useState(false);
   const [pendingSubmit, setPendingSubmit] = useState(false);
+
+  // Coupon form state
+  const { control, watch, setValue, getValues: getCouponValues, reset: resetCouponForm } = useForm({
+    defaultValues: {
+      enable_coupon: false,
+      discount_type: "percentage",
+      discount_value: "",
+      coupon_code: "",
+      usage_limit: null,
+      expiry_date: null,
+    }
+  });
   const [isDraft, setIsDraft] = useState(false);
   const DRAFT_KEY = "axile_event_creation_draft";
   const [hasLoadedDraft, setHasLoadedDraft] = useState(false);
@@ -109,6 +125,9 @@ export default function CreateEvent() {
         if (savedReferral) {
           setReferralConfig(prev => ({ ...prev, ...savedReferral }));
         }
+        if (savedDraft.couponConfig) {
+          resetCouponForm(savedDraft.couponConfig);
+        }
         toast.success("Draft restored. You can continue editing.", {
           id: "draft-restored-toast",
           icon: '📝',
@@ -125,9 +144,10 @@ export default function CreateEvent() {
   useEffect(() => {
     if (!hasLoadedDraft || typeof window === "undefined") return;
     
-    const draft = { form, categories, referralConfig };
+    const couponConfig = getCouponValues();
+    const draft = { form, categories, referralConfig, couponConfig };
     localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
-  }, [form, categories, referralConfig, hasLoadedDraft]);
+  }, [form, categories, referralConfig, hasLoadedDraft, watch()]);
 
   // Fetch config (GET /config/) and populate eventTypes/pricingTypes.
   useEffect(() => {
@@ -533,6 +553,24 @@ if (/^\d*\.?\d*$/.test(numericValue)) {
         queryClient.invalidateQueries({ queryKey: queryKeys.organizer.events });
         queryClient.invalidateQueries({ queryKey: queryKeys.organizer.dashboard });
         localStorage.removeItem(DRAFT_KEY);
+
+        // Handle Coupon Creation
+        const couponData = getCouponValues();
+        if (couponData.enable_coupon) {
+          try {
+            await createEventCoupon(newId, {
+              discount_type: couponData.discount_type,
+              discount_value: Number(couponData.discount_value),
+              coupon_code: couponData.coupon_code,
+              usage_limit: couponData.usage_limit,
+              expiry_date: couponData.expiry_date,
+            });
+            toast.success("Coupon created successfully");
+          } catch (couponErr) {
+            console.error("Coupon creation failed:", couponErr);
+            toast.error("Event saved, but coupon setup failed. Please try again from the edit page.");
+          }
+        }
       } else {
         toast.error(`Unexpected server response: ${res?.status}`);
       }
@@ -778,79 +816,97 @@ if (/^\d*\.?\d*$/.test(numericValue)) {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div className="space-y-1.5">
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                  Pricing <span className="text-rose-500">*</span>
-                </label>
-                <div className="flex bg-white/5 p-1 rounded-xl border border-white/10 relative">
-                  {pricingTypes.map((p) => (
-                    <button
-                      key={p.value}
-                      type="button"
-                      onClick={() =>
-                        {
-                          setForm((s) => ({
-                            ...s,
-                            pricing_type: p.value,
-                            // Capacity is only for free events
-                            capacity: p.value === "paid" ? "" : s.capacity,
-                            payment_methods_allowed: p.value === "free" ? [] : s.payment_methods_allowed,
-                          }));
-                          setErrors((prev) => ({
-                            ...prev,
-                            pricing_type: undefined,
-                            capacity: undefined,
-                            categories: undefined,
-                            referral: undefined,
-                            payment_methods_allowed: undefined,
-                          }));
-                          if (p.value === "free") {
-                            // Simplify free event flow: capacity-driven single category
-                            setCategories([]);
-                            // Disable referral for free events
-                            setReferralConfig((prev) => ({
-                              ...prev,
-                              use_referral: false,
+            <div className="bg-[#0A0A0A] border border-white/5 rounded-3xl p-6 md:p-8 shadow-xl space-y-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                    Pricing <span className="text-rose-500">*</span>
+                  </label>
+                  <div className="flex bg-white/5 p-1 rounded-xl border border-white/10 relative">
+                    {pricingTypes.map((p) => (
+                      <button
+                        key={p.value}
+                        type="button"
+                        onClick={() =>
+                          {
+                            setForm((s) => ({
+                              ...s,
+                              pricing_type: p.value,
+                              // Capacity is only for free events
+                              capacity: p.value === "paid" ? "" : s.capacity,
+                              payment_methods_allowed: p.value === "free" ? [] : s.payment_methods_allowed,
                             }));
-                          }
-                        }
-                      }
-                      className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${form.pricing_type === p.value ? "bg-rose-600 text-white shadow-lg" : "text-gray-400 hover:text-white"}`}
-                    >
-                      {p.label}
-                    </button>
-                  ))}
+                            setErrors((prev) => ({
+                              ...prev,
+                              pricing_type: undefined,
+                              capacity: undefined,
+                              categories: undefined,
+                              referral: undefined,
+                              payment_methods_allowed: undefined,
+                            }));
+                            if (p.value === "free") {
+                              // Simplify free event flow: capacity-driven single category
+                              setCategories([]);
+                              // Disable referral for free events
+                              setReferralConfig((prev) => ({
+                                ...prev,
+                                use_referral: false,
+                              }));
+                            }
+                          }}
+                        className={`flex-1 py-3 text-xs font-bold rounded-xl transition-all z-10 ${
+                          form.pricing_type === p.value
+                            ? "text-white"
+                            : "text-gray-500 hover:text-white"
+                        }`}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                    <motion.div
+                      initial={false}
+                      animate={{
+                        x: form.pricing_type === "free" ? 0 : "100%",
+                      }}
+                      className="absolute inset-1 w-[calc(50%-4px)] bg-rose-600 rounded-lg shadow-lg shadow-rose-600/20"
+                      transition={{
+                        type: "spring",
+                        stiffness: 400,
+                        damping: 30,
+                      }}
+                    />
+                  </div>
                   {errors.pricing_type && (
-                    <p className="absolute -bottom-5 left-0 text-[10px] text-rose-500 font-bold">
+                    <p className="text-[10px] text-rose-500 font-bold uppercase tracking-tight mt-1">
                       {errors.pricing_type}
                     </p>
                   )}
                 </div>
-              </div>
-              <div className="space-y-1.5 flex flex-col">
-                <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                  Event Type <span className="text-rose-500">*</span>
-                </label>
-                <CustomDropdown
-                  value={form.event_type}
-                  onChange={(val) => {
-                    setForm((s) => ({ ...s, event_type: val }));
-                    setErrors((p) => ({ ...p, event_type: undefined }));
-                  }}
-                  options={eventTypes.map((t) => ({
-                    value: t.value || t,
-                    label: t.label || t,
-                    icon: Zap,
-                  }))}
-                  placeholder="Select Type"
-                  hasError={!!errors.event_type}
-                />
-                {errors.event_type && (
-                  <p className="text-[10px] text-rose-500 font-bold uppercase tracking-tight mt-1">
-                    {errors.event_type}
-                  </p>
-                )}
+
+                <div className="space-y-1.5 flex flex-col">
+                  <label className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                    Event Type <span className="text-rose-500">*</span>
+                  </label>
+                  <CustomDropdown
+                    value={form.event_type}
+                    onChange={(val) => {
+                      setForm((s) => ({ ...s, event_type: val }));
+                      setErrors((p) => ({ ...p, event_type: undefined }));
+                    }}
+                    options={eventTypes.map((t) => ({
+                      value: t.value || t,
+                      label: t.label || t,
+                      icon: Zap,
+                    }))}
+                    placeholder="Select Type"
+                    hasError={!!errors.event_type}
+                  />
+                  {errors.event_type && (
+                    <p className="text-[10px] text-rose-500 font-bold uppercase tracking-tight mt-1">
+                      {errors.event_type}
+                    </p>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -1314,6 +1370,13 @@ if (/^\d*\.?\d*$/.test(numericValue)) {
                 </AnimatePresence>
               </div>
 
+              {/* Coupon Setup Section */}
+              <CouponSetup 
+                control={control}
+                watch={watch}
+                setValue={setValue}
+              />
+
             <button
               type="submit"
               disabled={loading}
@@ -1448,6 +1511,27 @@ if (/^\d*\.?\d*$/.test(numericValue)) {
                           </div>
                         )
                     )}
+                  </div>
+                </div>
+              )}
+
+              {/* Coupon Preview */}
+              {watch("enable_coupon") && watch("coupon_code") && (
+                <div className="pt-4 border-t border-white/5">
+                  <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-2">
+                    Available Discount
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <div className="px-3 py-1.5 bg-rose-500/10 border border-rose-500/20 rounded-lg">
+                      <span className="text-[10px] font-bold text-rose-400 flex items-center gap-1.5 uppercase">
+                        <Tag className="w-3 h-3" />
+                        {watch("discount_type") === "percentage"
+                          ? `${watch("discount_value") || 0}% OFF`
+                          : `₦${Number(watch("discount_value") || 0).toLocaleString()} OFF`}
+                        <span className="mx-1 text-gray-500 text-[8px]">with</span>
+                        <span className="text-white font-mono tracking-tighter">{watch("coupon_code")}</span>
+                      </span>
+                    </div>
                   </div>
                 </div>
               )}
