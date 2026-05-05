@@ -243,11 +243,31 @@ const EventDetailsPage = () => {
     const platformFee = platformServiceFee + paystackFee;
     let total = subtotal + platformFee;
     let discount = 0;
-
     if (appliedCoupon && appliedCoupon.result) {
-      discount = appliedCoupon.result.savings || 0;
-      total = Math.max(0, appliedCoupon.result.discounted_total + platformFee);
+      const { discount_type, discount_value, category_id } = appliedCoupon.result;
+      
+      // Calculate applicable subtotal
+      let applicableSubtotal = 0;
+      if (category_id) {
+        // Only apply to the specific category
+        const item = selectedItems.find(i => i.category_id === category_id);
+        if (item) {
+          applicableSubtotal = item.total;
+        }
+      } else {
+        // Apply to everything
+        applicableSubtotal = subtotal;
+      }
+
+      if (discount_type === 'percent' || discount_type === 'percentage') {
+        discount = (applicableSubtotal * (parseFloat(discount_value) / 100));
+      } else {
+        // Fixed/Flat discount
+        discount = Math.min(applicableSubtotal, parseFloat(discount_value));
+      }
     }
+
+    const total = Math.max(0, subtotal - discount + platformFee);
 
     return { 
       selectedItems, 
@@ -257,7 +277,7 @@ const EventDetailsPage = () => {
       total, 
       totalQuantity,
       discount,
-      discountLabel: appliedCoupon?.result?.discount_type === 'percentage' 
+      discountLabel: (appliedCoupon?.result?.discount_type === 'percent' || appliedCoupon?.result?.discount_type === 'percentage')
         ? `${appliedCoupon.result.discount_value}% off`
         : 'Fixed discount'
     };

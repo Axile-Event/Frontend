@@ -1,5 +1,9 @@
 import apiClient from "./client";
 
+/**
+ * ORGANIZER ENDPOINTS
+ */
+
 // Create a coupon for an event (organizer only)
 export const createEventCoupon = async (eventId, data) => {
   const response = await apiClient.post("/tickets/organizer/coupons/", {
@@ -20,4 +24,17 @@ export const getEventCoupons = async (eventId) => {
     `/tickets/organizer/coupons/?event_id=${eventId}`
   );
   return response.data; // { coupons: [], count: number }
+};
+
+/**
+ * ATTENDEE ENDPOINTS
+ */
+
+// Validate a coupon (attendee side)
+export const validateCoupon = async (code, eventId) => {
+  const response = await apiClient.post("/tickets/coupons/validate/", {
+    code,
+    event_id: eventId,
+  });
+  return response.data;
 };

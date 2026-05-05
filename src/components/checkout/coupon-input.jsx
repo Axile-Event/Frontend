@@ -39,18 +39,18 @@ export const CouponInput = ({
     setError(null);
 
     try {
-      const result = await validateCoupon(code, eventId, items);
+      // Backend expects: { code: string, event_id: string }
+      const result = await validateCoupon(code, eventId);
       
-      if (result.valid) {
-        setAppliedResult(result);
-        onCouponApplied(result, code);
-        setError(null);
-      } else {
-        setError(result.message || "Invalid or expired coupon code");
-      }
+      // Success (2xx status) - we assume it's valid if request succeeds
+      setAppliedResult(result);
+      onCouponApplied(result, code);
+      setError(null);
     } catch (err) {
       console.error("Coupon validation error:", err);
-      setError("Something went wrong. Please try again.");
+      // Backend returns 4xx with { error: "message" }
+      const errorMsg = err?.response?.data?.error || err?.response?.data?.message || "Invalid or expired coupon code";
+      setError(errorMsg);
     } finally {
       setIsLoading(false);
     }
