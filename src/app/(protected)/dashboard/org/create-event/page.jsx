@@ -40,6 +40,7 @@ import {
 import DateTimePicker from "@/components/ui/DateTimePicker";
 import { CouponSetup } from "@/components/events/coupon-setup";
 import { createEventCoupon } from "@/lib/api/coupons";
+import { CouponCodeDisplay } from "@/components/events/CouponCodeDisplay";
 
 const FALLBACK_EVENT_TYPES = [
   { value: "conference", label: "Conference" },
@@ -92,16 +93,19 @@ export default function CreateEvent() {
   const [createdEventId, setCreatedEventId] = useState(null);
   const [showPinPrompt, setShowPinPrompt] = useState(false);
   const [pendingSubmit, setPendingSubmit] = useState(false);
+  const [createdCoupon, setCreatedCoupon] = useState(null);
+  const [showCouponSuccess, setShowCouponSuccess] = useState(false);
 
   // Coupon form state
   const { control, watch, setValue, getValues: getCouponValues, reset: resetCouponForm } = useForm({
     defaultValues: {
       enable_coupon: false,
-      discount_type: "percentage",
+      discount_type: "percent",
       discount_value: "",
-      coupon_code: "",
-      usage_limit: null,
-      expiry_date: null,
+      category_id: "",
+      max_redemptions: null,
+      starts_at: null,
+      ends_at: null,
     }
   });
   const [isDraft, setIsDraft] = useState(false);
@@ -558,17 +562,21 @@ if (/^\d*\.?\d*$/.test(numericValue)) {
         const couponData = getCouponValues();
         if (couponData.enable_coupon) {
           try {
-            await createEventCoupon(newId, {
+            const couponResponse = await createEventCoupon(newId, {
               discount_type: couponData.discount_type,
-              discount_value: Number(couponData.discount_value),
-              coupon_code: couponData.coupon_code,
-              usage_limit: couponData.usage_limit,
-              expiry_date: couponData.expiry_date,
+              discount_value: parseFloat(couponData.discount_value),
+              category_id: couponData.category_id || null,
+              starts_at: couponData.starts_at || null,
+              ends_at: couponData.ends_at || null,
+              max_redemptions: couponData.max_redemptions ? parseInt(couponData.max_redemptions) : null,
             });
+            
+            setCreatedCoupon(couponResponse);
+            setShowCouponSuccess(true);
             toast.success("Coupon created successfully");
           } catch (couponErr) {
             console.error("Coupon creation failed:", couponErr);
-            toast.error("Event saved, but coupon setup failed. Please try again from the edit page.");
+            toast.error(couponErr?.response?.data?.error || "Event saved, but coupon setup failed. Please try again from the edit page.");
           }
         }
       } else {
@@ -1516,7 +1524,7 @@ if (/^\d*\.?\d*$/.test(numericValue)) {
               )}
 
               {/* Coupon Preview */}
-              {watch("enable_coupon") && watch("coupon_code") && (
+              {watch("enable_coupon") && watch("discount_value") && (
                 <div className="pt-4 border-t border-white/5">
                   <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-2">
                     Available Discount
@@ -1525,11 +1533,11 @@ if (/^\d*\.?\d*$/.test(numericValue)) {
                     <div className="px-3 py-1.5 bg-rose-500/10 border border-rose-500/20 rounded-lg">
                       <span className="text-[10px] font-bold text-rose-400 flex items-center gap-1.5 uppercase">
                         <Tag className="w-3 h-3" />
-                        {watch("discount_type") === "percentage"
+                        {watch("discount_type") === "percent"
                           ? `${watch("discount_value") || 0}% OFF`
                           : `₦${Number(watch("discount_value") || 0).toLocaleString()} OFF`}
                         <span className="mx-1 text-gray-500 text-[8px]">with</span>
-                        <span className="text-white font-mono tracking-tighter">{watch("coupon_code")}</span>
+                        <span className="text-white font-mono tracking-tighter">Generated Code</span>
                       </span>
                     </div>
                   </div>
@@ -1620,6 +1628,37 @@ if (/^\d*\.?\d*$/.test(numericValue)) {
           </div>
         </div>
       )}
+      {/* Coupon Success Modal */}
+      <AnimatePresence>
+        {showCouponSuccess && createdCoupon && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/80 backdrop-blur-md" 
+              onClick={() => setShowCouponSuccess(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-md"
+            >
+              <CouponCodeDisplay 
+                code={createdCoupon.code}
+                discountSummary={`${createdCoupon.discount_type === 'percent' ? createdCoupon.discount_value + '%' : '₦' + Number(createdCoupon.discount_value).toLocaleString()} OFF`}
+              />
+              <button
+                onClick={() => setShowCouponSuccess(false)}
+                className="w-full mt-4 py-4 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-bold transition-all border border-white/10"
+              >
+                Close
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       <PinPromptModal
         isOpen={showPinPrompt}
