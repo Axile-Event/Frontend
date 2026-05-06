@@ -241,8 +241,7 @@ const EventDetailsPage = () => {
     const platformServiceFee = event.pricing_type === 'free' ? 0 : PLATFORM_SERVICE_FEE;
     const paystackFee = (event.pricing_type === 'free' || isManualTransfer) ? 0 : calculatePaystackFee(subtotal + PLATFORM_SERVICE_FEE);
     const platformFee = platformServiceFee + paystackFee;
-    let total = subtotal + platformFee;
-    let discount = 0;
+    let couponDiscount = 0;
     if (appliedCoupon && appliedCoupon.result) {
       const { discount_type, discount_value, category_id } = appliedCoupon.result;
       
@@ -260,14 +259,14 @@ const EventDetailsPage = () => {
       }
 
       if (discount_type === 'percent' || discount_type === 'percentage') {
-        discount = (applicableSubtotal * (parseFloat(discount_value) / 100));
+        couponDiscount = (applicableSubtotal * (parseFloat(discount_value) / 100));
       } else {
         // Fixed/Flat discount
-        discount = Math.min(applicableSubtotal, parseFloat(discount_value));
+        couponDiscount = Math.min(applicableSubtotal, parseFloat(discount_value));
       }
     }
 
-    const total = Math.max(0, subtotal - discount + platformFee);
+    const total = Math.max(0, subtotal - couponDiscount + platformFee);
 
     return { 
       selectedItems, 
@@ -276,7 +275,7 @@ const EventDetailsPage = () => {
       paystackFee, 
       total, 
       totalQuantity,
-      discount,
+      discount: couponDiscount,
       discountLabel: (appliedCoupon?.result?.discount_type === 'percent' || appliedCoupon?.result?.discount_type === 'percentage')
         ? `${appliedCoupon.result.discount_value}% off`
         : 'Fixed discount'

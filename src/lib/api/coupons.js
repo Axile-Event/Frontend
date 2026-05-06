@@ -32,7 +32,7 @@ export const getEventCoupons = async (eventId) => {
 
 // Validate a coupon (attendee side)
 export const validateCoupon = async (code, eventId) => {
-  const response = await apiClient.post("/tickets/coupons/validate/", {
+  const response = await apiClient.post("/coupons/validate/", {
     code,
     event_id: eventId,
   });
