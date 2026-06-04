@@ -2,11 +2,13 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useQuery } from "@tanstack/react-query";
 import api from "@/lib/axios";
+import { CouponCodeDisplay } from "@/components/events/CouponCodeDisplay";
+import { useForm } from "react-hook-form";
 import { queryKeys } from "@/lib/query-keys";
 import toast from "react-hot-toast";
-import { ChevronLeft, Save, Loader2, X, Plus, Edit2, Trash2, Camera, MapPin, Eye, ImageIcon, Zap, Ticket, Calendar, Megaphone, CreditCard, Banknote, CheckCircle2 } from "lucide-react";
+import { ChevronLeft, Save, Loader2, X, Plus, Edit2, Trash2, Camera, MapPin, Eye, ImageIcon, Zap, Ticket, Calendar, Megaphone, CreditCard, Banknote, CheckCircle2, Tag } from "lucide-react";
 import Loading from "@/components/ui/Loading";
 import { Skeleton } from "@/components/ui/skeleton";
 import DateTimePicker from "@/components/ui/DateTimePicker";
@@ -16,6 +18,8 @@ import ReferralToggle from "@/components/organizer/ReferralToggle";
 import ReferralConfigFields from "@/components/organizer/ReferralConfigFields";
 import { appendReferralFields, validateReferralConfig } from "@/lib/referral";
 import { motion, AnimatePresence } from "framer-motion";
+import { CouponSetup } from "@/components/events/coupon-setup";
+import { createEventCoupon, getEventCoupons } from "@/lib/api/coupons";
 
 const FALLBACK_EVENT_TYPES = [
   { value: "conference", label: "Conference" },
@@ -60,6 +64,26 @@ export default function EditEventPage() {
     referral_reward_amount: "",
     referral_reward_percentage: "",
   });
+
+  const { data: couponsData } = useQuery({
+    queryKey: ["coupons", eventId],
+    queryFn: () => getEventCoupons(eventId),
+    enabled: !!eventId,
+  });
+  const existingCoupons = couponsData?.coupons || [];
+
+  // Coupon form state
+  const { control, watch, setValue, getValues: getCouponValues, reset: resetCouponForm } = useForm({
+    defaultValues: {
+      enable_coupon: false,
+      discount_type: "percent",
+      discount_value: "",
+      category_id: "",
+      max_redemptions: null,
+      starts_at: null,
+      ends_at: null,
+    }
+  });
   const [imageFile, setImageFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [errors, setErrors] = useState({});
@@ -67,6 +91,8 @@ export default function EditEventPage() {
   const [pendingSubmit, setPendingSubmit] = useState(false);
   const [wantsToPublish, setWantsToPublish] = useState(false);
   const [isDraft, setIsDraft] = useState(false);
+  const [createdCoupon, setCreatedCoupon] = useState(null);
+  const [showCouponSuccess, setShowCouponSuccess] = useState(false);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -477,6 +503,32 @@ export default function EditEventPage() {
           router.push("/dashboard/org/my-event");
         } else {
           router.push(`/dashboard/org/my-event/${eventId}`);
+        }
+
+        // Handle Coupon Creation (for new coupons added during edit)
+        const couponData = getCouponValues();
+        if (couponData.enable_coupon) {
+          try {
+            const couponResponse = await createEventCoupon(eventId, {
+              discount_type: couponData.discount_type,
+              discount_value: parseFloat(couponData.discount_value),
+              category_id: couponData.category_id || null,
+              starts_at: couponData.starts_at || null,
+              ends_at: couponData.ends_at || null,
+              max_redemptions: couponData.max_redemptions ? parseInt(couponData.max_redemptions) : null,
+            });
+            
+            setCreatedCoupon(couponResponse);
+            setShowCouponSuccess(true);
+            toast.success("New coupon created successfully");
+            
+            // Refresh coupons list
+            queryClient.invalidateQueries({ queryKey: ["coupons", eventId] });
+            resetCouponForm();
+          } catch (couponErr) {
+            console.error("Coupon creation failed:", couponErr);
+            toast.error(couponErr?.response?.data?.error || "Event saved, but coupon setup failed.");
+          }
         }
       } else {
         toast.error(`Unexpected server response: ${response?.status}`);
@@ -1102,6 +1154,15 @@ export default function EditEventPage() {
 
             </div>
 
+            {/* Coupon Setup Section */}
+            <CouponSetup 
+              control={control}
+              watch={watch}
+              setValue={setValue}
+              existingCoupons={existingCoupons}
+              ticketCategories={categories}
+            />
+
 
             <div className="flex flex-col sm:flex-row gap-4 mt-6">
               <button
@@ -1254,14 +1315,66 @@ export default function EditEventPage() {
                   </div>
                 </div>
               )}
+
+              {/* Coupon Preview */}
+              {watch("enable_coupon") && watch("discount_value") && (
+                <div className="pt-4 border-t border-white/5">
+                  <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest mb-2">
+                    Available Discount
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <div className="px-3 py-1.5 bg-rose-500/10 border border-rose-500/20 rounded-lg">
+                      <span className="text-[10px] font-bold text-rose-400 flex items-center gap-1.5 uppercase">
+                        <Tag className="w-3 h-3" />
+                        {watch("discount_type") === "percent"
+                          ? `${watch("discount_value") || 0}% OFF`
+                          : `₦${Number(watch("discount_value") || 0).toLocaleString()} OFF`}
+                        <span className="mx-1 text-gray-500 text-[8px]">with</span>
+                        <span className="text-white font-mono tracking-tighter">Generated Code</span>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
 
           <div className="bg-rose-500/5 border border-rose-500/10 rounded-xl p-4 text-xs text-rose-300 font-medium text-center">
             Values update in real-time as you type.
           </div>
         </section>
       </div>
+
+      {/* Coupon Success Modal */}
+      <AnimatePresence>
+        {showCouponSuccess && createdCoupon && (
+          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/80 backdrop-blur-md" 
+              onClick={() => setShowCouponSuccess(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-md"
+            >
+              <CouponCodeDisplay 
+                code={createdCoupon.code}
+                discountSummary={`${createdCoupon.discount_type === 'percent' ? createdCoupon.discount_value + '%' : '₦' + Number(createdCoupon.discount_value).toLocaleString()} OFF`}
+              />
+              <button
+                onClick={() => setShowCouponSuccess(false)}
+                className="w-full mt-4 py-4 bg-white/5 hover:bg-white/10 text-white rounded-2xl font-bold transition-all border border-white/10"
+              >
+                Close
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* PIN Prompt Modal */}
       <PinPromptModal
