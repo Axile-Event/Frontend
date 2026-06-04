@@ -383,9 +383,9 @@ export default function BulkBookForAttendeeModal({
       // Paid + manual bank transfer — route to checkout with manual transfer tab
       if (
         isPaidEvent &&
+        paymentMethod === "manual_bank_transfer" &&
         result.booking_id != null &&
-        result.total_amount != null &&
-        result.payment_method === "manual_bank_transfer"
+        result.total_amount != null
       ) {
         const categoryTotals = {};
         attendees.forEach((a) => {
@@ -431,9 +431,9 @@ export default function BulkBookForAttendeeModal({
       // Paid + Paystack: store booking with base subtotal so checkout page adds platform + Paystack fees
       if (
         isPaidEvent &&
+        paymentMethod !== "manual_bank_transfer" &&
         result.booking_id != null &&
-        result.payment_url != null &&
-        result.payment_method !== "manual_bank_transfer"
+        result.payment_url != null
       ) {
         const categoryTotals = {};
         attendees.forEach((a) => {
