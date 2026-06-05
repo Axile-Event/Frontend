@@ -184,13 +184,15 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
       }
     });
 
-    // Paystack calculates fee on total amount INCLUDING platform service fee
-    const paystackFee = subtotal > 0 ? calculatePaystackFee(subtotal + PLATFORM_FEE) : 0;
-    const platformFee = subtotal > 0 ? PLATFORM_FEE + paystackFee : 0;
+    // Base platform service fee
+    const baseServiceFee = subtotal > 0 ? PLATFORM_FEE : 0;
+    // Paystack processing fee only applies if Paystack is the selected method
+    const paystackFee = (subtotal > 0 && paymentMethod === "paystack") ? calculatePaystackFee(subtotal + PLATFORM_FEE) : 0;
+    const platformFee = baseServiceFee + paystackFee;
     const total = subtotal + platformFee;
 
-    return { selectedItems, subtotal, platformFee, total, totalQuantity };
-  }, [ticketSelections, categories]);
+    return { selectedItems, subtotal, platformFee, total, totalQuantity, paystackFee };
+  }, [ticketSelections, categories, paymentMethod]);
 
   // Handle quantity change for a category
   const handleQuantityChange = (categoryId, delta) => {
@@ -406,40 +408,6 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
             </div>
           </div>
 
-                      {/* Payment Method Selection */}
-                      {event.pricing_type === 'paid' && orderSummary.totalQuantity > 0 && (
-                        <div className="border-t border-border/50 pt-4 space-y-3">
-                          <p className="text-sm font-semibold text-foreground">Select Payment Method</p>
-                          <div className="grid grid-cols-2 gap-3">
-                            <button
-                              onClick={() => setPaymentMethod("paystack")}
-                              className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all ${
-                                paymentMethod === "paystack" 
-                                  ? "border-rose-500 bg-rose-500/5 text-rose-500" 
-                                  : "border-border bg-transparent text-muted-foreground hover:border-border/80"
-                              }`}
-                            >
-                              <CreditCard className="h-5 w-5 mb-1" />
-                              <span className="text-[10px] font-bold uppercase tracking-wider">Paystack</span>
-                            </button>
-                            <button
-                              onClick={() => setPaymentMethod("manual_bank_transfer")}
-                              className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all ${
-                                paymentMethod === "manual_bank_transfer" 
-                                  ? "border-rose-500 bg-rose-500/5 text-rose-500" 
-                                  : "border-border bg-transparent text-muted-foreground hover:border-border/80"
-                              }`}
-                            >
-                              <Landmark className="h-5 w-5 mb-1" />
-                              <span className="text-[10px] font-bold uppercase tracking-wider">Transfer</span>
-                            </button>
-                          </div>
-                        </div>
-                      )}
-
-                      <div className="border-t border-border/50 pt-4">
-                        <div className="flex justify-between items-center">
-          
           {/* Referral Badge */}
           <AnimatePresence>
             {refUsername && (
