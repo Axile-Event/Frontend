@@ -1337,6 +1337,7 @@ export default function EditEventPage() {
                 </div>
               )}
             </div>
+          </div>
 
           <div className="bg-rose-500/5 border border-rose-500/10 rounded-xl p-4 text-xs text-rose-300 font-medium text-center">
             Values update in real-time as you type.
