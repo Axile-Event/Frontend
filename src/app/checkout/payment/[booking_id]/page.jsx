@@ -313,7 +313,7 @@ export default function CheckoutPaymentPage() {
               <div className="lg:sticky lg:top-8">
                 <PaymentSummary 
                   summary={bookingData} 
-                  onPay={handlePayWithPaystack}
+                  onPay={activeTab === 'paystack' ? handlePayWithPaystack : undefined}
                   loading={paymentLoading}
                   paymentMethod={activeTab}
                   showActionButton={activeTab === 'paystack'}
