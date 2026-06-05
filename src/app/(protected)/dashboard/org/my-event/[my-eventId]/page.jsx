@@ -27,7 +27,8 @@ import {
   User,
   Minus,
   Plus,
-  Megaphone
+  Megaphone,
+  Tag
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { getImageUrl, getErrorMessage } from "../../../../../../lib/utils";
@@ -38,6 +39,7 @@ import ManualConfirmationModal from "@/components/payment/ManualConfirmationModa
 import ReferralBadge from "@/components/organizer/ReferralBadge";
 import ReferralStatsTable from "@/components/organizer/ReferralStatsTable";
 import { getReferralStats } from "@/lib/referral";
+import { getEventCoupons } from "@/lib/api/coupons";
 import useTempBookingStore from "@/store/tempBookingStore";
 
 // Book for Attendee Modal Component
@@ -456,6 +458,14 @@ export default function EventDetailsPage() {
     enabled: !!id && !!event,
     refetchOnWindowFocus: true
   });
+  
+  const { data: couponsData, isLoading: couponsLoading } = useQuery({
+    queryKey: ["coupons", id],
+    queryFn: () => getEventCoupons(id),
+    enabled: !!id,
+    refetchOnWindowFocus: true
+  });
+  const coupons = couponsData?.coupons || [];
 
   const invalidateEventDetail = () => {
     queryClient.invalidateQueries({ queryKey: queryKeys.organizer.eventDetail(id) });
@@ -1020,6 +1030,56 @@ export default function EventDetailsPage() {
                   ? `Referees earn ₦${Number(event.referral_reward_amount || 0).toLocaleString()} for each ticket sold through their link.`
                   : `Referees earn ${event.referral_reward_percentage || 0}% of each ticket price sold through their link.`}
               </p>
+            </div>
+          )}
+
+          {/* Coupons Section */}
+          {coupons.length > 0 && (
+            <div className="bg-[#0A0A0A] border border-white/5 rounded-3xl p-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Tag className="w-4 h-4 text-rose-500" />
+                  <h4 className="text-sm font-bold text-white">Active Coupons</h4>
+                </div>
+                <span className="text-[10px] font-black text-rose-500 uppercase tracking-widest">{coupons.length}</span>
+              </div>
+              
+              <div className="space-y-3">
+                {coupons.map((coupon, idx) => (
+                  <div 
+                    key={idx} 
+                    onClick={() => {
+                      if (!coupon.is_active) {
+                        toast.error("This coupon is inactive");
+                        return;
+                      }
+                      navigator.clipboard.writeText(coupon.code);
+                      toast.success("Code copied!");
+                    }}
+                    className={`group cursor-pointer bg-white/5 border border-white/10 ${coupon.is_active ? 'hover:border-rose-500/30' : 'opacity-60 grayscale'} rounded-2xl p-4 transition-all active:scale-[0.98]`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-base font-black text-white tracking-widest uppercase">{coupon.code}</span>
+                        {!coupon.is_active && <span className="text-[8px] font-black bg-white/10 text-gray-500 px-1.5 py-0.5 rounded uppercase">Inactive</span>}
+                      </div>
+                      {coupon.is_active && (
+                        <div className="p-1.5 rounded-lg bg-white/5 text-gray-500 group-hover:text-rose-500 transition-colors">
+                          <Copy className="w-3 h-3" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] text-rose-500 font-black uppercase">
+                        {coupon.discount_type === "percent" ? `${coupon.discount_value}% OFF` : `₦${Number(coupon.discount_value).toLocaleString()} OFF`}
+                      </span>
+                      <span className="text-[9px] text-gray-500 font-bold uppercase tracking-tighter">
+                        {coupon.redemptions_count} / {coupon.max_redemptions || "∞"} used
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 

@@ -2,12 +2,10 @@
 
 import React, { useState } from "react";
 import { Controller } from "react-hook-form";
-import { Tag, Trash2, RefreshCw } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tag, Calendar, Layers, CheckCircle2, Clock } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { 
   Select, 
   SelectContent, 
@@ -15,33 +13,35 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select-component";
-import { generateCouponCode } from "@/lib/utils/coupon";
 import DateTimePicker from "@/components/ui/DateTimePicker";
+import { Badge } from "@/components/ui/badge";
 
 export const CouponSetup = ({ 
   control, 
   watch, 
   setValue, 
   existingCoupons = [], 
-  onDeleteCoupon 
+  ticketCategories = []
 }) => {
-  const [hasGenerated, setHasGenerated] = useState(false);
   const enableCoupon = watch("enable_coupon");
-  const discountType = watch("discount_type") || "percentage";
+  const discountType = watch("discount_type") || "percent";
   const discountValue = watch("discount_value");
-  const couponCode = watch("coupon_code");
-
-  const handleGenerateCode = () => {
-    if (hasGenerated) return;
-    const code = generateCouponCode();
-    setValue("coupon_code", code, { shouldValidate: true });
-    setHasGenerated(true);
-  };
+  const startsAt = watch("starts_at");
+  const endsAt = watch("ends_at");
 
   const getPreviewText = () => {
-    if (!discountType || !discountValue || !couponCode) return null;
-    const valueStr = discountType === "percentage" ? `${discountValue}%` : `₦${Number(discountValue).toLocaleString()}`;
-    return `Buyers get ${valueStr} off with code ${couponCode}`;
+    if (!discountType || !discountValue) return null;
+    const valueStr = discountType === "percent" ? `${discountValue}%` : `₦${Number(discountValue).toLocaleString()}`;
+    return `Buyers get ${valueStr} off the subtotal`;
+  };
+
+  const validateDates = () => {
+    if (startsAt && endsAt) {
+      if (new Date(endsAt) <= new Date(startsAt)) {
+        return "End date must be after start date";
+      }
+    }
+    return true;
   };
 
   return (
@@ -54,7 +54,7 @@ export const CouponSetup = ({
         </h3>
       </div>
 
-      {/* Toggle Row (Matches ReferralToggle style) */}
+      {/* Toggle Row */}
       <Controller
         name="enable_coupon"
         control={control}
@@ -85,7 +85,6 @@ export const CouponSetup = ({
               </div>
             </div>
 
-            {/* Switch / Toggle */}
             <div className="flex items-center gap-3">
               <div className={`text-[10px] font-bold uppercase tracking-widest ${field.value ? 'text-rose-500' : 'text-gray-600'}`}>
                 {field.value ? "Enabled" : "Disabled"}
@@ -110,29 +109,54 @@ export const CouponSetup = ({
               <div className="grid gap-3">
                 {existingCoupons.map((coupon) => (
                   <div 
-                    key={coupon.coupon_code}
-                    className="flex items-center justify-between p-4 rounded-xl bg-white/5 border border-white/10 hover:border-rose-500/30 transition-all group"
+                    key={coupon.code}
+                    className="flex flex-col p-4 rounded-xl bg-white/5 border border-white/10 hover:border-rose-500/30 transition-all group"
                   >
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-lg bg-rose-500/10 flex items-center justify-center border border-rose-500/20">
-                        <Tag className="w-5 h-5 text-rose-500" />
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-lg bg-rose-500/10 flex items-center justify-center border border-rose-500/20">
+                          <Tag className="w-5 h-5 text-rose-500" />
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="font-mono text-white font-bold tracking-wider text-base uppercase">{coupon.code}</span>
+                          <span className="text-[10px] text-rose-500 font-black uppercase tracking-widest">
+                            {coupon.discount_type === "percent" ? `${coupon.discount_value}% OFF` : `₦${Number(coupon.discount_value).toLocaleString()} OFF`}
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex flex-col">
-                        <span className="font-mono text-white font-bold tracking-wider">{coupon.coupon_code}</span>
-                        <span className="text-xs text-gray-400">
-                          {coupon.discount_type === "percentage" ? `${coupon.discount_value}%` : `₦${Number(coupon.discount_value).toLocaleString()}`} discount
+                      <Badge variant={coupon.is_active ? "success" : "secondary"} className={coupon.is_active ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30" : "bg-white/5 text-gray-500 border-white/10"}>
+                        {coupon.is_active ? "Active" : "Inactive"}
+                      </Badge>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 pt-3 border-t border-white/5">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[9px] text-gray-500 font-bold uppercase tracking-tighter flex items-center gap-1">
+                          <Layers className="w-2.5 h-2.5" /> Scope
+                        </span>
+                        <span className="text-[10px] text-gray-300 font-medium">
+                          {coupon.category_id ? (ticketCategories.find(c => c.category_id === coupon.category_id)?.name || "Specific Category") : "All categories"}
                         </span>
                       </div>
+                      <div className="flex flex-col gap-1">
+                        <span className="text-[9px] text-gray-500 font-bold uppercase tracking-tighter flex items-center gap-1">
+                          <CheckCircle2 className="w-2.5 h-2.5" /> Uses
+                        </span>
+                        <span className="text-[10px] text-gray-300 font-medium">
+                          {coupon.redemptions_count} / {coupon.max_redemptions || "∞"} used
+                        </span>
+                      </div>
+                      {(coupon.starts_at || coupon.ends_at) && (
+                        <div className="col-span-2 flex flex-col gap-1">
+                          <span className="text-[9px] text-gray-500 font-bold uppercase tracking-tighter flex items-center gap-1">
+                            <Clock className="w-2.5 h-2.5" /> Validity
+                          </span>
+                          <span className="text-[10px] text-gray-300 font-medium">
+                            {coupon.starts_at ? new Date(coupon.starts_at).toLocaleDateString() : "Now"} – {coupon.ends_at ? new Date(coupon.ends_at).toLocaleDateString() : "Forever"}
+                          </span>
+                        </div>
+                      )}
                     </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => onDeleteCoupon(coupon.coupon_code)}
-                      className="text-gray-500 hover:text-rose-500 hover:bg-rose-500/10 rounded-full"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
                   </div>
                 ))}
               </div>
@@ -148,15 +172,15 @@ export const CouponSetup = ({
                   name="discount_type"
                   control={control}
                   rules={{ required: enableCoupon }}
-                  defaultValue="percentage"
+                  defaultValue="percent"
                   render={({ field }) => (
-                    <Select onValueChange={field.onChange} value={field.value || "percentage"}>
+                    <Select onValueChange={field.onChange} value={field.value || "percent"}>
                       <SelectTrigger className="bg-white/5 border-white/10 text-white h-12 rounded-xl focus:ring-rose-500/50">
                         <SelectValue placeholder="Select type" />
                       </SelectTrigger>
                       <SelectContent className="bg-[#121212] border-white/10 text-white">
-                        <SelectItem value="percentage">Percentage (%)</SelectItem>
-                        <SelectItem value="flat">Flat Amount (₦)</SelectItem>
+                        <SelectItem value="percent">Percentage (%)</SelectItem>
+                        <SelectItem value="fixed">Flat Amount (₦)</SelectItem>
                       </SelectContent>
                     </Select>
                   )}
@@ -171,19 +195,20 @@ export const CouponSetup = ({
                     control={control}
                     rules={{ 
                       required: enableCoupon ? "Discount value is required" : false,
-                      min: { value: 1, message: "Value must be greater than 0" },
-                      max: discountType === "percentage" ? { value: 100, message: "Max 100%" } : undefined
+                      min: { value: 0.01, message: "Value must be at least 0.01" },
+                      max: discountType === "percent" ? { value: 100, message: "Max 100%" } : undefined
                     }}
                     render={({ field, fieldState }) => (
                       <>
                         <Input
                           {...field}
                           type="number"
-                          placeholder={discountType === "percentage" ? "10" : "500"}
+                          step="0.01"
+                          placeholder={discountType === "percent" ? "10" : "500"}
                           className={`bg-white/5 border-white/10 text-white h-12 rounded-xl focus:ring-rose-500/50 pr-10 ${fieldState.error ? 'border-rose-500/50' : ''}`}
                         />
                         <div className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none font-bold">
-                          {discountType === "percentage" ? "%" : "₦"}
+                          {discountType === "percent" ? "%" : "₦"}
                         </div>
                         {fieldState.error && (
                           <p className="text-[10px] text-rose-500 mt-1.5 font-medium ml-1">{fieldState.error.message}</p>
@@ -194,69 +219,88 @@ export const CouponSetup = ({
                 </div>
               </div>
 
-              <div className="space-y-2.5 md:col-span-2">
-                <Label className="text-sm font-semibold text-gray-300">Coupon Code</Label>
-                <div className="flex flex-col sm:flex-row gap-3">
+              {ticketCategories.length > 0 && (
+                <div className="space-y-2.5 md:col-span-2">
+                  <Label className="text-sm font-semibold text-gray-300">Apply to</Label>
                   <Controller
-                    name="coupon_code"
+                    name="category_id"
                     control={control}
-                    rules={{ required: enableCoupon ? "Coupon code is required" : false }}
-                    render={({ field, fieldState }) => (
-                      <div className="flex-[2]">
-                        <Input
-                          {...field}
-                          placeholder="e.g. SAVE20"
-                          className={`bg-white/5 border-white/10 text-white h-12 rounded-xl focus:ring-rose-500/50 uppercase font-mono tracking-widest text-base ${fieldState.error ? 'border-rose-500/50' : ''}`}
-                        />
-                        {fieldState.error && (
-                          <p className="text-[10px] text-rose-500 mt-1.5 font-medium ml-1">{fieldState.error.message}</p>
-                        )}
-                      </div>
+                    render={({ field }) => (
+                      <Select onValueChange={field.onChange} value={field.value || ""}>
+                        <SelectTrigger className="bg-white/5 border-white/10 text-white h-12 rounded-xl focus:ring-rose-500/50">
+                          <SelectValue placeholder="All ticket categories" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-[#121212] border-white/10 text-white">
+                          <SelectItem value="">All ticket categories</SelectItem>
+                          {ticketCategories.map((cat) => (
+                            <SelectItem key={cat.category_id || cat.id} value={cat.category_id || cat.id}>
+                              {cat.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     )}
                   />
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={handleGenerateCode}
-                    disabled={hasGenerated}
-                    className="h-12 border-white/10 hover:bg-rose-500/10 hover:text-rose-500 hover:border-rose-500/30 text-white rounded-xl transition-all flex-1 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-white disabled:hover:border-white/10"
-                  >
-                    <RefreshCw className={`w-4 h-4 mr-2 ${hasGenerated ? '' : 'animate-in spin-in-180'}`} />
-                    {hasGenerated ? "Code Generated" : "Generate Code"}
-                  </Button>
                 </div>
-              </div>
+              )}
 
               <div className="space-y-2.5">
-                <Label className="text-sm font-semibold text-gray-300">Usage Limit (Optional)</Label>
+                <Label className="text-sm font-semibold text-gray-300">Valid from (Optional)</Label>
                 <Controller
-                  name="usage_limit"
+                  name="starts_at"
                   control={control}
                   render={({ field }) => (
-                    <Input
-                      {...field}
-                      type="number"
-                      placeholder="Unlimited"
-                      className="bg-white/5 border-white/10 text-white h-12 rounded-xl focus:ring-rose-500/50"
-                      onChange={(e) => field.onChange(e.target.value === "" ? null : parseInt(e.target.value))}
-                      value={field.value || ""}
+                    <DateTimePicker
+                      selected={field.value}
+                      onChange={field.onChange}
+                      placeholder="Start date & time"
                     />
                   )}
                 />
               </div>
 
               <div className="space-y-2.5">
-                <Label className="text-sm font-semibold text-gray-300">Expiry Date (Optional)</Label>
+                <Label className="text-sm font-semibold text-gray-300">Valid until (Optional)</Label>
                 <Controller
-                  name="expiry_date"
+                  name="ends_at"
                   control={control}
+                  rules={{ validate: validateDates }}
                   render={({ field, fieldState }) => (
-                    <DateTimePicker
-                      selected={field.value}
-                      onChange={field.onChange}
-                      placeholder="Select expiry date"
-                      hasError={!!fieldState.error}
-                    />
+                    <>
+                      <DateTimePicker
+                        selected={field.value}
+                        onChange={field.onChange}
+                        placeholder="End date & time"
+                        hasError={!!fieldState.error}
+                      />
+                      {fieldState.error && (
+                        <p className="text-[10px] text-rose-500 mt-1.5 font-medium ml-1">{fieldState.error.message}</p>
+                      )}
+                    </>
+                  )}
+                />
+              </div>
+
+              <div className="space-y-2.5 md:col-span-2">
+                <Label className="text-sm font-semibold text-gray-300">Max uses (leave blank for unlimited)</Label>
+                <Controller
+                  name="max_redemptions"
+                  control={control}
+                  rules={{ min: { value: 1, message: "Min 1 redemption" } }}
+                  render={({ field, fieldState }) => (
+                    <>
+                      <Input
+                        {...field}
+                        type="number"
+                        placeholder="Unlimited"
+                        className={`bg-white/5 border-white/10 text-white h-12 rounded-xl focus:ring-rose-500/50 ${fieldState.error ? 'border-rose-500/50' : ''}`}
+                        onChange={(e) => field.onChange(e.target.value === "" ? null : parseInt(e.target.value))}
+                        value={field.value || ""}
+                      />
+                      {fieldState.error && (
+                        <p className="text-[10px] text-rose-500 mt-1.5 font-medium ml-1">{fieldState.error.message}</p>
+                      )}
+                    </>
                   )}
                 />
               </div>
