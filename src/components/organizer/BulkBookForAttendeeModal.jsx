@@ -410,12 +410,17 @@ export default function BulkBookForAttendeeModal({
           items,
           total_quantity: result.ticket_count ?? ticketCount,
           subtotal,
-          payment_method: "manual_bank_transfer",
-          total_manual_amount: result.total_amount || (subtotal + 80),
+          payment_url: result.payment_url || null, // Only for online payments
           payment_reference: result.payment_reference || null,
+          payment_method: paymentMethod, // Use the selected payment method
+          total_manual_amount: result.total_amount || (subtotal + 80), // Only for manual transfer, assuming 80 is platform fee
           tickets: result.tickets || [],
           created_at: new Date().toISOString(),
-          organizer_booking: { returnUrl: window.location.pathname },
+          organizer_booking: {
+            returnUrl: window.location.pathname,
+            attendeeEmail: attendees[0]?.email,
+            attendeeName: `${attendees[0]?.firstname} ${attendees[0]?.lastname}`,
+          },
         };
         localStorage.setItem(
           `booking_${result.booking_id}`,
@@ -463,7 +468,7 @@ export default function BulkBookForAttendeeModal({
         return;
       }
 
-      // Free event
+      // Handle Free Event (Booking is immediate and doesn't require payment routing)
       toast.success(
         `Successfully booked ${result.ticket_count} ticket(s) for ${result.unique_attendees ?? result.attendees?.length ?? ticketCount} attendee(s)`,
       );

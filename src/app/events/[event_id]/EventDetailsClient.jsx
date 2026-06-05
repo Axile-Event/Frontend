@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Loader2, MapPin, Calendar, Clock, Ticket, Info, Share2, Copy, Check, X, Maximize2, Plus, Minus, ShoppingCart } from "lucide-react";
+import { Loader2, MapPin, Calendar, Clock, Ticket, Info, Share2, Copy, Check, X, Maximize2, Plus, Minus, ShoppingCart, CreditCard, Landmark, Landmark as Bank } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import useAuthStore from "@/store/authStore";
@@ -35,6 +35,7 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
   const [event, setEvent] = useState(initialEvent || null);
   const [loading, setLoading] = useState(!initialEvent);
   const [bookingLoading, setBookingLoading] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("paystack"); // 'paystack' or 'manual_bank_transfer'
 
   //Getting booking id for tracking tickets
   const [bookingID,setBookingID] = useState(null)
@@ -183,13 +184,15 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
       }
     });
 
-    // Paystack calculates fee on total amount INCLUDING platform service fee
-    const paystackFee = subtotal > 0 ? calculatePaystackFee(subtotal + PLATFORM_FEE) : 0;
-    const platformFee = subtotal > 0 ? PLATFORM_FEE + paystackFee : 0;
+    // Base platform service fee
+    const baseServiceFee = subtotal > 0 ? PLATFORM_FEE : 0;
+    // Paystack processing fee only applies if Paystack is the selected method
+    const paystackFee = (subtotal > 0 && paymentMethod === "paystack") ? calculatePaystackFee(subtotal + PLATFORM_FEE) : 0;
+    const platformFee = baseServiceFee + paystackFee;
     const total = subtotal + platformFee;
 
-    return { selectedItems, subtotal, platformFee, total, totalQuantity };
-  }, [ticketSelections, categories]);
+    return { selectedItems, subtotal, platformFee, total, totalQuantity, paystackFee };
+  }, [ticketSelections, categories, paymentMethod]);
 
   // Handle quantity change for a category
   const handleQuantityChange = (categoryId, delta) => {
@@ -276,6 +279,7 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
       const payload = {
         event_id: eventIdToUse,
         items: items,
+        payment_method: paymentMethod,
         // Scoped referral source for event:TO-56363
         ...(eventIdToUse === "event:TO-56363" && {
           referral: refUsername, // Pass referee username as 'referral' to backend
@@ -314,22 +318,15 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
         };
         localStorage.setItem(`booking_${bookingId}`, JSON.stringify(bookingDataForCheckout));
         
-        toast.success("Booking created! Redirecting to payment...", { id: toastId });
-        router.push(`/checkout/payment/${bookingId}`);
+        if (paymentMethod === "manual_bank_transfer") {
+          toast.success("Booking created! Please complete the bank transfer.", { id: toastId });
+          router.push(`/checkout/payment/${bookingId}?method=bank_transfer`);
+        } else {
+          toast.success("Booking created! Redirecting to payment...", { id: toastId });
+          router.push(`/checkout/payment/${bookingId}`);
+        }
         return;
       }
-
-      // Fallback for cases where booking_id isn't directly returned but payment_url is
-      if (response.data.payment_url) {
-        toast.success("Redirecting to payment...", { id: toastId });
-        window.location.href = response.data.payment_url;
-        return;
-      }
-
-      toast.success("Ticket booked successfully!", { id: toastId });
-      if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("tickets-updated"));
-      router.push("/dashboard/user/my-tickets");
-
     } catch (error) {
       console.error("Booking error:", error);
       let errorMessage = error.response?.data?.error || "Failed to book ticket";
@@ -410,7 +407,7 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
               </span>
             </div>
           </div>
-          
+
           {/* Referral Badge */}
           <AnimatePresence>
             {refUsername && (

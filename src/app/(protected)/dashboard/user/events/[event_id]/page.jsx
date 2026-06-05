@@ -377,13 +377,18 @@ const EventDetailsPage = () => {
 
         if (validReferral) clearReferral();
         
-        toast.success("Booking created! Redirecting to checkout...", { id: toastId });
-        router.push(`/checkout/payment/${bookingId}`);
+        if (checkoutPaymentMethod === "manual_bank_transfer") {
+          toast.success("Booking created! Please complete the bank transfer.", { id: toastId });
+          router.push(`/checkout/payment/${bookingId}?method=bank_transfer`);
+        } else {
+          toast.success("Booking created! Redirecting to checkout...", { id: toastId });
+          router.push(`/checkout/payment/${bookingId}`);
+        }
         return;
       }
 
       // Fallback: If there's a direct payment URL, redirect to it
-      if (response.data.payment_url) {
+      if (response.data.payment_url && checkoutPaymentMethod !== "manual_bank_transfer") {
         toast.success("Redirecting to payment...", { id: toastId });
         window.location.href = response.data.payment_url;
         return;
