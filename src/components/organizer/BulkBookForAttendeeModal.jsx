@@ -380,27 +380,28 @@ export default function BulkBookForAttendeeModal({
       );
       const result = response.data;
 
-      // Paid + manual bank transfer — route to checkout with manual transfer tab
+      // Build category totals
+      const categoryTotals = {};
+      attendees.forEach((a) => {
+        const catName = a.category_name || defaultCategoryName;
+        const cat = categories.find((c) => c.name === catName);
+        const price = cat?.price ? Number(cat.price) : 0;
+        if (!categoryTotals[catName])
+          categoryTotals[catName] = { name: catName, price, quantity: 0 };
+        categoryTotals[catName].quantity += 1;
+      });
+      const items = Object.values(categoryTotals);
+      const subtotal = items.reduce(
+        (sum, item) => sum + item.price * item.quantity,
+        0,
+      );
+
+      // Paid + manual bank transfer
       if (
         isPaidEvent &&
         paymentMethod === "manual_bank_transfer" &&
-        result.booking_id != null &&
-        result.total_amount != null
+        result.booking_id != null
       ) {
-        const categoryTotals = {};
-        attendees.forEach((a) => {
-          const catName = a.category_name || defaultCategoryName;
-          const cat = categories.find((c) => c.name === catName);
-          const price = cat?.price ? Number(cat.price) : 0;
-          if (!categoryTotals[catName])
-            categoryTotals[catName] = { name: catName, price, quantity: 0 };
-          categoryTotals[catName].quantity += 1;
-        });
-        const items = Object.values(categoryTotals);
-        const subtotal = items.reduce(
-          (sum, item) => sum + item.price * item.quantity,
-          0,
-        );
         const bookingData = {
           booking_id: result.booking_id,
           event_name: event?.name || "Event",
@@ -428,27 +429,13 @@ export default function BulkBookForAttendeeModal({
         return;
       }
 
-      // Paid + Paystack: store booking with base subtotal so checkout page adds platform + Paystack fees
+      // Paid + Paystack
       if (
         isPaidEvent &&
-        paymentMethod !== "manual_bank_transfer" &&
+        paymentMethod === "paystack" &&
         result.booking_id != null &&
         result.payment_url != null
       ) {
-        const categoryTotals = {};
-        attendees.forEach((a) => {
-          const catName = a.category_name || defaultCategoryName;
-          const cat = categories.find((c) => c.name === catName);
-          const price = cat?.price ? Number(cat.price) : 0;
-          if (!categoryTotals[catName])
-            categoryTotals[catName] = { name: catName, price, quantity: 0 };
-          categoryTotals[catName].quantity += 1;
-        });
-        const items = Object.values(categoryTotals);
-        const subtotal = items.reduce(
-          (sum, item) => sum + item.price * item.quantity,
-          0,
-        );
         const bookingData = {
           booking_id: result.booking_id,
           event_name: event?.name || "Event",
@@ -459,7 +446,7 @@ export default function BulkBookForAttendeeModal({
           subtotal,
           payment_url: result.payment_url || null,
           payment_reference: result.payment_reference || null,
-          payment_method: result.payment_method || "paystack",
+          payment_method: "paystack",
           tickets: result.tickets || [],
           created_at: new Date().toISOString(),
           organizer_booking: { returnUrl: window.location.pathname },
