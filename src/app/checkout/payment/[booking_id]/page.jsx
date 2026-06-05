@@ -49,6 +49,14 @@ export default function CheckoutPaymentPage() {
   const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState("paystack");
 
+  // Sync active tab with URL parameters for direct redirection (e.g. from organizer dashboard)
+  useEffect(() => {
+    const method = searchParams.get('method');
+    if (method === 'bank_transfer') {
+      setActiveTab('manual_bank_transfer');
+    }
+  }, [searchParams]);
+
   useEffect(() => {
     const fetchBookingData = async () => {
       if (!booking_id) {

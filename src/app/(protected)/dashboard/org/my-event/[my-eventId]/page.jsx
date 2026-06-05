@@ -28,7 +28,8 @@ import {
   Minus,
   Plus,
   Megaphone,
-  Tag
+  Tag,
+  Landmark
 } from "lucide-react";
 import toast from "react-hot-toast";
 import { getImageUrl, getErrorMessage } from "../../../../../../lib/utils";
@@ -46,6 +47,7 @@ import useTempBookingStore from "@/store/tempBookingStore";
 function BookForAttendeeModal({ isOpen, onClose, event, eventId, onSuccess, onManualPaymentRequired }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('paystack');
   const [formData, setFormData] = useState({
     firstname: '',
     lastname: '',
@@ -112,14 +114,14 @@ function BookForAttendeeModal({ isOpen, onClose, event, eventId, onSuccess, onMa
         ]
       };
       if (isPaidEvent) {
-        payload.payment_method = 'paystack';
+        payload.payment_method = paymentMethod;
       }
 
       const response = await api.post('/tickets/organizer/book-for-attendee/', payload);
       const result = response.data;
 
       // Paid event: store booking with base subtotal so checkout page adds platform + Paystack fees
-      if (isPaidEvent && result.booking_id != null && result.payment_url != null) {
+      if (isPaidEvent && result.booking_id != null) {
         const price = selectedCategory?.price ?? 0;
         const subtotal = price * formData.quantity;
         const items = [{
@@ -139,6 +141,7 @@ function BookForAttendeeModal({ isOpen, onClose, event, eventId, onSuccess, onMa
           payment_url: result.payment_url || null,
           payment_reference: result.payment_reference || null,
           tickets: result.tickets || [],
+          payment_method: paymentMethod,
           created_at: new Date().toISOString(),
           organizer_booking: {
             returnUrl: window.location.pathname,
@@ -150,7 +153,10 @@ function BookForAttendeeModal({ isOpen, onClose, event, eventId, onSuccess, onMa
         onSuccess?.();
         onClose();
         toast.success('Proceeding to checkout...');
-        router.push(`/checkout/payment/${result.booking_id}`);
+        const checkoutUrl = paymentMethod === 'manual_bank_transfer' 
+          ? `/checkout/payment/${result.booking_id}?method=bank_transfer`
+          : `/checkout/payment/${result.booking_id}`;
+        router.push(checkoutUrl);
         return;
       }
 
@@ -286,6 +292,40 @@ function BookForAttendeeModal({ isOpen, onClose, event, eventId, onSuccess, onMa
               </p>
             </div>
           </div>
+
+          {/* Payment Method Selection */}
+          {isPaidEvent && (
+            <div className="bg-white/2 border border-white/5 rounded-xl sm:rounded-2xl p-3 sm:p-4 space-y-3 sm:space-y-4">
+              <div className="flex items-center gap-2 text-[10px] sm:text-xs font-bold text-gray-500 uppercase tracking-widest">
+                <CreditCard className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                Payment Method
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('paystack')}
+                  className={`py-2 px-3 rounded-xl border text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+                    paymentMethod === 'paystack'
+                      ? 'bg-rose-600 border-rose-600 text-white'
+                      : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'
+                  }`}
+                >
+                  <CreditCard className="w-3 h-3" /> Paystack
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('manual_bank_transfer')}
+                  className={`py-2 px-3 rounded-xl border text-[10px] font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
+                    paymentMethod === 'manual_bank_transfer'
+                      ? 'bg-rose-600 border-rose-600 text-white'
+                      : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'
+                  }`}
+                >
+                  <Landmark className="w-3 h-3" /> Transfer
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Ticket Selection Card */}
           <div className="bg-white/2 border border-white/5 rounded-xl sm:rounded-2xl p-3 sm:p-4 space-y-3 sm:space-y-4">

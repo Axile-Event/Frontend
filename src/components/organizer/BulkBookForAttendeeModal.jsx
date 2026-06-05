@@ -380,18 +380,12 @@ export default function BulkBookForAttendeeModal({
       );
       const result = response.data;
 
-      // Paid + manual bank transfer — route to checkout with manual transfer tab
-      if (
-        isPaidEvent &&
-        paymentMethod === "manual_bank_transfer" &&
-        result.booking_id != null &&
-        result.total_amount != null
-      ) {
+      if (isPaidEvent && result.booking_id != null) {
         const categoryTotals = {};
         attendees.forEach((a) => {
           const catName = a.category_name || defaultCategoryName;
           const cat = categories.find((c) => c.name === catName);
-          const price = cat?.price ? Number(cat.price) : 0;
+          const price = cat?.price ? Number(cat.price) : 0; // Ensure price is a number
           if (!categoryTotals[catName])
             categoryTotals[catName] = { name: catName, price, quantity: 0 };
           categoryTotals[catName].quantity += 1;
@@ -401,6 +395,7 @@ export default function BulkBookForAttendeeModal({
           (sum, item) => sum + item.price * item.quantity,
           0,
         );
+
         const bookingData = {
           booking_id: result.booking_id,
           event_name: event?.name || "Event",
@@ -409,74 +404,41 @@ export default function BulkBookForAttendeeModal({
           items,
           total_quantity: result.ticket_count ?? ticketCount,
           subtotal,
-          payment_method: "manual_bank_transfer",
-          total_manual_amount: result.total_amount || (subtotal + 80),
+          payment_url: result.payment_url || null, // Only for online payments
           payment_reference: result.payment_reference || null,
+          payment_method: paymentMethod, // Use the selected payment method
+          total_manual_amount: result.total_amount || (subtotal + 80), // Only for manual transfer, assuming 80 is platform fee
           tickets: result.tickets || [],
           created_at: new Date().toISOString(),
-          organizer_booking: { returnUrl: window.location.pathname },
+          organizer_booking: {
+            returnUrl: window.location.pathname,
+            attendeeEmail: attendees[0]?.email,
+            attendeeName: `${attendees[0]?.firstname} ${attendees[0]?.lastname}`,
+          },
         };
-        localStorage.setItem(
-          `booking_${result.booking_id}`,
-          JSON.stringify(bookingData),
-        );
-        resetModal();
-        onSuccess?.();
-        onClose();
-        toast.success("Proceeding to manual transfer...");
-        router.push(`/checkout/payment/${result.booking_id}`);
+        
+        if (paymentMethod === "manual_bank_transfer") {
+          // Redirect to the standard checkout page with bank transfer active
+          // This ensures the user sees the account info (ManualTransferTab) first
+          localStorage.setItem(`booking_${result.booking_id}`, JSON.stringify(bookingData));
+          toast.success("Proceeding to manual transfer...");
+          router.push(`/checkout/payment/${result.booking_id}?method=bank_transfer`);
+          resetModal();
+          onSuccess?.();
+          onClose();
+        } else {
+          // Handle Paystack/Online payment redirection
+          localStorage.setItem(`booking_${result.booking_id}`, JSON.stringify(bookingData));
+          toast.success("Proceeding to checkout...");
+          router.push(`/checkout/payment/${result.booking_id}`);
+          resetModal();
+          onSuccess?.();
+          onClose();
+        }
         return;
       }
 
-      // Paid + Paystack: store booking with base subtotal so checkout page adds platform + Paystack fees
-      if (
-        isPaidEvent &&
-        paymentMethod !== "manual_bank_transfer" &&
-        result.booking_id != null &&
-        result.payment_url != null
-      ) {
-        const categoryTotals = {};
-        attendees.forEach((a) => {
-          const catName = a.category_name || defaultCategoryName;
-          const cat = categories.find((c) => c.name === catName);
-          const price = cat?.price ? Number(cat.price) : 0;
-          if (!categoryTotals[catName])
-            categoryTotals[catName] = { name: catName, price, quantity: 0 };
-          categoryTotals[catName].quantity += 1;
-        });
-        const items = Object.values(categoryTotals);
-        const subtotal = items.reduce(
-          (sum, item) => sum + item.price * item.quantity,
-          0,
-        );
-        const bookingData = {
-          booking_id: result.booking_id,
-          event_name: event?.name || "Event",
-          event_id: decodedEventId,
-          event_image: event?.image,
-          items,
-          total_quantity: result.ticket_count ?? ticketCount,
-          subtotal,
-          payment_url: result.payment_url || null,
-          payment_reference: result.payment_reference || null,
-          payment_method: result.payment_method || "paystack",
-          tickets: result.tickets || [],
-          created_at: new Date().toISOString(),
-          organizer_booking: { returnUrl: window.location.pathname },
-        };
-        localStorage.setItem(
-          `booking_${result.booking_id}`,
-          JSON.stringify(bookingData),
-        );
-        resetModal();
-        onSuccess?.();
-        onClose();
-        toast.success("Proceeding to checkout...");
-        router.push(`/checkout/payment/${result.booking_id}`);
-        return;
-      }
-
-      // Free event
+      // Handle Free Event (Booking is immediate and doesn't require payment routing)
       toast.success(
         `Successfully booked ${result.ticket_count} ticket(s) for ${result.unique_attendees ?? result.attendees?.length ?? ticketCount} attendee(s)`,
       );

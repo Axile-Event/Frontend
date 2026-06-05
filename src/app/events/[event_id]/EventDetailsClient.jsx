@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { Loader2, MapPin, Calendar, Clock, Ticket, Info, Share2, Copy, Check, X, Maximize2, Plus, Minus, ShoppingCart } from "lucide-react";
+import { Loader2, MapPin, Calendar, Clock, Ticket, Info, Share2, Copy, Check, X, Maximize2, Plus, Minus, ShoppingCart, CreditCard, Landmark, Landmark as Bank } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import toast from "react-hot-toast";
 import useAuthStore from "@/store/authStore";
@@ -35,6 +35,7 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
   const [event, setEvent] = useState(initialEvent || null);
   const [loading, setLoading] = useState(!initialEvent);
   const [bookingLoading, setBookingLoading] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("paystack"); // 'paystack' or 'manual_bank_transfer'
 
   //Getting booking id for tracking tickets
   const [bookingID,setBookingID] = useState(null)
@@ -276,6 +277,7 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
       const payload = {
         event_id: eventIdToUse,
         items: items,
+        payment_method: paymentMethod,
         // Scoped referral source for event:TO-56363
         ...(eventIdToUse === "event:TO-56363" && {
           referral: refUsername, // Pass referee username as 'referral' to backend
@@ -314,22 +316,15 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
         };
         localStorage.setItem(`booking_${bookingId}`, JSON.stringify(bookingDataForCheckout));
         
-        toast.success("Booking created! Redirecting to payment...", { id: toastId });
-        router.push(`/checkout/payment/${bookingId}`);
+        if (paymentMethod === "manual_bank_transfer") {
+          toast.success("Booking created! Please complete the bank transfer.", { id: toastId });
+          router.push(`/checkout/payment/${bookingId}?method=bank_transfer`);
+        } else {
+          toast.success("Booking created! Redirecting to payment...", { id: toastId });
+          router.push(`/checkout/payment/${bookingId}`);
+        }
         return;
       }
-
-      // Fallback for cases where booking_id isn't directly returned but payment_url is
-      if (response.data.payment_url) {
-        toast.success("Redirecting to payment...", { id: toastId });
-        window.location.href = response.data.payment_url;
-        return;
-      }
-
-      toast.success("Ticket booked successfully!", { id: toastId });
-      if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("tickets-updated"));
-      router.push("/dashboard/user/my-tickets");
-
     } catch (error) {
       console.error("Booking error:", error);
       let errorMessage = error.response?.data?.error || "Failed to book ticket";
@@ -410,6 +405,40 @@ const EventDetailsClient = ({ event_id, initialEvent }) => {
               </span>
             </div>
           </div>
+
+                      {/* Payment Method Selection */}
+                      {event.pricing_type === 'paid' && orderSummary.totalQuantity > 0 && (
+                        <div className="border-t border-border/50 pt-4 space-y-3">
+                          <p className="text-sm font-semibold text-foreground">Select Payment Method</p>
+                          <div className="grid grid-cols-2 gap-3">
+                            <button
+                              onClick={() => setPaymentMethod("paystack")}
+                              className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all ${
+                                paymentMethod === "paystack" 
+                                  ? "border-rose-500 bg-rose-500/5 text-rose-500" 
+                                  : "border-border bg-transparent text-muted-foreground hover:border-border/80"
+                              }`}
+                            >
+                              <CreditCard className="h-5 w-5 mb-1" />
+                              <span className="text-[10px] font-bold uppercase tracking-wider">Paystack</span>
+                            </button>
+                            <button
+                              onClick={() => setPaymentMethod("manual_bank_transfer")}
+                              className={`flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all ${
+                                paymentMethod === "manual_bank_transfer" 
+                                  ? "border-rose-500 bg-rose-500/5 text-rose-500" 
+                                  : "border-border bg-transparent text-muted-foreground hover:border-border/80"
+                              }`}
+                            >
+                              <Landmark className="h-5 w-5 mb-1" />
+                              <span className="text-[10px] font-bold uppercase tracking-wider">Transfer</span>
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="border-t border-border/50 pt-4">
+                        <div className="flex justify-between items-center">
           
           {/* Referral Badge */}
           <AnimatePresence>
